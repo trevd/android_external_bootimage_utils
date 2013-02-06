@@ -1,0 +1,133 @@
+
+Usage:  bootimg-tools ACTION <switches>
+The following actions are available
+  unpack	unpack a boot image into it's constituent parts
+  pack		pack seperate files into a boot image
+  list		print boot image header details
+  extract   extract a single file from a boot image ramdisk
+  update    update the boot image
+  
+See bootimg-tools help <action> for detailed information
+
+bootimg-tools help unpack
+
+Summary
+-------
+unpack a boot image into it's constituent parts
+
+Usage: bootimg-tools unpack [ switches ]
+
+Options:
+	-i, --input	 					the source boot image
+	-o, --output-dir 				output directory (default current )
+	-w, --overwrite					overwrite output director
+	-k, --kernel					unpack the kernel image to the specified file
+	-h, --header					write the boot image header to the specified file
+	-s, --second					write the secondary bootloader to the specified file
+	-c, --cmdline					write the cmdline to the specified file
+	-b, --borard					write the boot image name to the specified file
+	
+	-r, --ramdisk					the name of the extracted ramdisk files
+	-d, --ramdisk-directory			unpack the ramdisk to directory
+	-x, --ramdisk-archive			unpack the ramdisk to archive level
+	-p, --ramdisk-cpio				unpack the ramdisk to cpio level
+
+Notes:
+	The --input switch must contain a path to file. This file must exist and contain
+	a valid android boot image. specified by the magic ANDROID! . The boot image can
+	be offset with in the file.
+	
+	The --output switch is optional it must contain a directory. 
+	If the directory does not exist	then it will be created 
+	If the directory exists:
+		with --overwrite switch, The existing contents will be deleted 
+		without --overwrite switch, The program will exit
+	
+	If the user does not have permission to create the directory then 
+	the program will exit
+	
+	If the --output is not set then the current directory is used.
+	The --overwrite switch is ignored for safety
+	
+	The --kernel flag specified the name of the extracted kernel binary blob
+	
+	
+	
+	
+
+UExamples:
+
+
+# Unpack full boot image
+unpack --input <bootimage name> --all [ --output-dir [output dir] ]
+
+The following switches can be combined to your requirements
+
+# Unpack ramdisk examples
+unpack --input <bootimage name> --ramdisk [ramdisk-name] [ --ramdisk-cpio ] [ --ramdisk-archive ] [ --ramdisk-directory ]    [ --output-dir <output-dir> ]
+
+# Unpack kernel examples
+unpack --input <bootimage name> --kernel [kernel-name] [ --output-dir <output-dir> ]
+
+# Unpack second examples
+unpack --input <bootimage name> --second [second-bootloader] [ --output-dir <output-dir> ]
+
+# Unpack cmdline examples
+unpack --input <bootimage name> --cmdline [cmdline-filename] [ --output-dir <output-dir> ]
+
+# Unpack board examples
+unpack --input <bootimage name> --board [board-filename] [ --output-dir <output-dir> ]
+
+# Unpack details examples
+unpack --input <bootimage name> --details [details-filename] [ --output-dir <output-dir> ]
+
+# Unpack Combination
+
+
+
+explaination of switches 
+
+--input <bootimage name>  
+This is must point to a valid Android Boot Image. This can be either a regular file or 
+an android device node
+
+--all
+Unpack the entire boot image contents
+
+--ramdisk [ramdisk-name]
+Extract the ramdisk, if [ramdisk-name] is not specific then the output file is called
+initramfs.cpio.gz 
+
+--ramdisk-level <unpack-level>
+The level to unpack the ramdisk to, the options are 
+archive - This will unpack the ramdisk into it's archived formated
+cpio 	- This will unpack the ramdisk into upto the level of cpio
+dir		- This will extract the ramdisk to the specified directory
+all		- This will save the output to disk at each stage
+
+
+
+
+[ <output dir> ] - Optional output directory to write files to. 
+			       If the output directory exists then user 
+			   Doesn't exist, it will be created, if no directory name is 
+			   Specified then the boot image name less the file extension will
+			   be used, if the boot image filename has no extension then the
+			   program will exit...... we can't do everything for you!
+
+
+
+
+
+
+
+Output Generated:
+
+kernel - Unpack Kernel Binary Blob
+initramfs.cpio.gz - gzipped cpio'd initial ramdisk  
+initramfs.cpio - cpio'd initial ramdisk
+ramdisk - directory containing initial ramdisk contents
+cmdline - file containing the kernel command line string
+board - file containing the boot image name
+second - Binary Blob containing Secondary Bootloader if present
+details - file containing full details including offsets, pagesizes etc
