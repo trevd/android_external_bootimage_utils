@@ -1,0 +1,8 @@
+bootfs.c
+default.prop
+kernel
+minigzip.c
+simple_cpio.c
+split_bootimg.c
+tests
+testimages
