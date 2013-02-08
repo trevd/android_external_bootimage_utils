@@ -136,7 +136,6 @@ unsigned char *load_file_from_offset(const char *filepath,int offset,unsigned lo
 	
     unsigned char *data;
     int sz; int fd;
-	
     data = 0;
    // fprintf(stderr,"load siz1e:%s  offset:%d\n",filepath,offset);
     FILE *fp = fopen(filepath, "rb");
@@ -187,8 +186,7 @@ oops:
     return 0;
 }
 int write_to_file_mode(unsigned char *data_in, unsigned output_size,char * output_filename, mode_t mode){
-	if(write_to_file(data_in,output_size,output_filename))
-		return -1;
+
 	chmod(output_filename,mode);
 	return 0;
 	

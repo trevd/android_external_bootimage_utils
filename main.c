@@ -1,5 +1,3 @@
-
-
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -12,7 +10,7 @@
 #include "bootimg_utils.h"
 #include "program.h"
 #include "file.h"
-
+int vasprintf(char **strp, const char *fmt, va_list ap);
 #define BOOT_IMAGE_UTILITIES_TITLE "Android Boot Image Utilities "
 #define BOOT_IMAGE_UTILITIES_VERSION "0.01b"
 #define BOOT_IMAGE_UTILITIES_DESCRIPTION ""
@@ -31,36 +29,100 @@ char *strrev(char *str)
       }
       return str;
 }
-
+int log_write(const char *format, ...)
+{
+	int result;
+	char *str = NULL;
+	FILE* file;
+	const char *filename;
+	va_list args;
+	va_start(args, format);
+	result = vasprintf(&str, format, args);
+	if(result == -1)
+		return 0;
+	va_end(args);
+	if(HAS_LOGSTDOUT)
+		fprintf(stderr,str);
+	
+	if(HAS_NOLOGFILE){
+		free(str);
+		return 0;
+	}
+		
+	file = fopen(filename,"a");
+	if(!file) {
+		fprintf(stderr, "Couldn't open file %s; %s\n", filename, strerror(errno));
+		free(str);
+		return 0;
+	}
+	
+	if(fwrite(str,strlen(str),1,file) != 1) {
+		fprintf(stderr, "Could not write line to %s; %s\n", filename, strerror(errno));
+		free(str);
+		fclose(file);
+		return 0;
+	}
+	
+	free(str);
+	fclose(file);
+	
+	return 1;
+}
 int help(void){
 	return 0;
 }
-
-int print_usage(void)
-{
-   fprintf(stderr,"You Sage\n");
-   return 0;
-
+int print_usage(){
+		return 0;
 }
-enum command { UNPACK , PACK , LIST , ADD , REMOVE , UPDATE } ;
+#define USEAGE "1346 \
+			245"
+
+static enum command { UNPACK , PACK , LIST , ADD , REMOVE , UPDATE } ;
 
 int main(int argc, char **argv)
 { 
 	if(argc<3) return print_usage();
-	
+	params = SET_LOGSTDOUT ;
+	params = SET_NOLOGFILE;
 	int option_index =-1, option_return =-2, argument_count = argc, settings =0; 
+	
+	
+	
+	
 	
 	int compare_length = strlen(argv[1]) > 6 ? strlen(argv[1]) : 6;
 	if(!strncmp(argv[1],"unpack",compare_length)){
-		fprintf(stderr,"unpack option selected\n");	
+		log_write("main:unpack_option_selected\n");
+		log_write("main:params=[%08x]\n",params);
 		char stringopt[] = { "i:rl:xfpkcbsdho:a"};
 		option_return = getopt_long (argc, argv,stringopt, unpack_long_options, &option_index);
 		while (option_return != -1){
 			switch(option_return){
-				case 'a':{ params = (params | ALL ); break;	}
-				case 'x':{ params = SET_RAMDISK_ARCHIVE ; break;	}
-				case 'd':{ params = SET_RAMDISK_DIRECTORY ; break;}
-				case 'p':{ params = SET_RAMDISK_CPIO	 ;  break; }
+				case 'a':{ 
+						log_write("main:all_switch_specified\n");
+						option_values.ramdisk_directory=DEFAULT_RAMDISK_DIRECTORY_NAME;
+						log_write("main:all_switch:ramdisk_directory_name=%s\n",option_values.ramdisk_directory);
+						option_values.kernel=DEFAULT_KERNEL_NAME;
+						log_write("main:all_switch:kernel_filename=%s\n",option_values.kernel);
+						option_values.header=DEFAULT_HEADER_NAME;
+						log_write("main:all_switch:header_filename=%s\n",option_values.header);
+						params = SET_RAMDISK_DIRECTORY ;
+						log_write("main:params=[%08x]\n",params);
+						params = SET_KERNEL;
+						log_write("main:params=[%08x]\n",params);
+						params = SET_HEADER ;
+						log_write("main:params=[%08x]\n",params);
+						 break;	}
+				case 'x':{ 
+					log_write("main:ramdisk-archive_switch_specified\n");
+					params = SET_RAMDISK_ARCHIVE ; break;	}
+				case 'd':{ 
+					log_write("main:ramdisk-directory_switch_specified\n");
+					params = SET_RAMDISK_DIRECTORY ; break;}
+				case 'p':{ 
+					log_write("pagesize_switch_specified\n");
+					params = SET_PAGESIZE	 ;  
+					break; }
 				case 'i':{
 					 params = SET_IMAGE;
 					 if(check_file_exists(optarg,CHECK_FAIL_EXIT))
@@ -69,13 +131,13 @@ int main(int argc, char **argv)
 				}
 				case 'r':{
 					 params= SET_RAMDISK ;
-					 option_values.ramdisk = malloc(PATH_MAX); 
+					 option_values.ramdisk_name = malloc(PATH_MAX); 
 					 if(!(argv[optind]) || argv[optind][0]=='-'){
-						 strncpy(option_values.ramdisk,"default_ramdisk",strlen("default_ramdisk"));
+						 strncpy(option_values.ramdisk_name,"default_ramdisk",strlen("default_ramdisk"));
 						 break;
 					 }				
 					 if(argv[optind]){
-						 memcpy(option_values.ramdisk,argv[optind],PATH_MAX);
+						 memcpy(option_values.ramdisk_name,argv[optind],PATH_MAX);
 					 }
 					 break;
 				}
@@ -132,9 +194,9 @@ int main(int argc, char **argv)
 				}
 				case 'h':{
 					params = SET_HEADER ;
-					option_values.header= malloc(PATH_MAX); 
+					//option_values.header= malloc(PATH_MAX); 
 					if(!(argv[optind]) || (argv[optind][0]=='-')){
-						 memcpy(option_values.header,"default_header",strlen("default_header"));
+						 memcpy(option_values.header,DEFAULT_HEADER_NAME, DEFAULT_HEADER_NAME_LENGTH);
 						 break;
 					}				
 					if(argv[optind]){
@@ -161,15 +223,11 @@ int main(int argc, char **argv)
 				
 				return print_usage();
 			}
-			if(!HAS_OUTPUT){
-				option_values.output = malloc(PATH_MAX); 
-				getcwd(option_values.output,PATH_MAX);
-			}
 			if(!HAS_RAMDISK){
 				if(HAS_RAMDISK_ARCHIVE || HAS_RAMDISK_CPIO || HAS_RAMDISK_DIRECTORY)
 				{
-						option_values.ramdisk = malloc(PATH_MAX); 
-						memcpy(option_values.ramdisk,"default_ramdisk",strlen("default_ramdisk"));
+						option_values.ramdisk_name = malloc(PATH_MAX); 
+						memcpy(option_values.ramdisk_name,"default_ramdisk",strlen("default_ramdisk"));
 				}
 			}
 			//fprintf(stderr,"output : %s\n",option_values.output);	
@@ -195,18 +253,18 @@ int main(int argc, char **argv)
 					params = SET_RAMDISK;
 					if(check_directory_exists(optarg,CHECK_FAIL_OK)){
 						params = SET_RAMDISK_DIRECTORY;
-						option_values.ramdisk = optarg;
+						option_values.ramdisk_name = optarg;
 						break ;
 					}
 					if(check_file_exists(optarg,CHECK_FAIL_EXIT)){
 						if(is_cpio_file(optarg)){
 							params = SET_RAMDISK_CPIO;
-							option_values.ramdisk = optarg;
+							option_values.ramdisk_name = optarg;
 							break;	 
 						}
 						if(is_gzip_file(optarg)){
 							params = SET_RAMDISK_ARCHIVE;
-							option_values.ramdisk = optarg;
+							option_values.ramdisk_name = optarg;
 							break;
 						}
 						perror("Not A Valid Ramdisk Type\n");
@@ -279,6 +337,7 @@ int main(int argc, char **argv)
 			}
 				
 			list_boot_image_info();
+			exit(0);
 		}
 				
 	}
@@ -286,7 +345,7 @@ int main(int argc, char **argv)
 	if(!strncmp(argv[1],"extract",compare_length)){
 		
 	fprintf(stderr,"extract option selected\n");	 
-		char stringopt[] = { "i:f:o:"};
+		char stringopt[] = { "i:t:s:"};
 		option_return = getopt_long (argc, argv,stringopt, extract_long_options, &option_index);
 		while (option_return != -1){
 			switch(option_return){
@@ -296,27 +355,30 @@ int main(int argc, char **argv)
 						option_values.image = optarg;
 					 break;
 				}
-				case 'f':{ 
-						params = SET_FILENAME ;
-						option_values.filename = optarg;
-						option_values.filename_length = strlen(optarg);
+				case 't':{ 
+						params = SET_TARGET ;
+						option_values.target = optarg;
+						option_values.target_length = strlen(optarg);
 						break;
 					}
-				case 'o':{ 
-						params = SET_OUTPUT ;
-						option_values.output = optarg;
+				case 's':{ 
+						params = SET_SOURCE ;
+						option_values.source = optarg;
+						option_values.source_length = strlen(optarg);
 						break;
 					}
 				default : break;
 			}
 			option_return = getopt_long (argc, argv,stringopt, extract_long_options, &option_index);
 		}
-		if(!HAS_FILENAME){
+		if((!HAS_SOURCE) || (!HAS_IMAGE)){
 			return print_usage();
 		}
-		if(!HAS_IMAGE){
-			return print_usage();
+		if(!HAS_TARGET){
+			option_values.target=option_values.source;
+			log_write("Setting target to same as source %p %p %s\n",option_values.target,option_values.source,option_values.source);
 		}
+		
 		extract();
 		
 				

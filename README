@@ -1,36 +1,38 @@
+bootimg-tools is an highly flexible utility for manage android boot images 
 
 Usage:  bootimg-tools ACTION <switches>
 The following actions are available
   unpack	unpack a boot image into it's constituent parts
   pack		pack seperate files into a boot image
-  list		print boot image header details
+  list		print boot image header details or ramdisk fileinfo
   extract   extract a single file from a boot image ramdisk
   update    update the boot image
   
 See bootimg-tools help <action> for detailed information
 
-bootimg-tools help unpack
+
 
 Summary
 -------
 unpack a boot image into it's constituent parts
 
-Usage: bootimg-tools unpack [ switches ]
+Usage:  bootimg-tools <u|unpack> [ command-switches ] [ global-switches ]
+		
 
 Options:
-	-i, --input	 					the source boot image
-	-o, --output-dir 				output directory (default current )
-	-w, --overwrite					overwrite output director
+	-i, --boot-input				the source boot image
+	-o, --output-dir 				the output base output directory
 	-k, --kernel					unpack the kernel image to the specified file
-	-h, --header					write the boot image header to the specified file
 	-s, --second					write the secondary bootloader to the specified file
+	-h, --header					write the boot image header to the specified file
 	-c, --cmdline					write the cmdline to the specified file
-	-b, --borard					write the boot image name to the specified file
+	-b, --board						write the boot image name to the specified file
+	-p, --pagesize					write the pagesize info to the specified file
 	
-	-r, --ramdisk					the name of the extracted ramdisk files
-	-d, --ramdisk-directory			unpack the ramdisk to directory
-	-x, --ramdisk-archive			unpack the ramdisk to archive level
-	-p, --ramdisk-cpio				unpack the ramdisk to cpio level
+	-r, --ramdisk-name				the name of the extracted ramdisk files
+	-d, --ramdisk-directory			unpack the ramdisk to directory to the specified location
+	-x, --ramdisk-archive			unpack the ramdisk to archive level to the specified file
+	--ramdisk-cpio					unpack the ramdisk to cpio level to the specified file
 
 Notes:
 	The --input switch must contain a path to file. This file must exist and contain
@@ -49,13 +51,10 @@ Notes:
 	If the --output is not set then the current directory is used.
 	The --overwrite switch is ignored for safety
 	
-	The --kernel flag specified the name of the extracted kernel binary blob
-	
-	
-	
-	
+	The --kernel flag specifies the name of the extracted kernel binary blob
 
-UExamples:
+
+Examples: All command switches for the unpack command can be combined 
 
 
 # Unpack full boot image
@@ -64,7 +63,8 @@ unpack --input <bootimage name> --all [ --output-dir [output dir] ]
 The following switches can be combined to your requirements
 
 # Unpack ramdisk examples
-unpack --input <bootimage name> --ramdisk [ramdisk-name] [ --ramdisk-cpio ] [ --ramdisk-archive ] [ --ramdisk-directory ]    [ --output-dir <output-dir> ]
+1. Unpack all ramdisk files 
+unpack --input <bootimage name> --ramdisk-name [ramdisk-name] [ --ramdisk-cpio ] [ --ramdisk-archive ] [ --ramdisk-directory ]    [ --output-dir <output-dir> ]
 
 # Unpack kernel examples
 unpack --input <bootimage name> --kernel [kernel-name] [ --output-dir <output-dir> ]
@@ -84,41 +84,36 @@ unpack --input <bootimage name> --details [details-filename] [ --output-dir <out
 # Unpack Combination
 
 
+Global Switches
+----------------
+Globals switches can be used with all commands the control the programs behaviour and 
+output, There are as follows
 
-explaination of switches 
+	--no-logfile			The will automatically create a session log by default.
+							You can use the --no-log switch if logging is not required
+					
+	--log-name				By default the logfile created has the following pattern
+							<BOOT IMAGE NAME><ACTION><DATE>.log, use this switch to override
+							the default
+	--log-stdout			prints the log messages to stdout, use in combination with --no-logfile
+							to print to stdout only
+	--interactive			Interactive mode allows you to run or skip each part of the process
+	
+							
+	--cpio					Specific an external cpio binary
+	--gzip					Specific an external gzip binary
+	--lzop					Specific an external lzop binary
+	--xz					Specific an external xz binary
+							
+Smart-Lazy Mode ( SLMode )
+--------------------------
 
---input <bootimage name>  
-This is must point to a valid Android Boot Image. This can be either a regular file or 
-an android device node
+Using Smart/Lazy Mode allows you to be lazy and the program to be smart. 
+SLMode is activated by simply passing a string to as the command line parameter, 
+Then the program will try to figure out what to do with it.
 
---all
-Unpack the entire boot image contents
-
---ramdisk [ramdisk-name]
-Extract the ramdisk, if [ramdisk-name] is not specific then the output file is called
-initramfs.cpio.gz 
-
---ramdisk-level <unpack-level>
-The level to unpack the ramdisk to, the options are 
-archive - This will unpack the ramdisk into it's archived formated
-cpio 	- This will unpack the ramdisk into upto the level of cpio
-dir		- This will extract the ramdisk to the specified directory
-all		- This will save the output to disk at each stage
-
-
-
-
-[ <output dir> ] - Optional output directory to write files to. 
-			       If the output directory exists then user 
-			   Doesn't exist, it will be created, if no directory name is 
-			   Specified then the boot image name less the file extension will
-			   be used, if the boot image filename has no extension then the
-			   program will exit...... we can't do everything for you!
-
-
-
-
-
+If the command is a valid boot image filename then the program will attempt to unpack the 
+image to the current directory
 
 
 Output Generated:

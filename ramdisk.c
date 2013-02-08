@@ -142,9 +142,11 @@ long find_file_in_ramdisk_entries(unsigned char *data,unsigned size,unsigned lon
 {
 	
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);	
-	if(!strncmp(option_values.filename,cpio_entry.file_name,cpio_entry.name_size)){
-		write_to_file_mode(data+cpio_entry.file_start,cpio_entry.file_size,option_values.output,cpio_entry.mode);
+	if(!strncmp(option_values.source,cpio_entry.file_name,cpio_entry.name_size)){
+		log_write("Found File in Ramdisk at %lu\n",offset);
+		write_to_file_mode(data+cpio_entry.file_start,cpio_entry.file_size,option_values.target,cpio_entry.mode);
 		return -1;
+		
 	}
 	if(!strncmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC,CPIO_TRAILER_MAGIC_LENGTH)){	
 		return -1;
@@ -209,75 +211,75 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,unsigned char* ou
 	unsigned long  bytes_to_next_header_start = 0;
 	unsigned long  next_header = 0;
 	if((dp = opendir(dir)) == NULL) 
-		fprintf(stderr,"cannot open directory: %s\n", dir);
+		//log_write(stderr,"cannot open directory: %s\n", dir);
 		
-		chdir(dir);
-		getcwd(cwd,PATH_MAX);
-		//fprintf(stderr,"cwd: %s\n", cwd);
-		while((entry = readdir(dp)) != NULL) {
-			lstat(entry->d_name,&statbuf);
-			char full_name[PATH_MAX];
-			full_name[0] = 0;
-			strncpy(full_name,path,PATH_MAX); 
-			strncat(full_name,entry->d_name,PATH_MAX );
-			name_size = strlen(full_name)+1;
-			bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
-			file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;
-		
-			//printf("offset:%ld:%s\n",offset,entry->d_name);
-			if(S_ISDIR(statbuf.st_mode)) {
-				/* Found a directory, but ignore . and .. */
-				if(strcmp(".",entry->d_name) == 0 || strcmp("..",entry->d_name) == 0)
-						continue;
-				bytes_to_next_header_start =(4 - ((file_start+0) % 4)) % 4;
-				append_cpio_header_to_stream(statbuf,full_name,0,name_size,output_buffer+offset);
-				strncat(full_name,"/",PATH_MAX );
-				next_header = file_start+0+bytes_to_next_header_start;
-				offset +=next_header;
-				pack_ramdisk_entries(entry->d_name,full_name,output_buffer);
-			}
-			else if(S_ISREG(statbuf.st_mode)){
-				printf("Reg:%s %d\n",entry->d_name,statbuf.st_mode);
-				unsigned long file_size =0 ;
-				unsigned char* data = load_file(entry->d_name,&file_size);
-				if(!strncmp((char*)data,"LNK:",4)){	
-					free(data);
-					file_size =0 ;
-					data = load_file_from_offset(entry->d_name,4,&file_size);
-					statbuf.st_mode = statbuf.st_mode | S_IFLNK ;
-					statbuf.st_size = file_size ;
-					
-				}			
-				bytes_to_next_header_start =(4 - ((file_start+file_size) % 4)) % 4;
-				next_header = file_start+file_size+bytes_to_next_header_start;
-				append_cpio_header_to_stream(statbuf,full_name,statbuf.st_size,name_size,output_buffer+offset);
-				memmove(output_buffer+offset+file_start,data,file_size);
-				offset +=next_header;
-				free(data);
-
-			} 
-			else if(S_ISLNK(statbuf.st_mode)){
-				unsigned char* data=calloc(MEMORY_BUFFER_SIZE, sizeof(unsigned char));
-				readlink(entry->d_name,(char*)data,PATH_MAX);
-				unsigned file_size =strlen((char*)data);
-				//printf("link:%s %s %d %d\n",entry->d_name,data,statbuf.st_mode,file_size);
-				bytes_to_next_header_start =(4 - ((file_start+file_size) % 4)) % 4;
-				next_header = file_start+file_size+bytes_to_next_header_start;
-				append_cpio_header_to_stream(statbuf,full_name,statbuf.st_size,name_size,output_buffer+offset);
-				memmove(output_buffer+offset+file_start,data,file_size);
-				offset +=next_header;
-
-			}
-			
+	chdir(dir);
+	getcwd(cwd,PATH_MAX);
+	//fprintf(stderr,"cwd: %s\n", cwd);
+	while((entry = readdir(dp)) != NULL) {
+		lstat(entry->d_name,&statbuf);
+		char full_name[PATH_MAX];
+		full_name[0] = 0;
+		strncpy(full_name,path,PATH_MAX); 
+		strncat(full_name,entry->d_name,PATH_MAX );
+		name_size = strlen(full_name)+1;
+		bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
+		file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;
+	
+		//printf("offset:%ld:%s\n",offset,entry->d_name);
+		if(S_ISDIR(statbuf.st_mode)) {
+			/* Found a directory, but ignore . and .. */
+			if(strcmp(".",entry->d_name) == 0 || strcmp("..",entry->d_name) == 0)
+					continue;
+			bytes_to_next_header_start =(4 - ((file_start+0) % 4)) % 4;
+			append_cpio_header_to_stream(statbuf,full_name,0,name_size,output_buffer+offset);
+			strncat(full_name,"/",PATH_MAX );
+			next_header = file_start+0+bytes_to_next_header_start;
+			offset +=next_header;
+			pack_ramdisk_entries(entry->d_name,full_name,output_buffer);
 		}
-		chdir("..");
-		closedir(dp);
-		return offset;
+		else if(S_ISREG(statbuf.st_mode)){
+			printf("Reg:%s %d\n",entry->d_name,statbuf.st_mode);
+			unsigned long file_size =0 ;
+			unsigned char* data = load_file(entry->d_name,&file_size);
+			if(!strncmp((char*)data,"LNK:",4)){	
+				free(data);
+				file_size =0 ;
+				data = load_file_from_offset(entry->d_name,4,&file_size);
+				statbuf.st_mode = statbuf.st_mode | S_IFLNK ;
+				statbuf.st_size = file_size ;
+				
+			}			
+			bytes_to_next_header_start =(4 - ((file_start+file_size) % 4)) % 4;
+			next_header = file_start+file_size+bytes_to_next_header_start;
+			append_cpio_header_to_stream(statbuf,full_name,statbuf.st_size,name_size,output_buffer+offset);
+			memmove(output_buffer+offset+file_start,data,file_size);
+			offset +=next_header;
+			free(data);
+
+		} 
+		else if(S_ISLNK(statbuf.st_mode)){
+			unsigned char* data=calloc(MEMORY_BUFFER_SIZE, sizeof(unsigned char));
+			readlink(entry->d_name,(char*)data,PATH_MAX);
+			unsigned file_size =strlen((char*)data);
+			//printf("link:%s %s %d %d\n",entry->d_name,data,statbuf.st_mode,file_size);
+			bytes_to_next_header_start =(4 - ((file_start+file_size) % 4)) % 4;
+			next_header = file_start+file_size+bytes_to_next_header_start;
+			append_cpio_header_to_stream(statbuf,full_name,statbuf.st_size,name_size,output_buffer+offset);
+			memmove(output_buffer+offset+file_start,data,file_size);
+			offset +=next_header;
+
+		}
+		
+	}
+	chdir("..");
+	closedir(dp);
+	return offset;
 }
 unsigned long pack_ramdisk_directory(unsigned char* ramdisk_cpio_data){
 	
 	
-	unsigned long  offset = pack_ramdisk_entries(option_values.ramdisk,"",ramdisk_cpio_data);
+	unsigned long  offset = pack_ramdisk_entries(option_values.ramdisk_directory,"",ramdisk_cpio_data);
 	
 	struct stat s;
     memset(&s, 0, sizeof(s));

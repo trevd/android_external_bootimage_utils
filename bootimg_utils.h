@@ -21,16 +21,7 @@ char * file_uncompress(char*ramdisk_fn);
 
 #define ARRAYSIZE(a) ((int)(sizeof(a) / sizeof(*(a))))
 
-typedef enum {
-	BOOT_IMAGE_OFFSET_BASE  = 0x10000000,
-	BOOT_IMAGE_OFFSET_KERNEL  = 0x00008000,
-	BOOT_IMAGE_OFFSET_RAMDISK = 0x01000000,
-	BOOT_IMAGE_OFFSET_SECOND = 0x00f00000,
-	BOOT_IMAGE_OFFSET_TAGS    = 0x00000100
 
-} Bootimage_Offset ;
-
-#define DEFAULT_PAGE_SIZE  2048
 
 int usage(void);
 static void die(const char *why, ...);
