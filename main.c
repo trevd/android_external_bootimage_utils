@@ -77,20 +77,23 @@ int print_usage(){
 #define USEAGE "1346 \
 			245"
 
-static enum command { UNPACK , PACK , LIST , ADD , REMOVE , UPDATE } ;
-
+typedef enum program_actions { NOT_SET, UNPACK , PACK , LIST , ADD , REMOVE , UPDATE } ;
 int main(int argc, char **argv)
 { 
 	if(argc<3) return print_usage();
 	params = SET_LOGSTDOUT ;
 	params = SET_NOLOGFILE;
+	enum program_actions action = NOT_SET;
 	int option_index =-1, option_return =-2, argument_count = argc, settings =0; 
-	
-	
-	
-	
-	
+	char stringopt;
 	int compare_length = strlen(argv[1]) > 6 ? strlen(argv[1]) : 6;
+	
+	if(!strncmp(argv[1],"unpack",compare_length)){
+			action= UNPACK;
+			stringopt=ACTION_OPTIONS_UNPACKPACK;
+	}
+	
+
 	if(!strncmp(argv[1],"unpack",compare_length)){
 		log_write("main:unpack_option_selected\n");
 		log_write("main:params=[%08x]\n",params);

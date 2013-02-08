@@ -100,9 +100,10 @@ optionvalues option_values;
 
 #define DEFAULT_PAGE_SIZE 2048
 #define DEFAULT_BASE_ADDRESS 0x10000000
-#define DEFAULT_KERNEL_OFFSET 0x00008000
-#define DEFAULT_SECOND_OFFSET 0x00f00000
-#define DEFAULT_TAGS_OFFSET 0x00000100
+#define DEFAULT_RAMDISK_ADDRESS 0x01000000+DEFAULT_BASE_ADDRESS
+#define DEFAULT_KERNEL_ADDRESS 0x00008000+DEFAULT_BASE_ADDRESS
+#define DEFAULT_SECOND_ADDRESS 0x00f00000+DEFAULT_BASE_ADDRESS
+#define DEFAULT_TAGS_ADDRESS 0x00000100+DEFAULT_BASE_ADDRESS
 #define DEFAULT_RAMDISK_DIRECTORY_NAME "ramdisk"
 #define DEFAULT_RAMDISK_DIRECTORY_NAME_LENGTH 7
 #define DEFAULT_RAMDISK_CPIO_NAME "ramdisk.cpio"
@@ -113,6 +114,11 @@ optionvalues option_values;
 #define DEFAULT_CMDLINE_NAME "cmdline"
 #define DEFAULT_PAGESIZE_NAME "pagesize"
 #define DEFAULT_SECOND_NAME "second"
+
+#define ACTION_OPTIONS_UNPACK "i:rl:xfpkcbsdho:a"
+#define ACTION_OPTIONS_PACK  "k:p:r:c:s:i:"
+#define ACTION_OPTIONS_LIST  "i:"
+#define ACTION_OPTIONS_EXTRACT "i:t:s:"
 
 enum  parameters { 
 	IMAGE = 0x1, 
@@ -187,7 +193,7 @@ int log_write(const char *format, ...);
 
 
 #define MEMORY_BUFFER_SIZE 8192*1024
-typedef unsigned char* byte_p ;
+
 
 
 

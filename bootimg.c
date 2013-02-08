@@ -91,7 +91,7 @@ int print_boot_image_info(boot_image_t boot_image)
 			boot_image.second_page_count,boot_image.second_page_count,
 			boot_image.second_offset,boot_image.second_offset);
 	if ( HAS_HEADER )
-		write_to_file((unsigned char *)boot_image_info,(unsigned) strlen((const char *)boot_image_info),option_values.header);
+		write_to_file((byte_p) boot_image_info,(unsigned) strlen((const char *)boot_image_info),option_values.header);
 
 	fprintf(stderr,"%s", boot_image_info);
 	return 0;
@@ -125,7 +125,7 @@ int unpack_boot_image_file()
 {
 	log_write("unpack_boot_image_file:image_filename=%s\n", option_values.image);
 	unsigned long 	file_size =0 ;
-	unsigned char *raw_boot_image_data = load_file( option_values.image,&file_size);
+	byte_p raw_boot_image_data = load_file(option_values.image,&file_size);
 	log_write("unpack_boot_image_file:image_size=[%ld][0x%lx]\n", file_size,file_size);
 	log_write("unpack_boot_image_file:image_address=%p\n", raw_boot_image_data);
 	if(file_size < sizeof(boot_img_hdr)) {
@@ -270,17 +270,6 @@ int print_boot_image_header_info(boot_img_hdr boot_image_header)
 	
 }
 
-int populate_boot_image_header(boot_img_hdr* header,unsigned char *name,unsigned char *cmdline, unsigned  page_size,unsigned long  kernel_size,unsigned long  ramdisk_size,unsigned long second_size)
-{
-	header->page_size=page_size;
-	header->kernel_size=kernel_size;
-	header->ramdisk_size=ramdisk_size;
-	header->second_size=second_size;
-	strcpy((char*)header->cmdline,(char*)cmdline);
-	strcpy((char*)header->name,(char*)name);
-	memcpy(header->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
-	return 0;
-}
 int create_boot_image_file(){
 	
 
@@ -316,28 +305,22 @@ int create_boot_image_file(){
 	if ( HAS_SECOND ) {
 		second_data=load_file(option_values.second,&second_size);
 	}
-	cmdline_data = calloc(BOOT_ARGS_SIZE,sizeof(unsigned char));
-	if ( HAS_CMDLINE ){
-		  
-		  read_file_to_size(option_values.cmdline,BOOT_ARGS_SIZE,cmdline_data);
-	}else
-		 strncpy((char *)cmdline_data,"\0",1);
-		
+	boot_img_hdr boot_image_header = { BOOT_MAGIC,kernel_size, 
+			DEFAULT_KERNEL_ADDRESS,ramdisk_gzip_size,
+			DEFAULT_RAMDISK_ADDRESS,second_size,DEFAULT_SECOND_ADDRESS,
+			DEFAULT_TAGS_ADDRESS,option_values.page_size,
+			.name = {'\0'},.unused={NULL},.cmdline={'\0'},.id={NULL}
+			};
+	if ( HAS_CMDLINE ){ 
+		  read_file_to_size(option_values.cmdline,BOOT_ARGS_SIZE,boot_image_header.cmdline);
+	}	 
+		 
 	if ( HAS_BOARD ) {
+		read_file_to_size(option_values.board,BOOT_ARGS_SIZE,boot_image_header.name);
 	}
 	struct dirent *entry;	
-	boot_img_hdr boot_image_header ;
-	unsigned base           = 0x10000000;
-    unsigned kernel_offset  = 0x00008000;
-    unsigned ramdisk_offset = 0x01000000;
-    unsigned second_offset  = 0x00f00000;
-    unsigned tags_offset    = 0x00000100;
-
-    boot_image_header.kernel_addr =  base + kernel_offset;
-    boot_image_header.ramdisk_addr = base + ramdisk_offset;
-    boot_image_header.second_addr =  base + second_offset;
-    boot_image_header.tags_addr =    base + tags_offset;
-	populate_boot_image_header(&boot_image_header,(unsigned char*)"",cmdline_data,option_values.page_size,kernel_size,ramdisk_gzip_size,second_size);
+	
+	
 	get_content_hash(&boot_image_header,kernel_data,ramdisk_gzip_data,second_data);
 	//print_boot_image_header_info(boot_image_header);
 	

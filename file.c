@@ -131,7 +131,8 @@ int read_file_to_size(const char *filepath, unsigned size , unsigned char *outpu
 	return 0;
 	
 }
-unsigned char *load_file_from_offset(const char *filepath,int offset,unsigned long *file_size)
+
+byte_p load_file_from_offset(const char *filepath,int offset,unsigned long *file_size)
 {
 	
     unsigned char *data;
@@ -235,14 +236,17 @@ oops:
 		free(output_buffer);
 	return 0;
 }
-
-unsigned char *load_file(const char *fn, unsigned long *file_size)
+/* 
+ * if successful load_file will return a pointer to the start of the data
+ * The memory allocated by this function must be freed by the  caller 
+ */
+byte_p load_file(const char *filname, unsigned long *file_size)
 {
     unsigned char *data;
     int sz; int fd;
 
     data = 0;
-    FILE *fp = fopen(fn, "rb");
+    FILE *fp = fopen(filname, "rb");
     fd = fileno(fp);
     if(fd < 0) return 0;
 

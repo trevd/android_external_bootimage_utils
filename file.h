@@ -19,7 +19,7 @@ ssize_t readlink(const char *path, char *buf, size_t bufsiz) { return 0; }
 #define MAGIC_GZIP_NONAME 0x00088B1F
 #define MAGIC_CPIO_ASCII "070701"
 #define MAGIC_CPIO_SIZE 7
-
+typedef unsigned char* byte_p ;
 static const mode_t defualt_file_mode = 0666 ;
 static const mode_t defualt_directory_mode = 0755 ;
 int is_path_directory(char *dname);
@@ -33,6 +33,6 @@ int write_single_line_to_file(const char *filepath, const char *output_buffer,un
 int read_file_to_size(const char *filepath, unsigned size , unsigned char *output_buffer);
 int write_to_file_mode(unsigned char *data_in, unsigned output_size,char * output_filename, mode_t mode);
 int write_to_file(unsigned char *data_in, unsigned output_size,char * output_filename);
-unsigned char *load_file_from_offset(const char *filepath,int offset,unsigned long *file_size);
+byte_p load_file_from_offset(const char *filepath,int offset,unsigned long *file_size);
 long read_file( const char *fn, unsigned char *output,unsigned long *output_size);
-unsigned char *load_file(const char *fn, unsigned long *file_size);
+byte_p load_file(const char *fn, unsigned long *file_size);
