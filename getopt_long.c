@@ -70,7 +70,6 @@ _getopt_long_only_r (int argc, char **argv, const char *options,
                              1, d, 0);
 }
 
-
 #ifdef TEST
 
 #include <stdio.h>

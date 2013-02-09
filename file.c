@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "program.h"
 #include "file.h"
 
 
@@ -29,30 +30,35 @@ char *remove_file_extension(char* filename) {
         *lastdot = '\0';
     return retstr;
 }
-int check_file_exists(char *fname, int exitonfailure){
+int check_file_exists(char *filename, int exitonfailure){
 	
 	struct stat sb;
-	if (stat(fname, &sb) == -1) {
+	log_write("check_file_exists:%s\n",filename);
+	if (stat(filename, &sb) == -1) {
 	   perror("bootimg-tools");
+	   log_write("check_file_exists:file_not_found_%s\n",filename);
 	   if(exitonfailure)
 			exit(EXIT_FAILURE);
 		else
 			return 0;
 	}
 	if(!S_ISREG(sb.st_mode)){
+		log_write("check_file_exists:file_found_as_");
 		if(exitonfailure){
 			switch (sb.st_mode & S_IFMT) {
-				case S_IFBLK:  printf("block device\n");            break;
-				case S_IFCHR:  printf("character device\n");        break;
-				case S_IFDIR:  printf("directory\n");               break;
-				case S_IFIFO:  printf("FIFO/pipe\n");               break;
-				case S_IFLNK:  printf("symlink\n");                 break;
-				case S_IFSOCK: printf("socket\n");                  break;
-				default:       printf("unknown?\n");                break;
+				case S_IFBLK:  log_write("block_device\n");            break;
+				case S_IFCHR:  log_write("character_device\n");        break;
+				case S_IFDIR:  log_write("directory\n");               break;
+				case S_IFIFO:  log_write("fifo_pipe\n");               break;
+				case S_IFLNK:  log_write("symlink\n");                 break;
+				case S_IFSOCK: log_write("socket\n");                  break;
+				default:       log_write("unknown?\n");                break;
 			}        
 			exit(EXIT_FAILURE);
 		}
-	}
+	}else
+		log_write("check_file_exists:file_found_as_regular_file\n");
+	
 	return S_ISREG(sb.st_mode);
 }
 int check_directory_exists(char *fname, int exitonfailure){

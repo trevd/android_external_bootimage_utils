@@ -42,10 +42,7 @@ typedef struct boot_image
 	
 } boot_image_t ;
 
-int unpack_boot_image_file();
-int create_boot_image_file();
-int list_boot_image_info();
-int extract();
+
 char *strrev(char *str);
 
 int print_boot_image_info(boot_image_t boot_image);

@@ -1,33 +1,46 @@
+#ifndef _PROGAM_H_
+#define _PROGAM_H_
+
 #include "getopt.h"
+
 #include <limits.h>	
+
+int unpack_boot_image_file();
+int create_boot_image_file();
+int list_boot_image_info();
+int extract();
+
+// Specified the switches that are allow for each action type
+// Most Switches have the same meaning between action types
+
 static struct option pack_global_options[] = {
-	{"help", optional_argument,0, NULL},   
-	{"log",  optional_argument,0, NULL},  
+	{"help", optional_argument,0,(int)NULL},   
+	{"log",  optional_argument,0,(int)NULL},  
 	 {0, 0, 0, 0} 
 };
-		static struct option pack_long_options[] =
-             {
-               /* These options don't set a flag.
-                  We distinguish them by their indices. */
-               {"boot-image",  required_argument,0, 'i'},                              
-               {"ramdisk",  required_argument,       0, 'r'},
-               {"kernel",  required_argument, 0, 'k'},
-               {"cmdline", required_argument,0,'c' },
-				{"board-name", required_argument,0,'n' },
-				{"base-address", required_argument,0,'b' },
-				{"pagesize", required_argument,0,'p' },
-				{"ramdisk-offset", required_argument,0,'d' },
-				{"second", required_argument,0,'s' },
-				{"output-image", required_argument,0,'o' },
-               {0, 0, 0, 0}
-             };	
-
+static struct option pack_long_options[] =
+	 {
+	   /* These options don't set a flag.
+		  We distinguish them by their indices. */
+	   {"boot-image",  required_argument,0, 'i'},                              
+	   {"ramdisk",  required_argument,       0, 'r'},
+	   {"kernel",  required_argument, 0, 'k'},
+	   {"cmdline", required_argument,0,'c' },
+		{"board-name", required_argument,0,'n' },
+		{"base-address", required_argument,0,'b' },
+		{"pagesize", required_argument,0,'p' },
+		{"ramdisk-offset", required_argument,0,'d' },
+		{"second", required_argument,0,'s' },
+		{"output-image", required_argument,0,'o' },
+	   {0, 0, 0, 0}
+	 };	
+	 
 static struct option unpack_long_options[] = {
 			
                {"boot-image",  required_argument,0, 'i'},
                {"all",			no_argument,0,'a'},
                {"ramdisk-name",  optional_argument,0, 'r'},
-               {"ramdisk-cpio",  no_argument,0, NULL},
+               {"ramdisk-cpio",  no_argument,0, (int)NULL},
                {"ramdisk-archive",  no_argument,0, 'x'},
                {"ramdisk-directory",  no_argument,0, 'd'},
                {"kernel",  optional_argument, 0, 'k'},
@@ -67,7 +80,7 @@ static struct option update_long_options[] = {
              };
 
 
-typedef struct  {
+typedef struct {
 	char *image ;
 	char *kernel;
 	char *ramdisk_name;
@@ -86,17 +99,19 @@ typedef struct  {
 	int target_length;
 	char *source;
 	int source_length;
+	char *log_filename;
 	int page_size;
-	unsigned base;
+	unsigned base;	
     unsigned kernel_offset;
     unsigned kernel_page_count;
     unsigned ramdisk_offset ;
-    unsigned ramdisk_page_count ;
+    unsigned OPTIONS_ACTION ;
     unsigned second_offset;  
     unsigned second_page_count ;
     unsigned tags_offset;
-}  optionvalues ;
-optionvalues option_values;
+} optionvalues_t ;
+optionvalues_t option_values;
+
 
 #define DEFAULT_PAGE_SIZE 2048
 #define DEFAULT_BASE_ADDRESS 0x10000000
@@ -114,13 +129,15 @@ optionvalues option_values;
 #define DEFAULT_CMDLINE_NAME "cmdline"
 #define DEFAULT_PAGESIZE_NAME "pagesize"
 #define DEFAULT_SECOND_NAME "second"
+#define DEFAULT_LOG
+#define OPTIONS_ACTION_UNPACK "i:rl:xfpkcbsdho:a"
+#define OPTIONS_ACTION_PACK  "k:p:r:c:s:i:"
+#define OPTIONS_ACTION_LIST  "i:"
+#define OPTIONS_ACTION_EXTRACT "i:t:s:"
+#define OPTIONS_ACTION_REMOVE "rfiv"
+#define OPTIONS_REMOVE "rfiv"
 
-#define ACTION_OPTIONS_UNPACK "i:rl:xfpkcbsdho:a"
-#define ACTION_OPTIONS_PACK  "k:p:r:c:s:i:"
-#define ACTION_OPTIONS_LIST  "i:"
-#define ACTION_OPTIONS_EXTRACT "i:t:s:"
-
-enum  parameters { 
+enum  bitwise_parameters { 
 	IMAGE = 0x1, 
 	KERNEL = 0x2,
 	RAMDISK_ARCHIVE=0x4,
@@ -146,7 +163,6 @@ enum  parameters {
 
 
 
-#define HAS_NOLOGFILE			(params & NOLOGFILE)
 #define HAS_NOLOGFILE			(params & NOLOGFILE)
 #define HAS_LOGSTDOUT			(params & LOGSTDOUT)
 #define HAS_TARGET 				(params & TARGET)
@@ -190,11 +206,30 @@ enum  parameters {
 
 
 int log_write(const char *format, ...);
+typedef enum  _program_actions_t {  
+	NOT_SET=0,	UNPACK=1 , PACK=2 , LIST=3 , EXTRACT=4,ADD=5 , REMOVE=6 , UPDATE=7 } program_actions_t ;
 
-
+typedef struct _program_options_t  {
+	const char*	stringopts;
+	const struct option* options;
+	program_actions_t action ;
+	int (*function_name_p)();
+} program_options_t; 
+		static program_options_t program_options[] ={
+					{ NULL,NULL,NOT_SET,NULL},
+					{OPTIONS_ACTION_UNPACK,unpack_long_options,UNPACK ,&unpack_boot_image_file},
+					{OPTIONS_ACTION_PACK,pack_long_options,PACK ,NULL},		 
+					{OPTIONS_ACTION_LIST,list_long_options,LIST ,&list_boot_image_info},
+					{OPTIONS_ACTION_EXTRACT,extract_long_options,EXTRACT,NULL },
+					{OPTIONS_ACTION_EXTRACT,NULL,ADD ,NULL},
+					{OPTIONS_ACTION_EXTRACT,NULL,REMOVE ,NULL},
+					{OPTIONS_ACTION_EXTRACT,NULL,UPDATE ,NULL}
+			};
+	
+	#define GET_OPT_LONG_FUNCTION getopt_long(argc, argv,program_option.stringopts, program_option.options, &option_index);
 #define MEMORY_BUFFER_SIZE 8192*1024
 
-
+#endif
 
 
 

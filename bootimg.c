@@ -59,8 +59,8 @@ static unsigned long find_magic_offset(unsigned char *data , unsigned size){
 }
 int print_boot_image_info(boot_image_t boot_image)
 {	
-	unsigned char *boot_image_info = (unsigned char *)malloc(4096);
-	sprintf((char *)boot_image_info,
+	char *boot_image_info = (char *)malloc(4096);
+	sprintf(boot_image_info,
 					"name:%s\n"
 					"cmdline:%s\n"
 					"page_size:%d\t[0x%08x]\n"
@@ -309,7 +309,7 @@ int create_boot_image_file(){
 			DEFAULT_KERNEL_ADDRESS,ramdisk_gzip_size,
 			DEFAULT_RAMDISK_ADDRESS,second_size,DEFAULT_SECOND_ADDRESS,
 			DEFAULT_TAGS_ADDRESS,option_values.page_size,
-			.name = {'\0'},.unused={NULL},.cmdline={'\0'},.id={NULL}
+			.name = {'\0'},.unused={'\0'},.cmdline={'\0'},.id={'\0'}
 			};
 	if ( HAS_CMDLINE ){ 
 		  read_file_to_size(option_values.cmdline,BOOT_ARGS_SIZE,boot_image_header.cmdline);
@@ -402,7 +402,7 @@ int extract(){
 	boot_image_t boot_image = parse_boot_image_info(offset_raw_boot_image_data,file_size-magic); 
 	unsigned char *uncompressed_ramdisk_data = (unsigned char *) malloc(MEMORY_BUFFER_SIZE) ;
 	unsigned long ramdisk_uncompress_size =	uncompress_gzip_ramdisk_memory(offset_raw_boot_image_data+boot_image.ramdisk_offset,boot_image.header.ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
-	unsigned long offset=0;
+	long offset=0;
 	while(offset != -1){
 		offset = find_file_in_ramdisk_entries(uncompressed_ramdisk_data+offset,ramdisk_uncompress_size-offset,offset);
 	}
