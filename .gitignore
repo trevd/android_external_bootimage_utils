@@ -6,3 +6,4 @@ simple_cpio.c
 split_bootimg.c
 tests
 testimages
+test

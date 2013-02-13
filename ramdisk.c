@@ -52,9 +52,10 @@ static unsigned long  get_long_from_hex_field(char * header_field_value){
 }
 static cpio_entry_t populate_cpio_entry(unsigned char *data ) { //cpio_newc_header_t *cpio_header) {
 
-	cpio_entry_t cpio_entry ;
+	cpio_entry_t *cpio_entry_p=(cpio_entry_t *)data;
+	cpio_entry_t cpio_entry = (*cpio_entry_p);
 	//	fprintf(stderr,"populate_cpio_entry\n");
-	memcpy(&cpio_entry.cpio_header,data, CPIO_HEADER_SIZE);
+	//cpio_entry.cpio_header=(cpio_newc_header_t)data;
 	
 	cpio_entry.file_size = get_long_from_hex_field(cpio_entry.cpio_header.c_filesize);
 	cpio_entry.name_size = get_long_from_hex_field(cpio_entry.cpio_header.c_namesize);
@@ -157,7 +158,7 @@ long extract_cpio_entry(unsigned char *data,unsigned size,unsigned long offset)
 {
 
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);	
-	fprintf(stderr,"process_uncompressed_ramdisk:%lu %s  ",offset,cpio_entry.file_name);
+	fprintf(stderr,"process_uncompressed_ramdisk:%lu %s ",offset,cpio_entry.file_name);
 	if(!strncmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC,CPIO_TRAILER_MAGIC_LENGTH)){	
 		return -1;
 	}
@@ -279,7 +280,7 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,unsigned char* ou
 unsigned long pack_ramdisk_directory(unsigned char* ramdisk_cpio_data){
 	
 	
-	unsigned long  offset = pack_ramdisk_entries(option_values.ramdisk_directory,"",ramdisk_cpio_data);
+	unsigned long  offset = pack_ramdisk_entries(option_values.ramdisk_directory_name,"",ramdisk_cpio_data);
 	
 	struct stat s;
     memset(&s, 0, sizeof(s));

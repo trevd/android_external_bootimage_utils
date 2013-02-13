@@ -1,3 +1,6 @@
+#ifndef _BOOTIMAGE_FILE_H_
+#define _BOOTIMAGE_FILE_H_
+
 #include <limits.h>
 #define CHECK_FAIL_EXIT 1
 #define CHECK_FAIL_OK 0
@@ -36,3 +39,5 @@ int write_to_file(unsigned char *data_in, unsigned output_size,char * output_fil
 byte_p load_file_from_offset(const char *filepath,int offset,unsigned long *file_size);
 long read_file( const char *fn, unsigned char *output,unsigned long *output_size);
 byte_p load_file(const char *fn, unsigned long *file_size);
+
+#endif

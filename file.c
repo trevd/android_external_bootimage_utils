@@ -33,17 +33,17 @@ char *remove_file_extension(char* filename) {
 int check_file_exists(char *filename, int exitonfailure){
 	
 	struct stat sb;
-	log_write("check_file_exists:%s\n",filename);
+	//log_write("check_file_exists:%s\n",filename);
 	if (stat(filename, &sb) == -1) {
 	   perror("bootimg-tools");
-	   log_write("check_file_exists:file_not_found_%s\n",filename);
+	   //log_write("check_file_exists:file_not_found_%s\n",filename);
 	   if(exitonfailure)
 			exit(EXIT_FAILURE);
 		else
 			return 0;
 	}
 	if(!S_ISREG(sb.st_mode)){
-		log_write("check_file_exists:file_found_as_");
+		//log_write("check_file_exists:file_found_as_");
 		if(exitonfailure){
 			switch (sb.st_mode & S_IFMT) {
 				case S_IFBLK:  log_write("block_device\n");            break;
@@ -56,8 +56,8 @@ int check_file_exists(char *filename, int exitonfailure){
 			}        
 			exit(EXIT_FAILURE);
 		}
-	}else
-		log_write("check_file_exists:file_found_as_regular_file\n");
+	}//else
+	//	log_write("check_file_exists:file_found_as_regular_file\n");
 	
 	return S_ISREG(sb.st_mode);
 }
@@ -192,13 +192,14 @@ oops:
     fclose(fp);
     return 0;
 }
-int write_to_file_mode(unsigned char *data_in, unsigned output_size,char * output_filename, mode_t mode){
+int write_to_file_mode(byte_p data_in, unsigned output_size,char * output_filename, mode_t mode){
 
+	write_to_file(data_in,output_size,output_filename);
 	chmod(output_filename,mode);
 	return 0;
 	
 }
-int write_to_file(unsigned char *data_in, unsigned output_size,char * output_filename){
+int write_to_file(byte_p data_in, unsigned output_size,char * output_filename){
 	// Validate input
 	
 	FILE *output_file_fp;

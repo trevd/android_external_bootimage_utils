@@ -20,7 +20,7 @@ Usage:  bootimg-tools <u|unpack> [ command-switches ] [ global-switches ]
 		
 
 Options:
-	-i, --boot-input				the source boot image
+	-i, --boot-image				the source boot image
 	-o, --output-dir 				the output base output directory
 	-k, --kernel					unpack the kernel image to the specified file
 	-s, --second					write the secondary bootloader to the specified file

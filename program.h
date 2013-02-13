@@ -10,6 +10,23 @@ int create_boot_image_file();
 int list_boot_image_info();
 int extract();
 
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
+	#include <windows.h>
+#define lstat stat
+#define DEFAULT_BOARD_NAME "board.txt"
+#define DEFAULT_HEADER_NAME "header.txt"
+#define DEFAULT_CMDLINE_NAME "cmdline.txt"
+#define DEFAULT_PAGESIZE_NAME "pagesize.txt"
+#define DEFAULT_HEADER_NAME_LENGTH 10
+#else
+#define DEFAULT_HEADER_NAME "header"
+#define DEFAULT_CMDLINE_NAME "cmdline"
+#define DEFAULT_PAGESIZE_NAME "pagesize"
+#define DEFAULT_BOARD_NAME "board"
+#endif
+
+
+
 // Specified the switches that are allow for each action type
 // Most Switches have the same meaning between action types
 
@@ -82,11 +99,11 @@ static struct option update_long_options[] = {
 
 typedef struct {
 	char *image ;
-	char *kernel;
+	char *kernel_name;
 	char *ramdisk_name;
-	char *ramdisk_directory;
-	char *ramdisk_cpio;
-	char *ramdisk_archive;
+	char *ramdisk_directory_name;
+	char *ramdisk_cpio_name;
+	char *ramdisk_archive_name;
 	char *logfile;
 	char *cmdline;
 	char *second;
@@ -105,13 +122,11 @@ typedef struct {
     unsigned kernel_offset;
     unsigned kernel_page_count;
     unsigned ramdisk_offset ;
-    unsigned OPTIONS_ACTION ;
     unsigned second_offset;  
     unsigned second_page_count ;
     unsigned tags_offset;
 } optionvalues_t ;
 optionvalues_t option_values;
-
 
 #define DEFAULT_PAGE_SIZE 2048
 #define DEFAULT_BASE_ADDRESS 0x10000000
@@ -119,15 +134,15 @@ optionvalues_t option_values;
 #define DEFAULT_KERNEL_ADDRESS 0x00008000+DEFAULT_BASE_ADDRESS
 #define DEFAULT_SECOND_ADDRESS 0x00f00000+DEFAULT_BASE_ADDRESS
 #define DEFAULT_TAGS_ADDRESS 0x00000100+DEFAULT_BASE_ADDRESS
-#define DEFAULT_RAMDISK_DIRECTORY_NAME "ramdisk"
-#define DEFAULT_RAMDISK_DIRECTORY_NAME_LENGTH 7
-#define DEFAULT_RAMDISK_CPIO_NAME "ramdisk.cpio"
+#define DEFAULT_RAMDISK_NAME "ramdisk"
+#define DEFAULT_RAMDISK_NAME_LENGTH 7
+#define DEFAULT_RAMDISK_DIRECTORY_NAME "root"
+#define DEFAULT_RAMDISK_DIRECTORY_NAME_LENGTH 4
+#define DEFAULT_RAMDISK_CPIO_NAME "initramfs.cpio"
+#define DEFAULT_RAMDISK_CPIO_GZIP_NAME "initramfs.cpio.gz"
+#define DEFAULT_RAMDISK_CPIO_LZOP_NAME "initramfs.cpio.lzo"
 #define DEFAULT_KERNEL_NAME "kernel"
 #define DEFAULT_KERNEL_NAME_LENGTH 6
-#define DEFAULT_HEADER_NAME "header"
-#define DEFAULT_HEADER_NAME_LENGTH 6
-#define DEFAULT_CMDLINE_NAME "cmdline"
-#define DEFAULT_PAGESIZE_NAME "pagesize"
 #define DEFAULT_SECOND_NAME "second"
 #define DEFAULT_LOG
 #define OPTIONS_ACTION_UNPACK "i:rl:xfpkcbsdho:a"
@@ -215,18 +230,28 @@ typedef struct _program_options_t  {
 	program_actions_t action ;
 	int (*function_name_p)();
 } program_options_t; 
-		static program_options_t program_options[] ={
-					{ NULL,NULL,NOT_SET,NULL},
-					{OPTIONS_ACTION_UNPACK,unpack_long_options,UNPACK ,&unpack_boot_image_file},
-					{OPTIONS_ACTION_PACK,pack_long_options,PACK ,NULL},		 
-					{OPTIONS_ACTION_LIST,list_long_options,LIST ,&list_boot_image_info},
+		
+static program_options_t program_options[] ={
+		{ NULL,NULL,NOT_SET,NULL},
+		{OPTIONS_ACTION_UNPACK,unpack_long_options,UNPACK ,unpack_boot_image_file},
+		{OPTIONS_ACTION_PACK,pack_long_options,PACK ,NULL},		 
+			{OPTIONS_ACTION_LIST,list_long_options,LIST ,list_boot_image_info},
 					{OPTIONS_ACTION_EXTRACT,extract_long_options,EXTRACT,NULL },
 					{OPTIONS_ACTION_EXTRACT,NULL,ADD ,NULL},
 					{OPTIONS_ACTION_EXTRACT,NULL,REMOVE ,NULL},
 					{OPTIONS_ACTION_EXTRACT,NULL,UPDATE ,NULL}
 			};
+program_options_t program_option;
 	
-	#define GET_OPT_LONG_FUNCTION getopt_long(argc, argv,program_option.stringopts, program_option.options, &option_index);
+#define ACTION_UNPACK (program_option.action==UNPACK )
+#define ACTION_EXTRACT (program_option.action==EXTRACT )
+#define ACTION_PACK (program_option.action==PACK )
+#define ACTION_LIST (program_option.action==LIST )
+#define ACTION_ADD (program_option.action==ADD )
+#define ACTION_REMOVE (program_option.action==REMOVE )
+#define ACTION_UPDATE (program_option.action==UPDATE )
+	
+#define GET_OPT_LONG_FUNCTION getopt_long(argc, argv,program_option.stringopts, program_option.options, &option_index);
 #define MEMORY_BUFFER_SIZE 8192*1024
 
 #endif
