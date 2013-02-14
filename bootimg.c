@@ -171,6 +171,7 @@ int unpack_boot_image_file()
 	boot_image_t boot_image=parse_boot_image_info(raw_boot_image_data,file_size);
 	log_write("unpack_boot_image_file:page_size=[%d]kernel_size=[%x]\n",boot_image.header.page_size,boot_image.header.kernel_size);
 	int mkdir_result = mkdir(option_values.output,0777);
+	log_write("unpack_boot_image_file:page_size=[%d]kernel_size=[%x]\n",boot_image.header.page_size,boot_image.header.kernel_size);
 	chdir(option_values.output);
 	
 	process_header_switch(boot_image);
@@ -214,7 +215,7 @@ int unpack_boot_image_file()
 	//chdir(starting_directory);	
 		
 quit_now:
-	free(option_values.output);
+	//free(option_values.output);
 	free(raw_boot_image_data);
 	return 0;
 }

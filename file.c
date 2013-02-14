@@ -8,9 +8,18 @@
 #include "program.h"
 #include "file.h"
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
-int symlink(char *symlink_src,char *filename){ return 0; }
+int symlink(char *symlink_src,char *filename){ 
+	FILE *output_file_fp = fopen(filename, "wb");
+    if (output_file_fp != NULL)
+    {
+		fwrite("LNK:",4,1,output_file_fp);
+        fwrite(symlink_src,strlen(symlink_src),1,output_file_fp);
+        fclose(output_file_fp);
+    }
+    return 0;
+	
+}
 ssize_t readlink(const char *path, char *buf, size_t bufsiz) { return 0; }
-
 int vasprintf( char **sptr, const char *fmt, va_list argv ) 
 { 
     int wanted = vsnprintf( *sptr = NULL, 0, fmt, argv ); 
@@ -203,11 +212,9 @@ oops:
     return 0;
 }
 int write_to_file_mode(byte_p data_in, unsigned output_size,char * output_filename, mode_t mode){
-
 	write_to_file(data_in,output_size,output_filename);
 	chmod(output_filename,mode);
 	return 0;
-	
 }
 int write_to_file(byte_p data_in, unsigned output_size,char * output_filename){
 	// Validate input

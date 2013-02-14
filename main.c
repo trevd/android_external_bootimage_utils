@@ -167,7 +167,7 @@ int main(int argc, char **argv){
 			case 'd':{ 	option_values.ramdisk_directory_name	=	set_program_switch(SET_RAMDISK_DIRECTORY,DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
 			case 'p':{ 	option_values.page_size_filename		=	set_program_switch(SET_PAGESIZE,DEFAULT_PAGE_SIZE_NAME,argv); 					break; 	}
 			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(SET_RAMDISK,DEFAULT_RAMDISK_NAME,argv); 						break;	}
-			case 'k':{  option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv); 						break; 	}
+			case 'k':{  option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv);  						break; 	}
 			case 'c':{ 	option_values.cmdline					=	set_program_switch(SET_CMDLINE,DEFAULT_CMDLINE_NAME,argv);  					break; 	}
 			case 'b':{	option_values.board						=	set_program_switch(SET_BOARD,DEFAULT_BOARD_NAME,argv);  						break; 	}
 			case 'h':{	option_values.header					=	set_program_switch(SET_HEADER,DEFAULT_HEADER_NAME,argv);  						break; 	}
@@ -201,13 +201,7 @@ int main(int argc, char **argv){
 		}
 		case 'o':{
 			 params = SET_OUTPUT ;
-			 if(!(argv[optind]) || (argv[optind][0]=='-')){
-				option_values.output = malloc(PATH_MAX); 
-				getcwd(option_values.output,PATH_MAX);
-				break;
-			}				
-			if(argv[optind])
-				option_values.output=argv[optind];
+			 option_values.output=optarg;
 		
 			break;
 		}
@@ -222,7 +216,7 @@ int main(int argc, char **argv){
 	if(!optopt){
 		switch(program_option.action){
 			case UNPACK:{
-					log_write("main:unpack output set:%s\n",option_values.output);	
+					
 					if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
 						log_write("main:unpack no image set\n");	
 						
