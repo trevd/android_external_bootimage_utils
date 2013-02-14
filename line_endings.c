@@ -18,16 +18,18 @@ typedef struct Node {
 } Node;
 
 
-void dos_to_unix(char* buf)
+unsigned long dos_to_unix(char* buf2, const char* buf)
 {
     char* p = buf;
-    char* q = buf;
+    char* q = buf2;
+    int times =0;
     while (*p) {
         if (p[0] == '\r' && p[1] == '\n') {
             // dos
             *q = '\n';
             p += 2;
             q += 1;
+            times+=1;
         }
         else if (p[0] == '\r') {
             // old mac
@@ -42,18 +44,21 @@ void dos_to_unix(char* buf)
         }
     }
     *q = '\0';
+    return times;
 }
 
-void unix_to_dos(char* buf2, const char* buf)
+unsigned long  unix_to_dos(char* buf2, const char* buf)
 {
     const char* p = buf;
     char* q = buf2;
+    int times=0;
     while (*p) {
         if (*p == '\n') {
             q[0] = '\r';
             q[1] = '\n';
             q += 2;
             p += 1;
+            times+=1; 
         } else {
             *q = *p;
             p += 1;
@@ -61,8 +66,6 @@ void unix_to_dos(char* buf2, const char* buf)
         }
     }
     *q = '\0';
+    return times;
 }
-#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
-
-#endif
 

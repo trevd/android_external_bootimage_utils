@@ -132,6 +132,10 @@ int is_gzip_file(const char *filepath)
 	if(magic==MAGIC_GZIP_NONAME) return 1;
 	return 0;
 }
+// Crude ascii checker
+int is_ascii_text(byte_p stream, unsigned long size){
+	return !memchr(stream,(int)NULL,size);
+}
 
 int write_single_line_to_file(const char *filepath, const char *output_buffer,unsigned size)
 {

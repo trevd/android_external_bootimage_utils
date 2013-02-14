@@ -155,11 +155,28 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,unsigned cpio_size,unsigned l
 	
 	while(!cpio_entry.is_trailer){
 		if(!strncmp(option_values.target,cpio_entry.file_name,cpio_entry.name_size)){
+			struct stat sb;
+			log_write("stat=%s:\n",option_values.source); 
+			lstat(option_values.source, &sb); 
 			unsigned long  new_file_size=0 ;
 			byte_p new_file_data = load_file(option_values.source,&new_file_size);
-			struct stat sb; 
-			stat(option_values.source, &sb); 
+			
+			if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(new_file_data,new_file_size))){
+				char* buf=malloc(new_file_size*2);
+				
+				unsigned long times = dos_to_unix((char*)buf , (char*)new_file_data) ; 
+				log_write("convert:%s\n",buf);
+				log_write("nfs:%ld %ld\n",times, new_file_size);
+				new_file_size-= times ;
+				log_write("nfs:%ld %ld\n",times, new_file_size);
+				log_write("nfd:%p\n", new_file_data);
+				free(new_file_data);
+				new_file_data=(byte_p)buf;
+				log_write("nfd:%p\n", new_file_data);
+			}
+			
 			// align the file_size and work out the new cpio_size
+				//log_write("convert:%s",new_file_size);
 			long aligned_file_size=new_file_size + ((4 - ((new_file_size) % 4)) % 4);
 			unsigned long internal_new_cpio_size = cpio_size +(aligned_file_size - cpio_entry.file_size) ;
 			(*new_cpio_size)=internal_new_cpio_size;
@@ -169,6 +186,7 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,unsigned cpio_size,unsigned l
 			memcpy(new_cpio_data,cpio_data,bytes_before_entry);
 			byte_p next_p = new_cpio_data+bytes_before_entry;
 			log_write("next_p:%p\n",next_p);
+			sb.st_size=new_file_size;
 			append_cpio_header_to_stream(sb,cpio_entry.file_name,strlen(cpio_entry.file_name)+1,next_p); 
 			next_p += cpio_entry.file_start;
 			log_write("next_p:%p\n",next_p);
@@ -196,7 +214,14 @@ long find_file_in_ramdisk_entries(byte_p data)
 	while(!cpio_entry.is_trailer){
 			log_write("cpio_entry:file_name=%s next_header:%p \n",cpio_entry.file_name,cpio_entry.next_header_p);
 			if(!strncmp(option_values.source,cpio_entry.file_name,cpio_entry.name_size)){
-				write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,option_values.target,cpio_entry.mode);
+				
+				if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
+					char buf[cpio_entry.file_size*2];
+					int times = unix_to_dos((char *)&buf,(char *)cpio_entry.file_start_p);
+					log_write("converting line endings\n");
+					write_to_file_mode((unsigned char*)buf, cpio_entry.file_size+times,option_values.target,cpio_entry.mode);
+				}else
+					write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,option_values.target,cpio_entry.mode);
 				return 0;
 			}else
 				cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				

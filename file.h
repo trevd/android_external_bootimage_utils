@@ -11,13 +11,13 @@
 #define S_IFSOCK 0140000
 #define S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)
 #define S_IWGRP 00020
-#define CONVERT_LINE_ENDINGS 1=1
+#define CONVERT_LINE_ENDINGS 1==1
 #define EOL "\r\n"
 int symlink(char *symlink_src,char *filename);
 ssize_t readlink(const char *path, char *buf, size_t bufsiz);
 #else
 #define EOL "\n"
-#define CONVERT_LINE_ENDINGS 0=1
+#define CONVERT_LINE_ENDINGS 0==1
 #endif
 
 int vasprintf(char **strp, const char *fmt, va_list ap);
@@ -36,6 +36,7 @@ int check_magic(const char *filepath);
 char *remove_file_extension(char* filename);
 int is_cpio_file(const char *filepath);
 int is_gzip_file(const char *filepath);
+int is_ascii_text(byte_p stream, unsigned long size);
 int write_single_line_to_file(const char *filepath, const char *output_buffer,unsigned size);
 int read_file_to_size(const char *filepath, unsigned size , unsigned char *output_buffer);
 int write_to_file_mode(unsigned char *data_in, unsigned output_size,char * output_filename, mode_t mode);

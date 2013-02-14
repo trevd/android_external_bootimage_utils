@@ -345,7 +345,9 @@ int update_boot_image_file(){
 	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
 	boot_image_t boot_image=parse_boot_image_info(raw_boot_image_data,file_size);
 	byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
+	
 	unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(boot_image.ramdisk_data_start,boot_image.header.ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
+	log_write("modify_size:%ld\n",uncompressed_ramdisk_size);
 	byte_p new_cpio_data = modify_ramdisk_entry(uncompressed_ramdisk_data,uncompressed_ramdisk_size,&new_cpio_file_size);
 	// nothing done
 	if(new_cpio_data==uncompressed_ramdisk_data) goto quit_now;
