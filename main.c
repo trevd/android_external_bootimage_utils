@@ -114,6 +114,9 @@ program_options_t get_program_option(int argc, char **argv){
 	if(!strncmp(argv[1],"pack",compare_length)){
 			return program_options[PACK];
 	}
+	if(!strncmp(argv[1],"update",compare_length)){
+			return program_options[UPDATE];
+	}
 	return program_options[NOT_SET];
 }
 char * set_program_switch(int param,char * default_value,char **argv){
@@ -177,7 +180,7 @@ int main(int argc, char **argv){
 			case 'x':{ 	option_values.ramdisk_archive_name 		= 	set_program_switch( SET_RAMDISK_ARCHIVE,DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
 			case 'd':{ 	option_values.ramdisk_directory_name	=	set_program_switch(SET_RAMDISK_DIRECTORY,DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
 			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(SET_RAMDISK,DEFAULT_RAMDISK_NAME,argv); 						break;	}
-			case 'k':{ log_write("main:kernel\n");	 option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv);  						break; 	}
+			case 'k':{  option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv);  						break; 	}
 			case 'c':{ 	option_values.cmdline					=	set_program_switch(SET_CMDLINE,DEFAULT_CMDLINE_NAME,argv);  					break; 	}
 			case 'b':{	option_values.board						=	set_program_switch(SET_BOARD,DEFAULT_BOARD_NAME,argv);  						break; 	}
 			case 'h':{	option_values.header					=	set_program_switch(SET_HEADER,DEFAULT_HEADER_NAME,argv);  						break; 	}
@@ -186,6 +189,7 @@ int main(int argc, char **argv){
 					 option_values.second					=	set_program_switch(SET_SECOND,DEFAULT_SECOND_NAME,argv);	 break;
 				}else{
 					params = SET_SOURCE ;
+					
 					option_values.source = optarg;
 					break;
 					}
@@ -210,6 +214,7 @@ int main(int argc, char **argv){
            }
 			case 't':{ 
 				params = SET_TARGET ;
+				
 				option_values.target = optarg;
 				break;
 			}
