@@ -1,4 +1,4 @@
-bootimg-tools is an highly flexible utility for manage android boot images 
+bootimg-tools is an highly flexible utility for managing android boot images 
 
 Usage:  bootimg-tools ACTION <switches>
 The following actions are available
@@ -6,7 +6,7 @@ The following actions are available
   pack		pack seperate files into a boot image
   list		print boot image header details or ramdisk fileinfo
   extract   extract a single file from a boot image ramdisk
-  update    update the boot image
+  update    update the boot image ramdisk and header property
   
 See bootimg-tools help <action> for detailed information
 

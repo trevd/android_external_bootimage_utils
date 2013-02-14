@@ -10,27 +10,7 @@
 #include "bootimg_utils.h"
 #include "program.h"
 #include "file.h"
-
-#define BOOT_IMAGE_UTILITIES_TITLE "Android Boot Image Utilities "
-#define BOOT_IMAGE_UTILITIES_VERSION "0.01b"
-#define BOOT_IMAGE_UTILITIES_DESCRIPTION ""
-#define BOOT_IMAGE_UTILITIES_PROGRAM_NAME "bootutils"
-#define BOOT_IMAGE_UTILITIES_FULL_TITLE "%s%s\n",BOOT_IMAGE_UTILITIES_TITLE,BOOT_IMAGE_UTILITIES_TITLE
-#define PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE fprintf(stderr,BOOT_IMAGE_UTILITIES_FULL_TITLE);
-char *strrev(char *str)
-{
-      char *p1, *p2;
-
-      if (! str || ! *str)
-            return str;
-      for (p1 = str, p2 = str + strlen(str) - 1; p2 > p1; ++p1, --p2)
-      {
-            *p1 ^= *p2;
-            *p2 ^= *p1;
-            *p1 ^= *p2;
-      }
-      return str;
-}
+#include "help.h"
 int log_write(const char *format, ...)
 {
 	int result;
@@ -91,7 +71,6 @@ void print_question(char *action){
 	print_usage_detail();
 	exit(0);
 }	
-#define USEAGE "1346 		245"
 program_options_t get_program_option(int argc, char **argv){
 	
 	program_options_t program_option=program_options[NOT_SET];
@@ -121,12 +100,15 @@ program_options_t get_program_option(int argc, char **argv){
 }
 char * set_program_switch(int param,char * default_value,char **argv){
 	params = param ;
-	log_write("main:set_program_switch:default %s\n", default_value);	
+	log_write("main:set_program_switch:default %s -", default_value);	
 	if(!(argv[optind]) || argv[optind][0]=='-'){
+		log_write("using default argv[optind]=%s\n",  argv[optind]);	
 		return default_value;
 	}else if(argv[optind]){
+		log_write("using argv[optind]=%s\n",  argv[optind]);	
 		return argv[optind];
 	}
+	log_write("using SHIT!!! argv[optind]=%s\n",  argv[optind]);	
 	return (char*)NULL;
 }
 int check_for_lazy_image(char * test_string){
@@ -143,7 +125,17 @@ int check_for_lazy_image(char * test_string){
 	log_write("check_for_lazy_image:%s\n",test_string);	
 	
 }
-int main(int argc, char **argv){ 	
+int main(int argc, char **argv){ 
+	
+	
+	if(argc==1){
+		print_main_usage();}	
+	
+	fprintf(stderr,"%d %s\n",argc,argv[1]);
+	check_for_help_call(argc, argv);
+	
+	
+	
 	if(argc<2) { return print_usage(); }
 	
 	params = SET_LOGSTDOUT;
@@ -170,7 +162,7 @@ int main(int argc, char **argv){
 	}else{
 		if(argc==2)
 			print_question(argv[1]);
-		if( ACTION_UNPACK || ACTION_EXTRACT || ACTION_LIST )
+		if( ACTION_UNPACK || ACTION_EXTRACT || ACTION_LIST || ACTION_UPDATE  )
 			check_for_lazy_image(argv[2]);
 	 }
 
@@ -214,7 +206,6 @@ int main(int argc, char **argv){
            }
 			case 't':{ 
 				params = SET_TARGET ;
-				
 				option_values.target = optarg;
 				break;
 			}
