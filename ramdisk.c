@@ -198,6 +198,7 @@ int process_uncompressed_ramdisk(unsigned char *cpio_raw_data ,unsigned cpio_raw
 }	
 static unsigned long pack_ramdisk_entries(char *dir,char *path,unsigned char* output_buffer)
 {
+	//log_write("pack_ramdisk_entries:%s\n",path);
 	DIR *dp;
 	char cwd[PATH_MAX];
 	getcwd(cwd,PATH_MAX);
@@ -211,7 +212,7 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,unsigned char* ou
 	unsigned long  bytes_to_next_header_start = 0;
 	unsigned long  next_header = 0;
 	if((dp = opendir(dir)) == NULL) 
-		//log_write(stderr,"cannot open directory: %s\n", dir);
+		log_write("cannot open directory: %s\n", dir);
 		
 	chdir(dir);
 	getcwd(cwd,PATH_MAX);
@@ -259,6 +260,7 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,unsigned char* ou
 
 		} 
 		else if(S_ISLNK(statbuf.st_mode)){
+			printf("link:%s %d\n",entry->d_name,statbuf.st_mode);
 			unsigned char* data=calloc(MEMORY_BUFFER_SIZE, sizeof(unsigned char));
 			readlink(entry->d_name,(char*)data,PATH_MAX);
 			unsigned file_size =strlen((char*)data);

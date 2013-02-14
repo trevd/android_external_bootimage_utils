@@ -125,15 +125,17 @@ char * set_program_switch(int param,char * default_value,char **argv){
 	}
 	return (char*)NULL;
 }
-void check_for_lazy_image(char * test_string){
+int check_for_lazy_image(char * test_string){
 	
 	if(test_string[0]=='-')
-		return ;
+		return 0;
 		
 	if(check_file_exists(test_string,CHECK_FAIL_OK)){
 		params = SET_IMAGE;
 		option_values.image_filename=test_string;
+		return 1;
 	}
+	return 0;
 	log_write("check_for_lazy_image:%s\n",test_string);	
 	
 }
@@ -151,8 +153,16 @@ int main(int argc, char **argv){
 	{
 		fprintf(stderr,"No Action Set! Lets see if I can help you out\n");
 		fprintf(stderr,"SELECT FUZZY FUZZY FUZZY ANALYSIS MODE\ninteractive or JFMIW? [JFMIW]\n");
-		
-		exit(0);
+		if(check_for_lazy_image(argv[1])){
+			fprintf(stderr,"Existing File Found at poistion 1! Try Unpack Mode\n");
+			program_option=program_options[UNPACK];
+			option_values.ramdisk_directory_name=DEFAULT_RAMDISK_DIRECTORY_NAME;
+			option_values.kernel_name=DEFAULT_KERNEL_NAME;
+			option_values.header=DEFAULT_HEADER_NAME;
+			params = SET_ALL ;
+		}else{
+			exit(0);
+		}
 	}else{
 		if(argc==2)
 			print_question(argv[1]);
@@ -165,7 +175,6 @@ int main(int argc, char **argv){
 		switch(option_return){
 			case 'x':{ 	option_values.ramdisk_archive_name 		= 	set_program_switch( SET_RAMDISK_ARCHIVE,DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
 			case 'd':{ 	option_values.ramdisk_directory_name	=	set_program_switch(SET_RAMDISK_DIRECTORY,DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
-			case 'p':{ 	option_values.page_size_filename		=	set_program_switch(SET_PAGESIZE,DEFAULT_PAGE_SIZE_NAME,argv); 					break; 	}
 			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(SET_RAMDISK,DEFAULT_RAMDISK_NAME,argv); 						break;	}
 			case 'k':{  option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv);  						break; 	}
 			case 'c':{ 	option_values.cmdline					=	set_program_switch(SET_CMDLINE,DEFAULT_CMDLINE_NAME,argv);  					break; 	}
@@ -181,6 +190,23 @@ int main(int argc, char **argv){
 					}
 				break;
 				}
+			case 'p':{ 
+				if(ACTION_UNPACK){	
+					option_values.page_size_filename		=	set_program_switch(SET_PAGESIZE,DEFAULT_PAGE_SIZE_NAME,argv); 					break; 	
+				}else if(ACTION_PACK){
+					char *endptr ; char *str ;
+					str = argv[optind];
+					errno=0;
+					long val = strtol(str, &endptr, 10);
+					if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (errno != 0 && val == 0) || (endptr == str) ) {
+						log_write("invalid_page_size\n");
+					}else{
+						params = SET_PAGESIZE_STRING;
+						option_values.page_size =val;
+						log_write("Page Size:%d\n",option_values.page_size);
+					}
+				}             
+           }
 			case 't':{ 
 				params = SET_TARGET ;
 				option_values.target = optarg;
@@ -194,9 +220,13 @@ int main(int argc, char **argv){
 				 break;	}
 			case 'i':{
 			 params = SET_IMAGE;
-			 if(check_file_exists(optarg,CHECK_FAIL_EXIT)){
+			 if(ACTION_PACK){
 				option_values.image_filename=optarg;
-			 }
+			 }else{
+				 if(check_file_exists(optarg,CHECK_FAIL_EXIT))
+					option_values.image_filename=optarg;
+				}
+		 
 			 break;
 		}
 		case 'o':{
@@ -216,10 +246,8 @@ int main(int argc, char **argv){
 	if(!optopt){
 		switch(program_option.action){
 			case UNPACK:{
-					
 					if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
-						log_write("main:unpack no image set\n");	
-						
+						log_write("main:unpack no image set\n");		
 						exit(0);
 					}
 					if(!HAS_OUTPUT){
@@ -231,10 +259,29 @@ int main(int argc, char **argv){
 					}
 					break;
 				}
-			case LIST:
-				{ 
+			case LIST:{ 
 					log_write("main:list\n");
-					break;}
+					break;
+				}
+			case PACK:{
+				if(!HAS_PAGESIZE_STRING){
+					option_values.page_size=DEFAULT_PAGE_SIZE;
+					log_write("main:pack no image set\n");		
+				}
+				if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
+					log_write("main:pack no image set\n");		
+					exit(0);
+				}
+				if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
+					log_write("main:pack no image set\n");		
+					exit(0);
+				}
+				if(!HAS_KERNEL){ // Image file is not set look for a valid filename 
+						log_write("main:unpack no image set\n");		
+						exit(0);
+				}
+				break;
+			}
 			default:
 					break;
 		}

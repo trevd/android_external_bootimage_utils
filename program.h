@@ -6,7 +6,7 @@
 #include <limits.h>	
 
 int unpack_boot_image_file();
-int create_boot_image_file();
+int pack_boot_image_file();
 int list_boot_image_info();
 int extract();
 
@@ -46,9 +46,8 @@ static struct option pack_long_options[] =
 		{"board-name", required_argument,0,'n' },
 		{"base-address", required_argument,0,'b' },
 		{"pagesize", required_argument,0,'p' },
-		{"ramdisk-offset", required_argument,0,'d' },
+		{"ramdisk-directory", required_argument,0,'d' },
 		{"second", required_argument,0,'s' },
-		{"output-image", required_argument,0,'o' },
 	   {0, 0, 0, 0}
 	 };	
 	 
@@ -148,7 +147,7 @@ optionvalues_t option_values;
 #define DEFAULT_SECOND_NAME "second"
 #define DEFAULT_LOG
 #define OPTIONS_ACTION_UNPACK "i:rl:xfpkcbsdho:a"
-#define OPTIONS_ACTION_PACK  "k:p:r:c:s:i:"
+#define OPTIONS_ACTION_PACK  "k:p:d:r:c:s:i:"
 #define OPTIONS_ACTION_LIST  "i:"
 #define OPTIONS_ACTION_EXTRACT "i:t:s:"
 #define OPTIONS_ACTION_REMOVE "rfiv"
@@ -167,11 +166,12 @@ enum bitwise_parameters {
 	BOARD=0x200,
 	HEADER=0x400,
 	PAGESIZE=0x800,
-	FILENAME=0x800,
 	SOURCE=0x1000,
 	TARGET=0x2000,
 	LOGSTDOUT=0x4000,
 	NOLOGFILE=0x8000,
+	FILENAME=0x10000,
+	PAGESIZE_STRING=0x20000,
 	RAMDISK_FULL = RAMDISK_DIRECTORY | RAMDISK_CPIO | RAMDISK_ARCHIVE,
 	ALL=KERNEL | RAMDISK_DIRECTORY |  HEADER,
 	OUTPUT=0x1000000
@@ -208,6 +208,7 @@ enum bitwise_parameters {
 #define SET_FILENAME 			(params | FILENAME)
 #define SET_SECOND	 			(params | SECOND)
 #define SET_PAGESIZE 			(params | PAGESIZE)
+#define SET_PAGESIZE_STRING		(params | PAGESIZE_STRING)
 #define SET_CMDLINE	 			(params | CMDLINE)
 #define SET_CMDLINE_STRING		(params | CMDLINE_STRING)
 #define SET_BOARD		 		(params | BOARD)
@@ -236,7 +237,7 @@ typedef struct _program_options_t  {
 static program_options_t program_options[] ={
 		{ NULL,NULL,NOT_SET,NULL},
 		{OPTIONS_ACTION_UNPACK,unpack_long_options,UNPACK ,unpack_boot_image_file},
-		{OPTIONS_ACTION_PACK,pack_long_options,PACK ,NULL},		 
+		{OPTIONS_ACTION_PACK,pack_long_options,PACK ,pack_boot_image_file},		 
 			{OPTIONS_ACTION_LIST,list_long_options,LIST ,list_boot_image_info},
 					{OPTIONS_ACTION_EXTRACT,extract_long_options,EXTRACT,NULL },
 					{OPTIONS_ACTION_EXTRACT,NULL,ADD ,NULL},

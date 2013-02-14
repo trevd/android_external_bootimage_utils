@@ -73,7 +73,8 @@ int print_boot_image_info(boot_image_t boot_image,FILE* fp)
 					"second_addr:[%x][0x%08x]"EOL
 					"second_size:[%d][0x%08x]"EOL
 					"second_pagecount:[%d][0x%08x]"EOL
-					"second_offset:[%d][0x%08x]"EOL,
+					"second_offset:[%d][0x%08x]"EOL
+					"tags_addr:[%d][0x%08x]"EOL,
 		    boot_image.header.name,boot_image.header.cmdline,
 		    boot_image.magic_offset,boot_image.magic_offset,
 		    boot_image.header.page_size,boot_image.header.page_size,
@@ -88,7 +89,8 @@ int print_boot_image_info(boot_image_t boot_image,FILE* fp)
 			boot_image.header.second_addr,boot_image.header.second_addr,
 			boot_image.header.second_size,boot_image.header.second_size,
 			boot_image.second_page_count,boot_image.second_page_count,
-			boot_image.second_offset,boot_image.second_offset);
+			boot_image.second_offset,boot_image.second_offset,
+			boot_image.header.tags_addr,boot_image.header.tags_addr);
 	return 0;
 
 }
@@ -122,6 +124,8 @@ static boot_image_t parse_boot_image_info(byte_p data, unsigned file_size)
 	boot_image.kernel_offset = boot_image.header.page_size;
 	boot_image.ramdisk_offset = boot_image.kernel_offset + (boot_image.kernel_page_count * boot_image.header.page_size);	
 	boot_image.second_offset = boot_image.ramdisk_offset + (boot_image.ramdisk_page_count *  boot_image.header.page_size);
+	
+	
 	return boot_image;
 
 }
@@ -252,12 +256,13 @@ int get_content_hash(boot_img_hdr* header,unsigned char *kernel_data,unsigned ch
 }
 
 
-int create_boot_image_file(){
+int pack_boot_image_file(){
 	
-
+	
 	char starting_directory[PATH_MAX];
 	getcwd(starting_directory,PATH_MAX);
-	log_write("create_boot_image_file:starting_directory=%s\n",starting_directory);
+	log_write("create_boot_image_file:kernel:%s:ramdisk_directory:%s image:%s starting_directory=%s\n",option_values.kernel_name,option_values.ramdisk_directory_name,option_values.image_filename,starting_directory);
+	
 	unsigned char *ramdisk_gzip_data = NULL, *kernel_data = NULL ,*second_data = NULL,*cmdline_data = NULL;
 	unsigned long ramdisk_gzip_size = 0, kernel_size=0, second_size = 0;
 	if ( HAS_RAMDISK_DIRECTORY ){
@@ -267,6 +272,7 @@ int create_boot_image_file(){
 		log_write("create_boot_image_file:cpio_size=%lu\n",cpio_size);
 		ramdisk_gzip_data = calloc(cpio_size, sizeof(unsigned char));
 		ramdisk_gzip_size = compress_gzip_ramdisk_memory(ramdisk_cpio_data,cpio_size,ramdisk_gzip_data,cpio_size);
+		log_write("create_boot_image_file:ramdisk_gzip_size=%lu\n",ramdisk_gzip_size);
 		free(ramdisk_cpio_data);
 		chdir(starting_directory);
 		
@@ -301,12 +307,8 @@ int create_boot_image_file(){
 		read_file_to_size(option_values.board,BOOT_ARGS_SIZE,boot_image_header.name);
 	}
 	struct dirent *entry;	
-	
-	
 	get_content_hash(&boot_image_header,kernel_data,ramdisk_gzip_data,second_data);
-	//print_boot_image_header_info(boot_image_header);
-	
-	FILE*fp = fopen(option_values.output,"wb");
+	FILE*fp = fopen(option_values.image_filename,"wb");
 	int fd = fileno(fp); 
 	if(write(fd, &boot_image_header, sizeof(boot_image_header)) != sizeof(boot_image_header)) goto fail;
     if(write_padding(fd, option_values.page_size, sizeof(boot_image_header))) goto fail;
