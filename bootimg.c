@@ -355,7 +355,7 @@ int update_boot_image_file(){
 	unsigned long ramdisk_gzip_size = compress_gzip_ramdisk_memory(new_cpio_data,new_cpio_file_size,ramdisk_gzip_data,new_cpio_file_size);
 	unsigned pagemask =boot_image.header.page_size - 1; 
 	
-	unsigned long ramdisk_padding = boot_image.header.page_size - (ramdisk_gzip_size & pagemask);
+	int ramdisk_padding = boot_image.header.page_size - (ramdisk_gzip_size & pagemask);
 	int header_padding = boot_image.header.page_size - (sizeof(boot_image.header) & pagemask);
 	int kernel_padding = boot_image.header.page_size - (boot_image.header.kernel_size & pagemask);
 	log_write("ramdisk_size:%ld\n",boot_image.header.ramdisk_size);

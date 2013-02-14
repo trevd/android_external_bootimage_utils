@@ -20,7 +20,7 @@ typedef struct Node {
 
 unsigned long dos_to_unix(char* buf2, const char* buf)
 {
-    char* p = buf;
+    const char* p = buf;
     char* q = buf2;
     int times =0;
     while (*p) {

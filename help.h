@@ -39,7 +39,7 @@ Switches:\n\
 									
 
 
-static enum HELP_NAME { HELP_NONE,HELP_MAIN, HELP_UNPACK , HELP_PACK, HELP_EXTRACT, HELP_UPDATE };	
+enum HELP_ME { HELP_NONE,HELP_MAIN, HELP_UNPACK , HELP_PACK, HELP_EXTRACT, HELP_UPDATE } ;	
 static void print_main_usage(){
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
 	PRINT_SINGLE_LINE
@@ -47,7 +47,7 @@ static void print_main_usage(){
 	exit(0);
 }
 static void check_for_help_call(int argc,char ** argv){
-	enum HELP_NAME  help_me = HELP_NONE;
+	enum HELP_ME help_me = HELP_NONE;
 	
 	int compare_length = strlen(argv[1]) > 2 ? strlen(argv[1]) : 2;
 	if(!strncmp(argv[1],"-h",compare_length)) help_me= HELP_MAIN;
