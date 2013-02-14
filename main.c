@@ -118,6 +118,7 @@ program_options_t get_program_option(int argc, char **argv){
 }
 char * set_program_switch(int param,char * default_value,char **argv){
 	params = param ;
+	log_write("main:set_program_switch:default %s\n", default_value);	
 	if(!(argv[optind]) || argv[optind][0]=='-'){
 		return default_value;
 	}else if(argv[optind]){
@@ -149,7 +150,7 @@ int main(int argc, char **argv){
 	program_option=get_program_option(argc, argv);
 	
 	
-	if(program_option.action==NULL)
+	if(program_option.action==NOT_SET)
 	{
 		fprintf(stderr,"No Action Set! Lets see if I can help you out\n");
 		fprintf(stderr,"SELECT FUZZY FUZZY FUZZY ANALYSIS MODE\ninteractive or JFMIW? [JFMIW]\n");
@@ -176,7 +177,7 @@ int main(int argc, char **argv){
 			case 'x':{ 	option_values.ramdisk_archive_name 		= 	set_program_switch( SET_RAMDISK_ARCHIVE,DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
 			case 'd':{ 	option_values.ramdisk_directory_name	=	set_program_switch(SET_RAMDISK_DIRECTORY,DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
 			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(SET_RAMDISK,DEFAULT_RAMDISK_NAME,argv); 						break;	}
-			case 'k':{  option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv);  						break; 	}
+			case 'k':{ log_write("main:kernel\n");	 option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv);  						break; 	}
 			case 'c':{ 	option_values.cmdline					=	set_program_switch(SET_CMDLINE,DEFAULT_CMDLINE_NAME,argv);  					break; 	}
 			case 'b':{	option_values.board						=	set_program_switch(SET_BOARD,DEFAULT_BOARD_NAME,argv);  						break; 	}
 			case 'h':{	option_values.header					=	set_program_switch(SET_HEADER,DEFAULT_HEADER_NAME,argv);  						break; 	}
@@ -205,7 +206,7 @@ int main(int argc, char **argv){
 						option_values.page_size =val;
 						log_write("Page Size:%d\n",option_values.page_size);
 					}
-				}             
+				}break;            
            }
 			case 't':{ 
 				params = SET_TARGET ;
@@ -238,9 +239,9 @@ int main(int argc, char **argv){
 		default:	break;
 	}
 	option_return =  GET_OPT_LONG_FUNCTION
-		
+		fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
 	} // end while	
-	//fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
+	fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
 	
 	// We've Processed all the options now lets see if we have everything we need
 	if(!optopt){
@@ -266,21 +267,32 @@ int main(int argc, char **argv){
 			case PACK:{
 				if(!HAS_PAGESIZE_STRING){
 					option_values.page_size=DEFAULT_PAGE_SIZE;
-					log_write("main:pack no image set\n");		
-				}
-				if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
-					log_write("main:pack no image set\n");		
-					exit(0);
+					log_write("main:pack no pagesize set - using default\n");		
 				}
 				if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
 					log_write("main:pack no image set\n");		
 					exit(0);
 				}
 				if(!HAS_KERNEL){ // Image file is not set look for a valid filename 
-						log_write("main:unpack no image set\n");		
+						log_write("main:pack no kernel set %s\n", option_values.kernel_name);		
 						exit(0);
 				}
 				break;
+			}
+			case EXTRACT:{
+					if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
+						log_write("main:extract no image set\n");		
+						exit(0);
+					}
+					if(!HAS_SOURCE){
+						log_write("main:extract no source file set\n");		
+						exit(0);
+					}
+					if(!HAS_TARGET){
+						log_write("main:extract no target file set - using source\n");		
+						option_values.target=option_values.source;
+					}	
+				
 			}
 			default:
 					break;

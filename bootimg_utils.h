@@ -34,14 +34,14 @@ typedef struct _boot_image
 	unsigned ramdisk_offset;
 	unsigned second_page_count;
 	unsigned second_offset;
-	void * kernel_data;
-	void * ramdisk_data;
-	void * second_stage_data;
+	byte_p header_data_start;
+	byte_p kernel_data_start;
+	byte_p ramdisk_data_start;
+	byte_p second_data_start;
 	
 } boot_image_t ;
 
 
-char *strrev(char *str);
-int print_boot_image_info(boot_image_t ,FILE*);
+
 void *memmem1(const void *haystack, size_t haystack_len,
 			  const void *needle,  size_t needle_len);

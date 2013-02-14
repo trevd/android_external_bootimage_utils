@@ -8,7 +8,7 @@
 int unpack_boot_image_file();
 int pack_boot_image_file();
 int list_boot_image_info();
-int extract();
+int extract_boot_image_file();
 
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
 	#include <windows.h>
@@ -147,11 +147,12 @@ optionvalues_t option_values;
 #define DEFAULT_SECOND_NAME "second"
 #define DEFAULT_LOG
 #define OPTIONS_ACTION_UNPACK "i:rl:xfpkcbsdho:a"
-#define OPTIONS_ACTION_PACK  "k:p:d:r:c:s:i:"
+#define OPTIONS_ACTION_PACK  "kp:dr:c:s:i:"
 #define OPTIONS_ACTION_LIST  "i:"
 #define OPTIONS_ACTION_EXTRACT "i:t:s:"
 #define OPTIONS_ACTION_REMOVE "rfiv"
-#define OPTIONS_REMOVE "rfiv"
+#define OPTIONS_ACTION_ADD "rfiv"
+#define OPTIONS_ACTION_UPDATE "rfiv"
 
 enum bitwise_parameters { 
 	IMAGE = 0x1, 
@@ -239,10 +240,10 @@ static program_options_t program_options[] ={
 		{OPTIONS_ACTION_UNPACK,unpack_long_options,UNPACK ,unpack_boot_image_file},
 		{OPTIONS_ACTION_PACK,pack_long_options,PACK ,pack_boot_image_file},		 
 			{OPTIONS_ACTION_LIST,list_long_options,LIST ,list_boot_image_info},
-					{OPTIONS_ACTION_EXTRACT,extract_long_options,EXTRACT,NULL },
-					{OPTIONS_ACTION_EXTRACT,NULL,ADD ,NULL},
-					{OPTIONS_ACTION_EXTRACT,NULL,REMOVE ,NULL},
-					{OPTIONS_ACTION_EXTRACT,NULL,UPDATE ,NULL}
+					{OPTIONS_ACTION_EXTRACT,extract_long_options,EXTRACT,extract_boot_image_file },
+					{OPTIONS_ACTION_ADD,NULL,ADD ,NULL},
+					{OPTIONS_ACTION_REMOVE,NULL,REMOVE ,NULL},
+					{OPTIONS_ACTION_UPDATE,NULL,UPDATE ,NULL}
 			};
 program_options_t program_option;
 	
