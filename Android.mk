@@ -4,19 +4,23 @@ src_files := main.c bootimg.c memmem.c line_endings.c getopt_long.c	getopt.c fil
 
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../system/core/mkbootimg 
+LOCAL_C_INCLUDES := $(LOCAL_PATH) \
+					$(LOCAL_PATH)/../../system/core/mkbootimg 
 LOCAL_SRC_FILES := $(src_files)
-LOCAL_STATIC_LIBRARIES := libc libcutils libmincrypt libz
 
-LOCAL_MODULE := bootimage-tools
+LOCAL_STATIC_LIBRARIES :=  libc	libcutils libmincrypt   libz
+
+LOCAL_MODULE := bootimg-tools
+
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT_SBIN)
  
-#include $(BUILD_EXECUTABLE)
+include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/../../system/core/mkbootimg 
+LOCAL_C_INCLUDES := $(LOCAL_PATH) \
+					$(LOCAL_PATH)/../../system/core/mkbootimg 
 LOCAL_SRC_FILES := $(src_files)
 
 LOCAL_STATIC_LIBRARIES := 	libcutils libmincrypt   libz

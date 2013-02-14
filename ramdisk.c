@@ -154,12 +154,12 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,unsigned cpio_size,unsigned l
 	//write_to_file(cpio_data,cpio_size,"cpio_full");
 	
 	while(!cpio_entry.is_trailer){
-		if(!strncmp(option_values.target,cpio_entry.file_name,cpio_entry.name_size)){
+		if(!strncmp(option_values.target_filename,cpio_entry.file_name,cpio_entry.name_size)){
 			struct stat sb;
-			log_write("stat=%s:\n",option_values.source); 
-			lstat(option_values.source, &sb); 
+			log_write("stat=%s:\n",option_values.source_filename); 
+			lstat(option_values.source_filename, &sb); 
 			unsigned long  new_file_size=0 ;
-			byte_p new_file_data = load_file(option_values.source,&new_file_size);
+			byte_p new_file_data = load_file(option_values.source_filename,&new_file_size);
 			
 			if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(new_file_data,new_file_size))){
 				char* buf=malloc(new_file_size*2);
@@ -213,15 +213,15 @@ long find_file_in_ramdisk_entries(byte_p data)
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);
 	while(!cpio_entry.is_trailer){
 			log_write("cpio_entry:file_name=%s next_header:%p \n",cpio_entry.file_name,cpio_entry.next_header_p);
-			if(!strncmp(option_values.source,cpio_entry.file_name,cpio_entry.name_size)){
+			if(!strncmp(option_values.source_filename,cpio_entry.file_name,cpio_entry.name_size)){
 				
 				if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
 					char buf[cpio_entry.file_size*2];
 					int times = unix_to_dos((char *)&buf,(char *)cpio_entry.file_start_p);
 					log_write("converting line endings\n");
-					write_to_file_mode((unsigned char*)buf, cpio_entry.file_size+times,option_values.target,cpio_entry.mode);
+					write_to_file_mode((unsigned char*)buf, cpio_entry.file_size+times,option_values.target_filename,cpio_entry.mode);
 				}else
-					write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,option_values.target,cpio_entry.mode);
+					write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,option_values.target_filename,cpio_entry.mode);
 				return 0;
 			}else
 				cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				
@@ -298,8 +298,8 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buf
 		lstat(entry->d_name,&statbuf);
 		char full_name[PATH_MAX];
 		full_name[0] = 0;
-		strncpy(full_name,path,PATH_MAX); 
-		strncat(full_name,entry->d_name,PATH_MAX );
+		strncpy(full_name,path,strlen(path)); 
+		strncat(full_name,entry->d_name,strlen(entry->d_name) );
 		name_size = strlen(full_name)+1;
 		bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
 		file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;

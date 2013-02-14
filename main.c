@@ -6,11 +6,11 @@
 #include <sys/stat.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "bootimg_utils.h"
 #include "program.h"
 #include "file.h"
 #include "help.h"
+
+
 int log_write(const char *format, ...)
 {
 	int result;
@@ -23,23 +23,24 @@ int log_write(const char *format, ...)
 	if(result == -1)
 		return 0;
 	va_end(args);
-	if(HAS_LOGSTDOUT)
-		fprintf(stderr,str);
+	if(option_values.log_stdout){
+		fprintf(stderr,format,str);
+	}
 	
-	if(HAS_NOLOGFILE){
+	if(!option_values.log_filename){
 		free(str);
 		return 0;
 	}
 	
-	file = fopen(option_values.filename,"a");
+	file = fopen(option_values.log_filename,"a");
 	if(!file) {
-		fprintf(stderr, "Couldn't open file %s; %s\n", option_values.filename, strerror(errno));
+		fprintf(stderr, "Couldn't open file %s; %s\n", option_values.log_filename, strerror(errno));
 		free(str);
 		return 0;
 	}
 	
 	if(fwrite(str,strlen(str),1,file) != 1) {
-		fprintf(stderr, "Could not write line to %s; %s\n", option_values.filename, strerror(errno));
+		fprintf(stderr, "Could not write line to %s; %s\n", option_values.log_filename, strerror(errno));
 		free(str);
 		fclose(file);
 		return 0;
@@ -98,8 +99,7 @@ program_options_t get_program_option(int argc, char **argv){
 	}
 	return program_options[NOT_SET];
 }
-char * set_program_switch(int param,char * default_value,char **argv){
-	params = param ;
+char * set_program_switch(char * default_value,char **argv){
 	log_write("main:set_program_switch:default %s -", default_value);	
 	if(!(argv[optind]) || argv[optind][0]=='-'){
 		log_write("using default argv[optind]=%s\n",  argv[optind]);	
@@ -117,7 +117,6 @@ int check_for_lazy_image(char * test_string){
 		return 0;
 		
 	if(check_file_exists(test_string,CHECK_FAIL_OK)){
-		params = SET_IMAGE;
 		option_values.image_filename=test_string;
 		return 1;
 	}
@@ -138,9 +137,7 @@ int main(int argc, char **argv){
 	
 	if(argc<2) { return print_usage(); }
 	
-	params = SET_LOGSTDOUT;
-	params = SET_NOLOGFILE;
-	
+	option_values.log_stdout=1;
 	int option_index =-1, option_return =-2, argument_count = argc,  settings =0; 
 	program_option=get_program_option(argc, argv);
 	
@@ -153,9 +150,8 @@ int main(int argc, char **argv){
 			fprintf(stderr,"Existing File Found at poistion 1! Try Unpack Mode\n");
 			program_option=program_options[UNPACK];
 			option_values.ramdisk_directory_name=DEFAULT_RAMDISK_DIRECTORY_NAME;
-			option_values.kernel_name=DEFAULT_KERNEL_NAME;
-			option_values.header=DEFAULT_HEADER_NAME;
-			params = SET_ALL ;
+			option_values.kernel_filename=DEFAULT_KERNEL_NAME;
+			option_values.header_filename=DEFAULT_HEADER_NAME;
 		}else{
 			exit(0);
 		}
@@ -169,27 +165,26 @@ int main(int argc, char **argv){
 	option_return = GET_OPT_LONG_FUNCTION;
 	while (option_return != -1){
 		switch(option_return){
-			case 'x':{ 	option_values.ramdisk_archive_name 		= 	set_program_switch( SET_RAMDISK_ARCHIVE,DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
-			case 'd':{ 	option_values.ramdisk_directory_name	=	set_program_switch(SET_RAMDISK_DIRECTORY,DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
-			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(SET_RAMDISK,DEFAULT_RAMDISK_NAME,argv); 						break;	}
-			case 'k':{  option_values.kernel_name				=	set_program_switch(SET_KERNEL,DEFAULT_KERNEL_NAME,argv);  						break; 	}
-			case 'c':{ 	option_values.cmdline					=	set_program_switch(SET_CMDLINE,DEFAULT_CMDLINE_NAME,argv);  					break; 	}
-			case 'b':{	option_values.board						=	set_program_switch(SET_BOARD,DEFAULT_BOARD_NAME,argv);  						break; 	}
-			case 'h':{	option_values.header					=	set_program_switch(SET_HEADER,DEFAULT_HEADER_NAME,argv);  						break; 	}
+			case 'x':{ 	option_values.ramdisk_archive_filename 		= 	set_program_switch(DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
+			case 'd':{ 	option_values.ramdisk_directory_name	=	set_program_switch(DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
+			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(DEFAULT_RAMDISK_NAME,argv); 						break;	}
+			case 'k':{  option_values.kernel_filename			=	set_program_switch(DEFAULT_KERNEL_NAME,argv);  						break; 	}
+			case 'c':{ 	option_values.cmdline_filename			=	set_program_switch(DEFAULT_CMDLINE_NAME,argv);  					break; 	}
+			case 'b':{	option_values.board_filename			=	set_program_switch(DEFAULT_BOARD_NAME,argv);  						break; 	}
+			case 'h':{	option_values.header_filename			=	set_program_switch(DEFAULT_HEADER_NAME,argv);  						break; 	}
 			case 's':{
 				 if(ACTION_UNPACK){
-					 option_values.second					=	set_program_switch(SET_SECOND,DEFAULT_SECOND_NAME,argv);	 break;
+					 option_values.second_filename					=	set_program_switch(DEFAULT_SECOND_NAME,argv);	 break;
 				}else{
-					params = SET_SOURCE ;
-					
-					option_values.source = optarg;
+					log_write("optarg:%s\n",optarg);
+					option_values.source_filename = optarg;
 					break;
 					}
 				break;
 				}
 			case 'p':{ 
 				if(ACTION_UNPACK){	
-					option_values.page_size_filename		=	set_program_switch(SET_PAGESIZE,DEFAULT_PAGE_SIZE_NAME,argv); 					break; 	
+					option_values.page_size_filename		=	set_program_switch(DEFAULT_PAGE_SIZE_NAME,argv); 					break; 	
 				}else if(ACTION_PACK){
 					char *endptr ; char *str ;
 					str = argv[optind];
@@ -198,25 +193,21 @@ int main(int argc, char **argv){
 					if ((errno == ERANGE && (val == LONG_MAX || val == LONG_MIN)) || (errno != 0 && val == 0) || (endptr == str) ) {
 						log_write("invalid_page_size\n");
 					}else{
-						params = SET_PAGESIZE_STRING;
 						option_values.page_size =val;
 						log_write("Page Size:%d\n",option_values.page_size);
 					}
 				}break;            
            }
 			case 't':{ 
-				params = SET_TARGET ;
-				option_values.target = optarg;
+				option_values.target_filename = optarg;
 				break;
 			}
 			case 'a':{ 
 				option_values.ramdisk_directory_name=DEFAULT_RAMDISK_DIRECTORY_NAME;
-				option_values.kernel_name=DEFAULT_KERNEL_NAME;
-				option_values.header=DEFAULT_HEADER_NAME;
-				params = SET_ALL ;
+				option_values.kernel_filename=DEFAULT_KERNEL_NAME;
+				option_values.header_filename=DEFAULT_HEADER_NAME;
 				 break;	}
 			case 'i':{
-			 params = SET_IMAGE;
 			 if(ACTION_PACK){
 				option_values.image_filename=optarg;
 			 }else{
@@ -227,8 +218,7 @@ int main(int argc, char **argv){
 			 break;
 		}
 		case 'o':{
-			 params = SET_OUTPUT ;
-			 option_values.output=optarg;
+			 option_values.output_directory_name=optarg;
 		
 			break;
 		}
@@ -243,15 +233,14 @@ int main(int argc, char **argv){
 	if(!optopt){
 		switch(program_option.action){
 			case UNPACK:{
-					if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
+					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
 						log_write("main:unpack no image set\n");		
 						exit(0);
 					}
-					if(!HAS_OUTPUT){
+					if(!option_values.output_directory_name){
 						log_write("main:unpack no output set\n");	
-						params = SET_OUTPUT ;
-						option_values.output = malloc(PATH_MAX); 
-						getcwd(option_values.output,PATH_MAX);
+						option_values.output_directory_name = malloc(PATH_MAX); 
+						getcwd(option_values.output_directory_name,PATH_MAX);
 						
 					}
 					break;
@@ -261,32 +250,31 @@ int main(int argc, char **argv){
 					break;
 				}
 			case PACK:{
-				if(!HAS_PAGESIZE_STRING){
+				if(!option_values.page_size) 
 					option_values.page_size=DEFAULT_PAGE_SIZE;
-					log_write("main:pack no pagesize set - using default\n");		
-				}
-				if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
+					
+				if(!option_values.image_filename){ // Image file is not set look for a valid filename 
 					log_write("main:pack no image set\n");		
 					exit(0);
 				}
-				if(!HAS_KERNEL){ // Image file is not set look for a valid filename 
-						log_write("main:pack no kernel set %s\n", option_values.kernel_name);		
+				if(!option_values.kernel_filename){ // Image file is not set look for a valid filename 
+						log_write("main:pack no kernel set %s\n", option_values.kernel_filename);		
 						exit(0);
 				}
 				break;
 			}
 			case EXTRACT:{
-					if(!HAS_IMAGE){ // Image file is not set look for a valid filename 
+					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
 						log_write("main:extract no image set\n");		
 						exit(0);
 					}
-					if(!HAS_SOURCE){
+					if(!option_values.source_filename){
 						log_write("main:extract no source file set\n");		
 						exit(0);
 					}
-					if(!HAS_TARGET){
+					if(!option_values.target_filename){
 						log_write("main:extract no target file set - using source\n");		
-						option_values.target=option_values.source;
+						option_values.target_filename=option_values.source_filename;
 					}	
 				
 			}
@@ -296,17 +284,10 @@ int main(int argc, char **argv){
 		
 	
 	
-		if(!HAS_IMAGE){		
+		if(!option_values.image_filename){		
 			return print_usage();
 		}
 		
-		if(!HAS_RAMDISK){
-			if(HAS_RAMDISK_ARCHIVE || HAS_RAMDISK_CPIO || HAS_RAMDISK_DIRECTORY)
-			{
-					option_values.ramdisk_name=DEFAULT_RAMDISK_DIRECTORY_NAME;
-			
-			}
-		}
 		int ret =(*program_option.function_name_p)();
 	}
 	exit(0);

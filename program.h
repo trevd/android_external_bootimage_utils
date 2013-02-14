@@ -1,15 +1,7 @@
 #ifndef _PROGAM_H_
 #define _PROGAM_H_
 
-#include "getopt.h"
 
-#include <limits.h>	
-
-int unpack_boot_image_file();
-int pack_boot_image_file();
-int list_boot_image_info();
-int extract_boot_image_file();
-int update_boot_image_file();
 
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
 	#include <windows.h>
@@ -25,6 +17,47 @@ int update_boot_image_file();
 #define DEFAULT_PAGESIZE_NAME "pagesize"
 #define DEFAULT_BOARD_NAME "board"
 #endif
+#include <limits.h>	
+#include "getopt.h"
+#include <bootimg.h>
+#include "file.h"
+
+int unpack_boot_image_file();
+int pack_boot_image_file();
+int list_boot_image_info();
+int extract_boot_image_file();
+int update_boot_image_file();
+int log_write(const char *format, ...);
+
+void *memmem1(const void *haystack, size_t haystack_len,
+			  const void *needle,  size_t needle_len);
+#define ARRAYSIZE(a) ((int)(sizeof(a) / sizeof(*(a))))
+typedef struct _boot_block
+{
+	size_t content_size;
+	byte_p content_data;
+	size_t padding_size;
+	byte_p padding_data;
+	
+} boot_block ;
+
+typedef struct _boot_image
+{
+	boot_img_hdr header; 
+	unsigned magic_offset;
+	unsigned boot_image_filesize;
+	unsigned kernel_page_count;
+	unsigned kernel_offset;
+	unsigned ramdisk_page_count;
+	unsigned ramdisk_offset;
+	unsigned second_page_count;
+	unsigned second_offset;
+	byte_p header_data_start;
+	byte_p kernel_data_start;
+	byte_p ramdisk_data_start;
+	byte_p second_data_start;
+	
+} boot_image_t ;
 
 
 
@@ -52,23 +85,7 @@ static struct option pack_long_options[] =
 	   {0, 0, 0, 0}
 	 };	
 	 
-static struct option unpack_long_options[] = {
-			
-               {"boot-image",  required_argument,0, 'i'},
-               {"all",			no_argument,0,'a'},
-               {"ramdisk-name",  optional_argument,0, 'r'},
-               {"ramdisk-cpio",  optional_argument,0, (int)NULL},
-               {"ramdisk-archive",  optional_argument,0, 'x'},
-               {"ramdisk-directory",  optional_argument,0, 'd'},
-               {"kernel",  optional_argument, 0, 'k'},
-               {"output-dir",  required_argument, 0, 'o'},
-               {"cmdline",    optional_argument, 0, 'c'},
-               {"name",    optional_argument, 0, 'b'},
-               {"second",    optional_argument, 0, 's'},
-               {"header",    optional_argument, 0, 'h'},
-               {"pagesize",  required_argument, 0, 's'},
-               {0, 0, 0, 0}
-             };
+
              
 static struct option extract_long_options[] = {
                {"input",  required_argument,0, 'i'},
@@ -98,35 +115,42 @@ static struct option update_long_options[] = {
 
 typedef struct {
 	char *image_filename ;
-	char *kernel_name;
+	char *kernel_filename;
 	char *ramdisk_name;
 	char *ramdisk_directory_name;
-	char *ramdisk_cpio_name;
-	char *ramdisk_archive_name;
+	char *ramdisk_cpio_filename;
+	char *ramdisk_archive_filename;
 	char *page_size_filename;
-	char *logfile;
-	char *cmdline;
-	char *second;
-	char *board;
-	char *header;
-	char *output;
-	char *filename;
-	int filename_length;
-	char *target;
-	int target_length;
-	char *source;
-	int source_length;
+	char *header_filename;
+	char *second_filename;
+	char *cmdline_filename;
+	char *output_directory_name;
+	char *board_filename;
+	char *target_filename;
+	char *source_filename;
 	char *log_filename;
 	int page_size;
-	unsigned base;	
-    unsigned kernel_offset;
-    unsigned kernel_page_count;
-    unsigned ramdisk_offset ;
-    unsigned second_offset;  
-    unsigned second_page_count ;
-    unsigned tags_offset;
+	int log_stdout;
 } optionvalues_t ;
 optionvalues_t option_values;
+
+static struct option unpack_long_options[] = {
+			
+               {"boot-image",  required_argument,0, 'i'},
+               {"all",			no_argument, 0,'a'},
+               {"ramdisk-name",  optional_argument,0, 'r'},
+               {"ramdisk-cpio",  optional_argument,0, (int)NULL},
+               {"ramdisk-archive",  optional_argument,0, 'x'},
+               {"ramdisk-directory",  optional_argument,0, 'd'},
+               {"kernel",  optional_argument, 0, 'k'},
+               {"output-dir",  required_argument, 0, 'o'},
+               {"cmdline",    optional_argument, 0, 'c'},
+               {"name",    optional_argument, 0, 'b'},
+               {"second",    optional_argument, 0, 's'},
+               {"header",    optional_argument, 0, 'h'},
+               {"pagesize",  required_argument, 0, 's'},
+               {0, 0, 0, 0}
+             };
 
 #define DEFAULT_PAGE_SIZE 2048
 #define DEFAULT_PAGE_SIZE_NAME "pagesize"
@@ -154,77 +178,9 @@ optionvalues_t option_values;
 #define OPTIONS_ACTION_ADD "rfiv"
 #define OPTIONS_ACTION_UPDATE "i:t:s:"
 
-enum bitwise_parameters { 
-	IMAGE = 0x1, 
-	KERNEL = 0x2,
-	RAMDISK_ARCHIVE=0x4,
-	RAMDISK_CPIO =0x8,
-	RAMDISK=0x10,
-	RAMDISK_DIRECTORY = 0x20 ,
-	SECOND=0x40,
-	CMDLINE=0x80,
-	CMDLINE_STRING=0x100,		
-	BOARD=0x200,
-	HEADER=0x400,
-	PAGESIZE=0x800,
-	SOURCE=0x1000,
-	TARGET=0x2000,
-	LOGSTDOUT=0x4000,
-	NOLOGFILE=0x8000,
-	FILENAME=0x10000,
-	PAGESIZE_STRING=0x20000,
-	RAMDISK_FULL = RAMDISK_DIRECTORY | RAMDISK_CPIO | RAMDISK_ARCHIVE,
-	ALL=KERNEL | RAMDISK_DIRECTORY |  HEADER,
-	OUTPUT=0x1000000
-}  params ;
 
 
-#define HAS_ALL					(params & ALL)
-#define HAS_NOLOGFILE			(params & NOLOGFILE)
-#define HAS_LOGSTDOUT			(params & LOGSTDOUT)
-#define HAS_TARGET 				(params & TARGET)
-#define HAS_SOURCE 				(params & SOURCE)
-#define HAS_FILENAME 			(params & FILENAME)
-#define HAS_SECOND	 			(params & SECOND)
-#define HAS_PAGESIZE 			(params & PAGESIZE)
-#define HAS_PAGESIZE_STRING		(params & PAGESIZE_STRING)
-#define HAS_CMDLINE	 			(params & CMDLINE)
-#define HAS_CMDLINE_STRING		(params & CMDLINE_STRING)
-#define HAS_BOARD		 		(params & BOARD)
-#define HAS_HEADER	 			(params & HEADER)
-#define HAS_IMAGE 				(params & IMAGE)
-#define HAS_OUTPUT 				(params & OUTPUT)
-#define HAS_KERNEL 				(params & KERNEL)
-#define HAS_RAMDISK 			(params & RAMDISK)
-#define HAS_RAMDISK_ARCHIVE		(params & RAMDISK_ARCHIVE)
-#define HAS_RAMDISK_DIRECTORY 	(params & RAMDISK_DIRECTORY)
-#define HAS_RAMDISK_CPIO 		(params & RAMDISK_CPIO)
-#define HAS_RAMDISK_FULL 		(params & RAMDISK_FULL)
 
-#define SET_ALL					(params | ALL)
-#define SET_NOLOGFILE			(params | NOLOGFILE)
-#define SET_LOGSTDOUT			(params | LOGSTDOUT)
-#define SET_TARGET 				(params | TARGET)
-#define SET_SOURCE 				(params | SOURCE)
-#define SET_FILENAME 			(params | FILENAME)
-#define SET_SECOND	 			(params | SECOND)
-#define SET_PAGESIZE 			(params | PAGESIZE)
-#define SET_PAGESIZE_STRING		(params | PAGESIZE_STRING)
-#define SET_CMDLINE	 			(params | CMDLINE)
-#define SET_CMDLINE_STRING		(params | CMDLINE_STRING)
-#define SET_BOARD		 		(params | BOARD)
-#define SET_HEADER	 			(params | HEADER)
-#define SET_IMAGE 				(params | IMAGE)
-#define SET_OUTPUT 				(params | OUTPUT)
-#define SET_KERNEL 				(params | KERNEL)
-#define SET_RAMDISK 			(params | RAMDISK)
-#define SET_RAMDISK_ARCHIVE		(params | RAMDISK_ARCHIVE)
-#define SET_RAMDISK_DIRECTORY 	(params | RAMDISK_DIRECTORY)
-#define SET_RAMDISK_CPIO 		(params | RAMDISK_CPIO)
-#define SET_RAMDISK_FULL 		(params | RAMDISK_FULL)
-
-
-int log_write(const char *format, ...);
 typedef enum  _program_actions_t {  
 	NOT_SET=0,	UNPACK=1 , PACK=2 , LIST=3 , EXTRACT=4,ADD=5 , REMOVE=6 , UPDATE=7 } program_actions_t ;
 
