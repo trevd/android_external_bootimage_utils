@@ -151,7 +151,7 @@ unsigned long compress_gzip_ramdisk_memory(const byte_p data_in , unsigned size,
 byte_p modify_ramdisk_entry(const byte_p cpio_data,unsigned cpio_size,unsigned long *new_cpio_size){
 	cpio_entry_t cpio_entry = populate_cpio_entry(cpio_data);
 	byte_p cpio_end  = cpio_data+cpio_size;
-	write_to_file(cpio_data,cpio_size,"cpio_full");
+	//write_to_file(cpio_data,cpio_size,"cpio_full");
 	
 	while(!cpio_entry.is_trailer){
 		if(!strncmp(option_values.target,cpio_entry.file_name,cpio_entry.name_size)){
@@ -193,13 +193,13 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,unsigned cpio_size,unsigned l
 			memcpy(next_p,new_file_data,aligned_file_size); 
 			next_p += aligned_file_size;
 			memcpy(next_p,cpio_entry.next_header_p,cpio_end-cpio_entry.next_header_p);
-			write_to_file(new_cpio_data,internal_new_cpio_size,"new_cpio");
+			//write_to_file(new_cpio_data,internal_new_cpio_size,"new_cpio");
 			log_write("aligned_file_size=%ld file_start=%ld new_cpio_data=%p next_p=%p\n",aligned_file_size,cpio_entry.file_start ,new_cpio_data,next_p);
 			char test[cpio_entry.file_start];
 			free(new_file_data);
 			return new_cpio_data;
 			//write_to_file(cpio_data,cpio_entry.entry_start_p-cpio_data,"cpio_head");
-			write_to_file(cpio_entry.next_header_p,cpio_end-cpio_entry.next_header_p,"cpio_bot");
+			//write_to_file(cpio_entry.next_header_p,cpio_end-cpio_entry.next_header_p,"cpio_bot");
 			
 			//log_write("cpio_entry:es=%ld cpio_size=%ld file_name=%s file_diff:%ld \n",cpio_entry.entry_size,cpio_size,cpio_entry.file_name,file_diff);
 			return 0; 			
