@@ -1,6 +1,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
+#include <windows.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -59,4 +62,7 @@ void unix_to_dos(char* buf2, const char* buf)
     }
     *q = '\0';
 }
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
+
+#endif
 

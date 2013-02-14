@@ -98,12 +98,13 @@ static struct option update_long_options[] = {
 
 
 typedef struct {
-	char *image ;
+	char *image_filename ;
 	char *kernel_name;
 	char *ramdisk_name;
 	char *ramdisk_directory_name;
 	char *ramdisk_cpio_name;
 	char *ramdisk_archive_name;
+	char *page_size_filename;
 	char *logfile;
 	char *cmdline;
 	char *second;
@@ -129,6 +130,7 @@ typedef struct {
 optionvalues_t option_values;
 
 #define DEFAULT_PAGE_SIZE 2048
+#define DEFAULT_PAGE_SIZE_NAME "pagesize"
 #define DEFAULT_BASE_ADDRESS 0x10000000
 #define DEFAULT_RAMDISK_ADDRESS 0x01000000+DEFAULT_BASE_ADDRESS
 #define DEFAULT_KERNEL_ADDRESS 0x00008000+DEFAULT_BASE_ADDRESS
@@ -152,7 +154,7 @@ optionvalues_t option_values;
 #define OPTIONS_ACTION_REMOVE "rfiv"
 #define OPTIONS_REMOVE "rfiv"
 
-enum  bitwise_parameters { 
+enum bitwise_parameters { 
 	IMAGE = 0x1, 
 	KERNEL = 0x2,
 	RAMDISK_ARCHIVE=0x4,
@@ -171,13 +173,12 @@ enum  bitwise_parameters {
 	LOGSTDOUT=0x4000,
 	NOLOGFILE=0x8000,
 	RAMDISK_FULL = RAMDISK_DIRECTORY | RAMDISK_CPIO | RAMDISK_ARCHIVE,
-	ALL=KERNEL | RAMDISK_FULL |  HEADER,
-	OUTPUT=0x100000000
+	ALL=KERNEL | RAMDISK_DIRECTORY |  HEADER,
+	OUTPUT=0x1000000
 }  params ;
 
 
-
-
+#define HAS_ALL					(params & ALL)
 #define HAS_NOLOGFILE			(params & NOLOGFILE)
 #define HAS_LOGSTDOUT			(params & LOGSTDOUT)
 #define HAS_TARGET 				(params & TARGET)
@@ -199,6 +200,7 @@ enum  bitwise_parameters {
 #define HAS_RAMDISK_CPIO 		(params & RAMDISK_CPIO)
 #define HAS_RAMDISK_FULL 		(params & RAMDISK_FULL)
 
+#define SET_ALL					(params | ALL)
 #define SET_NOLOGFILE			(params | NOLOGFILE)
 #define SET_LOGSTDOUT			(params | LOGSTDOUT)
 #define SET_TARGET 				(params | TARGET)

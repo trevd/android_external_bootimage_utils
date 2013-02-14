@@ -7,9 +7,19 @@
 #include <stdlib.h>
 #include "program.h"
 #include "file.h"
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
+int symlink(char *symlink_src,char *filename){ return 0; }
+ssize_t readlink(const char *path, char *buf, size_t bufsiz) { return 0; }
 
-
-
+int vasprintf( char **sptr, const char *fmt, va_list argv ) 
+{ 
+    int wanted = vsnprintf( *sptr = NULL, 0, fmt, argv ); 
+    if( (wanted > 0) && ((*sptr = malloc( 1 + wanted )) != NULL) ) 
+        return vsprintf( *sptr, fmt, argv ); 
+ 
+    return wanted; 
+} 
+#endif
 int is_path_directory(char *dname){
 	struct stat sb;
 	if (stat(dname, &sb) == -1) {
@@ -76,7 +86,7 @@ int check_directory_exists(char *fname, int exitonfailure){
 			switch (sb.st_mode & S_IFMT) {
 				case S_IFBLK:  printf("block device\n");            break;
 				case S_IFCHR:  printf("character device\n");        break;
-				case S_IFREG:  printf("regular file\n");               break;
+				case S_IFREG:  printf("regular file\n");            break;
 				case S_IFIFO:  printf("FIFO/pipe\n");               break;
 				case S_IFLNK:  printf("symlink\n");                 break;
 				case S_IFSOCK: printf("socket\n");                  break;

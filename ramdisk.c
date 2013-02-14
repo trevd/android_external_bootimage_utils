@@ -64,7 +64,6 @@ static cpio_entry_t populate_cpio_entry(unsigned char *data ) { //cpio_newc_head
 	cpio_entry.file_start = cpio_entry.bytes_to_file_start + CPIO_HEADER_SIZE+cpio_entry.name_size;
 	cpio_entry.bytes_to_next_header_start = (4 - ((cpio_entry.file_start+cpio_entry.file_size) % 4)) % 4;
 	cpio_entry.next_header = cpio_entry.file_start+cpio_entry.file_size+cpio_entry.bytes_to_next_header_start;
-	
 	cpio_entry.file_name = data+CPIO_HEADER_SIZE;
 	//fprintf(stderr," %s\n",cpio_entry.file_name);
 	return cpio_entry;

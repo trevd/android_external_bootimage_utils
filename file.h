@@ -1,6 +1,6 @@
 #ifndef _BOOTIMAGE_FILE_H_
 #define _BOOTIMAGE_FILE_H_
-
+#include <stdarg.h>
 #include <limits.h>
 #define CHECK_FAIL_EXIT 1
 #define CHECK_FAIL_OK 0
@@ -12,11 +12,15 @@
 #define S_ISLNK(m)	(((m) & S_IFMT) == S_IFLNK)
 #define S_IWGRP 00020
 #define CONVERT_LINE_ENDINGS 1=1
-int symlink(char *symlink_src,char *filename){ return 0; }
-ssize_t readlink(const char *path, char *buf, size_t bufsiz) { return 0; }
+#define EOL "\r\n"
+int symlink(char *symlink_src,char *filename);
+ssize_t readlink(const char *path, char *buf, size_t bufsiz);
 #else
+#define EOL "\n"
 #define CONVERT_LINE_ENDINGS 0=1
 #endif
+
+int vasprintf(char **strp, const char *fmt, va_list ap);
 
 #define MAGIC_GZIP 0x08088B1F
 #define MAGIC_GZIP_NONAME 0x00088B1F
