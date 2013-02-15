@@ -34,10 +34,10 @@ Switches:\n\
     -c, --cmdline [filename]          Extract the boot image kernel cmdline to [filename]\n\
                                       leave filename empty to use default filename ( default=cmdline )\n\
     -p, --pagesize [filename]         Extract the value of the boot image pagesize to [filename]\n\
-	                                  leave filename empty to use default filename ( default=pagesize )\n\
+                                      leave filename empty to use default filename ( default=pagesize )\n\
     -k, --kernel [filename]           Extract kernel image to [filename] leave filename\n\
                                       empty to use default filename ( defualt=kernel )\n\
-    -d, --ramdisk-directory [dir]     Fully Extract theramdisk to [dir] leave dir empty to use\n\
+    -d, --ramdisk-directory [dir]     Fully Extract the ramdisk to [dir] leave dir empty to use\n\
                                       default directory ( default=root )\n\
     -x, --ramdisk-archive [filename]  Extract the compressed ramdisk to [filename] leave filename\n\
                                       empty to use default ( default=initramfs.cpio.<type> ), when\n\
@@ -46,28 +46,27 @@ Switches:\n\
 Notes: --image-name is required and must be a valid android boot image\n\
        --kernel, --header, --cmdline and --pagesize are optional --header includes the cmdline and pagesize info\n\
        --ramdisk-archive and --ramdisk-directory are optional\n\
-  All optional commands can be used in any combination required\n"
+  All optional commands can be used in any combination required.\n\n"
                                       
 #define HELP_PACK_MAIN "\
-Unpack: unpacks a boot image into it's constituent parts\n\
-Usage:  	bootimg-tools unpack <switches>\n\
+Unpack: creates a boot image from constituent parts\n\
+Usage:  	bootimg-tools pack <switches>\n\
 Switches:\n\
-    -i, --image-name <filename>       Boot image file to process\n\
-    -h, --header [filename]           Use cmdline and pagesize information contained in\n\
-                                      [filename] leave filename empty to use default filename\n\
-                                      ( default=header)\n\
-    -c, --cmdline [filename]          Extract the boot image kernel cmdline to [filename]\n\
-                                      leave filename empty to use default filename ( default=cmdline )\n\
-    -p, --pagesize [filename]         Extract the value of the boot image pagesize to [filename]\n\
-	                                  leave filename empty to use default filename ( default=pagesize )\n\
-    -k, --kernel [filename]           Extract kernel image to [filename] leave filename\n\
+    -i, --image-name <filename>       Boot image file to create\n\
+    -h, --header [filename]           Use cmdline and pagesize information contained in [filename]\n\
+                                      leave filename empty to use default filename ( default=header)\n\
+    -c, --cmdline <filename | text >  Use cmdline information contained in [filename] leave filename\n\
+                                      empty to use default filename ( default=cmdline ) or specify a\n\
+                                      cmdline text directly using text enclosed in single quotes ''\n\
+    -p, --pagesize <filename | text > Use pagesize information contained in [filename] leave filename\n\
+                                      empty to use default filename ( default=pagesize ) or specify a\n\
+                                      pagesize value directly using text\n\
+    -k, --kernel [filename]           Use kernel image in [filename] leave filename\n\
                                       empty to use default filename ( defualt=kernel )\n\
-    -d, --ramdisk-directory [dir]     Fully Extract theramdisk to [dir] leave dir empty to use\n\
-                                      default directory ( default=root )\n\
-    -x, --ramdisk-archive [filename]  Extract the compressed ramdisk to [filename] leave filename\n\
-                                      empty to use default ( default=initramfs.cpio.<type> ), when\n\
-                                      using the defaults the <type> will be determined by the file magic\n\
-                                      common type are lzop (.lzo) and gzip (.gz)\n"
+    -d, --ramdisk-directory [dir]     Use [dir] as the ramdisk root leave dir empty to use\n\
+                                      default directory ( default=root ) \n\
+    -x, --ramdisk-archive [filename]  Use [filename] as compressed ramdisk leave filename\n\
+                                      empty to use default ( default=initramfs.cpio.gz )\n"
                                       									
 
 
@@ -98,6 +97,10 @@ static void check_for_help_call(int argc,char ** argv){
 		if(!strncmp(argv[2],"unpack",compare_length)){
 			help_me=HELP_UNPACK;
 		}
+		compare_length = strlen(argv[2]) > 4 ? strlen(argv[2]) : 4;
+		if(!strncmp(argv[2],"pack",compare_length)){
+			help_me=HELP_PACK;
+		}
 	}
 //	fprintf(stderr,"H:%d %d\n",help_me,argc);
 	if (help_me==HELP_MAIN){
@@ -106,6 +109,10 @@ static void check_for_help_call(int argc,char ** argv){
 	}
 	if(help_me==HELP_UNPACK){
 		fprintf(stderr,HELP_UNPACK_MAIN);
+		exit(0);	
+	}
+	if(help_me==HELP_PACK){
+		fprintf(stderr,HELP_PACK_MAIN);
 		exit(0);	
 	}
 	return ;
