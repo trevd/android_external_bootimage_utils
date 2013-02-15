@@ -24,7 +24,7 @@ int log_write(const char *format, ...)
 		return 0;
 	va_end(args);
 	if(option_values.log_stdout){
-		fprintf(stderr,format,str);
+		fprintf(stderr,str,NULL);
 	}
 	
 	if(!option_values.log_filename){
@@ -100,12 +100,12 @@ program_options_t get_program_option(int argc, char **argv){
 	return program_options[NOT_SET];
 }
 char * set_program_switch(char * default_value,char **argv){
-	log_write("main:set_program_switch:default %s -", default_value);	
+	//log_write("main:set_program_switch:default %s -", default_value);	
 	if(!(argv[optind]) || argv[optind][0]=='-'){
-		log_write("using default argv[optind]=%s\n",  argv[optind]);	
+		//log_write("using default argv[optind]=%s\n",  argv[optind]);	
 		return default_value;
 	}else if(argv[optind]){
-		log_write("using argv[optind]=%s\n",  argv[optind]);	
+		// log_write("using argv[optind]=%s\n",  argv[optind]);	
 		return argv[optind];
 	}
 	log_write("using SHIT!!! argv[optind]=%s\n",  argv[optind]);	
@@ -118,6 +118,7 @@ int check_for_lazy_image(char * test_string){
 		
 	if(check_file_exists(test_string,CHECK_FAIL_OK)){
 		option_values.image_filename=test_string;
+		log_write("check_for_lazy_image:%s\n",test_string);	
 		return 1;
 	}
 	return 0;
@@ -130,12 +131,11 @@ int main(int argc, char **argv){
 	if(argc==1){
 		print_main_usage();}	
 	
-	fprintf(stderr,"%d %s\n",argc,argv[1]);
+	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	check_for_help_call(argc, argv);
 	
 	
-	
-	if(argc<2) { return print_usage(); }
+
 	
 	option_values.log_stdout=1;
 	int option_index =-1, option_return =-2, argument_count = argc,  settings =0; 
@@ -161,14 +161,16 @@ int main(int argc, char **argv){
 		if( ACTION_UNPACK || ACTION_EXTRACT || ACTION_LIST || ACTION_UPDATE  )
 			check_for_lazy_image(argv[2]);
 	 }
-
+	//log_write("%s - %p Yes\n",option_values.image_filename,option_values.image_filename); 
+	//log_write("%s %p\n",option_values.kernel_filename,option_values.kernel_filename); 
 	option_return = GET_OPT_LONG_FUNCTION;
 	while (option_return != -1){
 		switch(option_return){
-			case 'x':{ 	option_values.ramdisk_archive_filename 		= 	set_program_switch(DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
-			case 'd':{ 	option_values.ramdisk_directory_name	=	set_program_switch(DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
+			case 'x':{ 	log_write("ramdisk_archive\n");   
+						option_values.ramdisk_archive_filename 		= 	set_program_switch(DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
+			case 'd':{ 	log_write("ramdisk_dir\n");   option_values.ramdisk_directory_name	=	set_program_switch(DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
 			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(DEFAULT_RAMDISK_NAME,argv); 						break;	}
-			case 'k':{  option_values.kernel_filename			=	set_program_switch(DEFAULT_KERNEL_NAME,argv);  						break; 	}
+			case 'k':{  	log_write("kernel_filename\n");  option_values.kernel_filename			=	set_program_switch(DEFAULT_KERNEL_NAME,argv);  						break; 	}
 			case 'c':{ 	option_values.cmdline_filename			=	set_program_switch(DEFAULT_CMDLINE_NAME,argv);  					break; 	}
 			case 'b':{	option_values.board_filename			=	set_program_switch(DEFAULT_BOARD_NAME,argv);  						break; 	}
 			case 'h':{	option_values.header_filename			=	set_program_switch(DEFAULT_HEADER_NAME,argv);  						break; 	}
@@ -178,7 +180,6 @@ int main(int argc, char **argv){
 				}else{
 					log_write("optarg:%s\n",optarg);
 					option_values.source_filename = optarg;
-					break;
 					}
 				break;
 				}
@@ -208,13 +209,26 @@ int main(int argc, char **argv){
 				option_values.header_filename=DEFAULT_HEADER_NAME;
 				 break;	}
 			case 'i':{
-			 if(ACTION_PACK){
-				option_values.image_filename=optarg;
-			 }else{
-				 if(check_file_exists(optarg,CHECK_FAIL_EXIT))
-					option_values.image_filename=optarg;
+				log_write("bootimage_filename:");
+				if(ACTION_PACK){
+					if(!(optarg) || optarg[0]=='-'){
+						log_write("main:pack no image set %s\n",argv[optind]);		
+						exit(0);
+					}else{
+						if(!option_values.image_filename){
+							option_values.image_filename=optarg;
+							fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s bootimage_filename:%s ",opterr,optind,option_index ,optopt,optarg,option_values.image_filename);
+						}
+						
+					}
+							
+				}else{
+					// log_write("o=%s\n",optarg);
+					if(check_file_exists(optarg,CHECK_FAIL_EXIT))
+							option_values.image_filename=optarg;
 				}
-		 
+				log_write("\n");
+				//log_write("%s %p\n",option_values.image_filename,option_values.image_filename); 
 			 break;
 		}
 		case 'o':{
@@ -225,7 +239,7 @@ int main(int argc, char **argv){
 		default:	break;
 	}
 	option_return =  GET_OPT_LONG_FUNCTION
-		fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
+		//fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
 	} // end while	
 	fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
 	

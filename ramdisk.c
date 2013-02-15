@@ -298,8 +298,8 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buf
 		lstat(entry->d_name,&statbuf);
 		char full_name[PATH_MAX];
 		full_name[0] = 0;
-		strncpy(full_name,path,strlen(path)); 
-		strncat(full_name,entry->d_name,strlen(entry->d_name) );
+		strncpy(full_name,path,PATH_MAX); 
+		strncat(full_name,entry->d_name,PATH_MAX );
 		name_size = strlen(full_name)+1;
 		bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
 		file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;
@@ -341,7 +341,7 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buf
 			unsigned char* data=calloc(MEMORY_BUFFER_SIZE, sizeof(unsigned char));
 			readlink(entry->d_name,(char*)data,PATH_MAX);
 			unsigned file_size =strlen((char*)data);
-			//printf("link:%s %s %d %d\n",entry->d_name,data,statbuf.st_mode,file_size);
+			printf("link:%s %s %d %d\n",entry->d_name,data,statbuf.st_mode,file_size);
 			bytes_to_next_header_start =(4 - ((file_start+file_size) % 4)) % 4;
 			next_header = file_start+file_size+bytes_to_next_header_start;
 			append_cpio_header_to_stream(statbuf,full_name,name_size,output_buffer+offset);

@@ -61,7 +61,8 @@ int check_file_exists(char *filename, int exitonfailure){
 		else
 			return 0;
 	}
-	if((!S_ISREG(sb.st_mode)) || !S_ISBLK(sb.st_mode)){
+	log_write("check_file_exists:%d\n",S_ISREG(sb.st_mode));
+	if(!S_ISREG(sb.st_mode) && !S_ISBLK(sb.st_mode)){
 		//log_write("check_file_exists:file_found_as_");
 		if(exitonfailure){
 			switch (sb.st_mode & S_IFMT) {
@@ -71,6 +72,7 @@ int check_file_exists(char *filename, int exitonfailure){
 				case S_IFIFO:  log_write("fifo_pipe\n");               break;
 				case S_IFLNK:  log_write("symlink\n");                 break;
 				case S_IFSOCK: log_write("socket\n");                  break;
+				case S_IFREG: log_write("regular\n");                  break;
 				default:       log_write("unknown?\n");                break;
 			}        
 			exit(EXIT_FAILURE);
