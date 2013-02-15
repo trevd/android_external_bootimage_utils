@@ -357,7 +357,7 @@ int update_boot_image_file(){
 	fclose(fp);
 	
 	free(raw_boot_image_data);
-	fprintf(stderr,"Done\n");
+	fprintf(stderr,"Done\n"	);
 	
 	if(option_values.kernel_filename)
 		free(kernel_data);

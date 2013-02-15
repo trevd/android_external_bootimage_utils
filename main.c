@@ -101,7 +101,7 @@ program_options_t get_program_option(int argc, char **argv){
 }
 char * set_program_switch(char * default_value,char **argv){
 	//log_write("main:set_program_switch:default %s -", default_value);	
-	if(!(optarg) || optarg[0]=='-'){
+	if(!(argv[optind]) || argv[optind][0]=='-'){
 		//log_write("using default argv[optind]=%s\n",  argv[optind]);	
 		return default_value;
 	}else if(argv[optind]){
