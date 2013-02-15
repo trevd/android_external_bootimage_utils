@@ -97,6 +97,7 @@ static struct option update_long_options[] = {
                {"input",  required_argument,0, 'i'},
                {"target",  required_argument,0, 't'},
                {"source",  required_argument, 0, 's'},
+               {"kernel",  optional_argument,0, 'k'},
                {0, 0, 0, 0}
              };
  static struct option list_long_options[] = {
@@ -176,7 +177,7 @@ static struct option unpack_long_options[] = {
 #define OPTIONS_ACTION_EXTRACT "i:t:s:"
 #define OPTIONS_ACTION_REMOVE "rfiv"
 #define OPTIONS_ACTION_ADD "rfiv"
-#define OPTIONS_ACTION_UPDATE "i:t:s:"
+#define OPTIONS_ACTION_UPDATE "i:t:s:k"
 
 
 

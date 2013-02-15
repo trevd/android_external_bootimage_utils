@@ -101,7 +101,7 @@ program_options_t get_program_option(int argc, char **argv){
 }
 char * set_program_switch(char * default_value,char **argv){
 	//log_write("main:set_program_switch:default %s -", default_value);	
-	if(!(argv[optind]) || argv[optind][0]=='-'){
+	if(!(optarg) || optarg[0]=='-'){
 		//log_write("using default argv[optind]=%s\n",  argv[optind]);	
 		return default_value;
 	}else if(argv[optind]){
@@ -124,6 +124,64 @@ int check_for_lazy_image(char * test_string){
 	return 0;
 	log_write("check_for_lazy_image:%s\n",test_string);	
 	
+}
+int check_required_parameters(){
+	switch(program_option.action){
+			case UNPACK:{
+					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
+						log_write("main:unpack no image set\n");		
+						exit(0);
+					}
+					if(!option_values.output_directory_name){
+						log_write("main:unpack no output set\n");	
+						option_values.output_directory_name = malloc(PATH_MAX); 
+						getcwd(option_values.output_directory_name,PATH_MAX);
+						
+					}
+					break;
+				}
+			case LIST:{ 
+					break;
+				}
+			case PACK:{
+				if(!option_values.page_size) 
+					option_values.page_size=DEFAULT_PAGE_SIZE;
+					
+				if(!option_values.image_filename){ // Image file is not set look for a valid filename 
+					log_write("main:pack no image set\n");		
+					exit(0);
+				}
+				if(!option_values.kernel_filename){ // Image file is not set look for a valid filename 
+						log_write("main:pack no kernel set %s\n", option_values.kernel_filename);		
+						exit(0);
+				}
+				break;
+			}
+			case UPDATE:{
+				if(!option_values.kernel_filename){
+					
+				}
+				break ; 
+			}
+			case EXTRACT:{
+					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
+						log_write("main:extract no image set\n");		
+						exit(0);
+					}
+					if(!option_values.source_filename){
+						log_write("main:extract no source file set\n");		
+						exit(0);
+					}
+					if(!option_values.target_filename){
+						log_write("main:extract no target file set - using source\n");		
+						option_values.target_filename=option_values.source_filename;
+					}	
+				
+			}
+			default:
+					break;
+		}
+		return 0;
 }
 int main(int argc, char **argv){ 
 	
@@ -167,10 +225,11 @@ int main(int argc, char **argv){
 	while (option_return != -1){
 		switch(option_return){
 			case 'x':{ 	log_write("ramdisk_archive\n");   
-						option_values.ramdisk_archive_filename 		= 	set_program_switch(DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
+						option_values.ramdisk_archive_filename=set_program_switch(DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
 			case 'd':{ 	log_write("ramdisk_dir\n");   option_values.ramdisk_directory_name	=	set_program_switch(DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
 			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(DEFAULT_RAMDISK_NAME,argv); 						break;	}
-			case 'k':{  	log_write("kernel_filename\n");  option_values.kernel_filename			=	set_program_switch(DEFAULT_KERNEL_NAME,argv);  						break; 	}
+			case 'k':{  //log_write("kernel_filename\n"); 
+						option_values.kernel_filename			=	set_program_switch(DEFAULT_KERNEL_NAME,argv);  						break; 	}
 			case 'c':{ 	option_values.cmdline_filename			=	set_program_switch(DEFAULT_CMDLINE_NAME,argv);  					break; 	}
 			case 'b':{	option_values.board_filename			=	set_program_switch(DEFAULT_BOARD_NAME,argv);  						break; 	}
 			case 'h':{	option_values.header_filename			=	set_program_switch(DEFAULT_HEADER_NAME,argv);  						break; 	}
@@ -209,15 +268,15 @@ int main(int argc, char **argv){
 				option_values.header_filename=DEFAULT_HEADER_NAME;
 				 break;	}
 			case 'i':{
-				log_write("bootimage_filename:");
+				//log_write("bootimage_filename:");
 				if(ACTION_PACK){
 					if(!(optarg) || optarg[0]=='-'){
-						log_write("main:pack no image set %s\n",argv[optind]);		
+						//log_write("main:pack no image set %s\n",argv[optind]);		
 						exit(0);
 					}else{
 						if(!option_values.image_filename){
 							option_values.image_filename=optarg;
-							fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s bootimage_filename:%s ",opterr,optind,option_index ,optopt,optarg,option_values.image_filename);
+							//fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s bootimage_filename:%s ",opterr,optind,option_index ,optopt,optarg,option_values.image_filename);
 						}
 						
 					}
@@ -241,67 +300,12 @@ int main(int argc, char **argv){
 	option_return =  GET_OPT_LONG_FUNCTION
 		//fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
 	} // end while	
-	fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
+	//fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
 	
 	// We've Processed all the options now lets see if we have everything we need
 	if(!optopt){
-		switch(program_option.action){
-			case UNPACK:{
-					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
-						log_write("main:unpack no image set\n");		
-						exit(0);
-					}
-					if(!option_values.output_directory_name){
-						log_write("main:unpack no output set\n");	
-						option_values.output_directory_name = malloc(PATH_MAX); 
-						getcwd(option_values.output_directory_name,PATH_MAX);
-						
-					}
-					break;
-				}
-			case LIST:{ 
-					log_write("main:list\n");
-					break;
-				}
-			case PACK:{
-				if(!option_values.page_size) 
-					option_values.page_size=DEFAULT_PAGE_SIZE;
-					
-				if(!option_values.image_filename){ // Image file is not set look for a valid filename 
-					log_write("main:pack no image set\n");		
-					exit(0);
-				}
-				if(!option_values.kernel_filename){ // Image file is not set look for a valid filename 
-						log_write("main:pack no kernel set %s\n", option_values.kernel_filename);		
-						exit(0);
-				}
-				break;
-			}
-			case EXTRACT:{
-					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
-						log_write("main:extract no image set\n");		
-						exit(0);
-					}
-					if(!option_values.source_filename){
-						log_write("main:extract no source file set\n");		
-						exit(0);
-					}
-					if(!option_values.target_filename){
-						log_write("main:extract no target file set - using source\n");		
-						option_values.target_filename=option_values.source_filename;
-					}	
-				
-			}
-			default:
-					break;
-		}
-		
-	
-	
-		if(!option_values.image_filename){		
-			return print_usage();
-		}
-		
+		check_required_parameters();
+
 		int ret =(*program_option.function_name_p)();
 	}
 	exit(0);
