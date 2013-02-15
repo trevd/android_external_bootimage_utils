@@ -61,7 +61,7 @@ int check_file_exists(char *filename, int exitonfailure){
 		else
 			return 0;
 	}
-	if(!S_ISREG(sb.st_mode)){
+	if((!S_ISREG(sb.st_mode)) || !S_ISBLK(sb.st_mode)){
 		//log_write("check_file_exists:file_found_as_");
 		if(exitonfailure){
 			switch (sb.st_mode & S_IFMT) {
@@ -78,7 +78,7 @@ int check_file_exists(char *filename, int exitonfailure){
 	}//else
 	//	log_write("check_file_exists:file_found_as_regular_file\n");
 	
-	return S_ISREG(sb.st_mode);
+	return 1;
 }
 int check_directory_exists(char *fname, int exitonfailure){
 	
