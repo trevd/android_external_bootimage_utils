@@ -1,15 +1,15 @@
 #ifndef _BOOT_IMAGE_UTILITIES_HELP_H_
 #define _BOOT_IMAGE_UTILITIES_HELP_H_
 #define BOOT_IMAGE_UTILITIES_TITLE "Android Boot Image Utilities"
-#define BOOT_IMAGE_UTILITIES_VERSION "0.01b"
+#define BOOT_IMAGE_UTILITIES_VERSION "x.xx Alpha Release"
 #define BOOT_IMAGE_UTILITIES_DESCRIPTION ""
 #define BOOT_IMAGE_UTILITIES_PROGRAM_NAME "bootimage-utils"
-#define BOOT_IMAGE_UTILITIES_FULL_TITLE "%s Version %s",BOOT_IMAGE_UTILITIES_TITLE,BOOT_IMAGE_UTILITIES_VERSION
+#define BOOT_IMAGE_UTILITIES_FULL_TITLE "%s Version %s\n",BOOT_IMAGE_UTILITIES_TITLE,BOOT_IMAGE_UTILITIES_VERSION
 #define PRINT_DOUBLE_LINE fprintf(stderr,"\n\n");
 #define PRINT_SINGLE_LINE fprintf(stderr,"\n");
 #define PRINT_DOUBLE_TAB fprintf(stderr,"\t");
 #define PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE fprintf(stderr,BOOT_IMAGE_UTILITIES_FULL_TITLE);
-
+#define PRINT_MAIN_USAGE fprintf(stderr,HELP_MAIN_USAGE);
 #define HELP_MAIN_SUMMARY "bootimg-tools is an highly flexible utility for managing android boot images\n\n"
 
 #define HELP_MAIN_USAGE "\
@@ -25,9 +25,8 @@ See bootimg-tools help <action> for detailed information\n"
 
 #define HELP_UNPACK_MAIN "\
 Unpack: unpacks a boot image into it's constituent parts\n\
-Usage:  	bootimg-tools unpack <switches>\n\
+Usage:  	bootimg-tools unpack <boot image file> <switches>\n\
 Switches:\n\
-    -i, --image-name <filename>       Boot image file to process\n\
     -h, --header [filename]           Extract the boot image header and additional useful\n\
                                       information to [filename] leave filename empty to use\n\
                                       default filename ( default=header)\n\
@@ -43,16 +42,15 @@ Switches:\n\
                                       empty to use default ( default=initramfs.cpio.<type> ), when\n\
                                       using the defaults the <type> will be determined by the file magic\n\
                                       common type are lzop (.lzo) and gzip (.gz)\n\n\
-Notes: --image-name is required and must be a valid android boot image\n\
+Notes: <boot image file>  is required and must be a valid android boot image\n\
        --kernel, --header, --cmdline and --pagesize are optional --header includes the cmdline and pagesize info\n\
        --ramdisk-archive and --ramdisk-directory are optional\n\
   All optional commands can be used in any combination required.\n\n"
                                       
 #define HELP_PACK_MAIN "\
 Unpack: creates a boot image from constituent parts\n\
-Usage:  	bootimg-tools pack <switches>\n\
+Usage:  	bootimg-tools pack <bootimage file> <switches>\n\
 Switches:\n\
-    -i, --image-name <filename>       Boot image file to create\n\
     -h, --header [filename]           Use cmdline and pagesize information contained in [filename]\n\
                                       leave filename empty to use default filename ( default=header)\n\
     -c, --cmdline <filename | text >  Use cmdline information contained in [filename] leave filename\n\
@@ -66,17 +64,32 @@ Switches:\n\
     -d, --ramdisk-directory [dir]     Use [dir] as the ramdisk root leave dir empty to use\n\
                                       default directory ( default=root ) \n\
     -x, --ramdisk-archive [filename]  Use [filename] as compressed ramdisk leave filename\n\
-                                      empty to use default ( default=initramfs.cpio.gz )\n"
-                                      									
-
+                                      empty to use default ( default=initramfs.cpio.gz )\n\n\
+Notes: <boot image file>  is required and must be a valid android boot image\n\
+       --kernel, --header, --cmdline and --pagesize are optional --header includes the cmdline and pagesize info\n\
+       --ramdisk-archive and --ramdisk-directory are require an exclusive to one another\n\
+  All optional commands can be used in any combination required.\n\n"
 
 enum HELP_ME { HELP_NONE,HELP_MAIN, HELP_UNPACK , HELP_PACK, HELP_EXTRACT, HELP_UPDATE } ;	
 static void print_main_usage(){
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
-	PRINT_SINGLE_LINE
-	fprintf(stderr,HELP_MAIN_USAGE);
+	PRINT_MAIN_USAGE
 	exit(0);
 }
+int print_usage(){
+	
+	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
+	PRINT_MAIN_USAGE
+	return 0;
+}
+
+void print_question(char *action){
+	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE	
+	fprintf(stderr,"%s what?\n",action);
+	PRINT_MAIN_USAGE
+	exit(0);
+}	
+
 static void check_for_help_call(int argc,char ** argv){
 	enum HELP_ME help_me = HELP_NONE;
 	

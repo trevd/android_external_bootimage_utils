@@ -54,10 +54,12 @@ int check_file_exists(char *filename, int exitonfailure){
 	struct stat sb;
 	//log_write("check_file_exists:%s\n",filename);
 	if (stat(filename, &sb) == -1) {
-	   perror("bootimg-tools");
+	  // perror("bootimg-tools");
 	   //log_write("check_file_exists:file_not_found_%s\n",filename);
-	   if(exitonfailure)
+	   if(exitonfailure){
+			fprintf(stderr,"%s not found\n",filename);
 			exit(EXIT_FAILURE);
+		}
 		else
 			return 0;
 	}
@@ -65,7 +67,7 @@ int check_file_exists(char *filename, int exitonfailure){
 	if(!S_ISREG(sb.st_mode) && !S_ISBLK(sb.st_mode)){
 		//log_write("check_file_exists:file_found_as_");
 		if(exitonfailure){
-			switch (sb.st_mode & S_IFMT) {
+			/*switch (sb.st_mode & S_IFMT) {
 				case S_IFBLK:  log_write("block_device\n");            break;
 				case S_IFCHR:  log_write("character_device\n");        break;
 				case S_IFDIR:  log_write("directory\n");               break;
@@ -74,7 +76,8 @@ int check_file_exists(char *filename, int exitonfailure){
 				case S_IFSOCK: log_write("socket\n");                  break;
 				case S_IFREG: log_write("regular\n");                  break;
 				default:       log_write("unknown?\n");                break;
-			}        
+			}*/
+			fprintf(stderr,"%s is not a valid file type\n",filename) ;
 			exit(EXIT_FAILURE);
 		}
 	}//else
@@ -298,5 +301,30 @@ oops:
     if(data != 0) free(data);
     return 0;
 }
+byte_p find_in_file(const void *haystack, size_t haystack_len,
+			  const void *needle,  size_t needle_len)
+{
+  const char *begin;
+  const char *const last_possible
+    = (const char *) haystack + haystack_len - needle_len;
 
+  if (needle_len == 0)
+    /* The first occurrence of the empty string is deemed to occur at
+       the beginning of the string.  */
+    return (byte_p) haystack;
+
+  /* Sanity check, otherwise the loop might search through the whole
+     memory.  */
+  if (__builtin_expect (haystack_len < needle_len, 0))
+    return NULL;
+
+  for (begin = (const char *) haystack; begin <= last_possible; ++begin)
+    if (begin[0] == ((const char *) needle)[0] &&
+	!memcmp ((const void *) &begin[1],
+		 (const void *) ((const char *) needle + 1),
+		 needle_len - 1))
+      return (void *) begin;
+
+  return NULL;
+}
 

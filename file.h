@@ -44,5 +44,5 @@ int write_to_file(unsigned char *data_in, unsigned output_size,char * output_fil
 byte_p load_file_from_offset(const char *filepath,int offset,unsigned long *file_size);
 long read_file( const char *fn, unsigned char *output,unsigned long *output_size);
 byte_p load_file(const char *fn, unsigned long *file_size);
-
+byte_p find_in_file(const void *haystack, size_t haystack_len, const void *needle,  size_t needle_len);
 #endif

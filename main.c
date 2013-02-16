@@ -51,27 +51,7 @@ int log_write(const char *format, ...)
 	
 	return 1;
 }
-int help(void){
-	return 0;
-}
-void print_usage_detail(){
-}
-void print_usage_header(){
-	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
-}
-int print_usage(){
-	
-	print_usage_header();
-	print_usage_detail();
-	return 0;
-}
 
-void print_question(char *action){
-	print_usage_header();	
-	fprintf(stderr,"%s what?\n",action);
-	print_usage_detail();
-	exit(0);
-}	
 program_options_t get_program_option(int argc, char **argv){
 	
 	program_options_t program_option=program_options[NOT_SET];
@@ -118,22 +98,22 @@ int check_for_lazy_image(char * test_string){
 		
 	if(check_file_exists(test_string,CHECK_FAIL_OK)){
 		option_values.image_filename=test_string;
-		log_write("check_for_lazy_image:%s\n",test_string);	
+	//	log_write("check_for_lazy_image:%s\n",test_string);	
 		return 1;
 	}
 	return 0;
-	log_write("check_for_lazy_image:%s\n",test_string);	
+	//log_write("check_for_lazy_image:%s\n",test_string);	
 	
 }
 int check_required_parameters(){
 	switch(program_option.action){
 			case UNPACK:{
 					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
-						log_write("main:unpack no image set\n");		
+						//log_write("main:unpack no image set\n");		
 						exit(0);
 					}
 					if(!option_values.output_directory_name){
-						log_write("main:unpack no output set\n");	
+						//log_write("main:unpack no output set\n");	
 						option_values.output_directory_name = malloc(PATH_MAX); 
 						getcwd(option_values.output_directory_name,PATH_MAX);
 						
@@ -202,10 +182,10 @@ int main(int argc, char **argv){
 	
 	if(program_option.action==NOT_SET)
 	{
-		fprintf(stderr,"No Action Set! Lets see if I can help you out\n");
-		fprintf(stderr,"SELECT FUZZY FUZZY FUZZY ANALYSIS MODE\ninteractive or JFMIW? [JFMIW]\n");
+		//fprintf(stderr,"No Action Set! Lets see if I can help you out\n");
+		//fprintf(stderr,"SELECT FUZZY FUZZY FUZZY ANALYSIS MODE\ninteractive or JFMIW? [JFMIW]\n");
 		if(check_for_lazy_image(argv[1])){
-			fprintf(stderr,"Existing File Found at poistion 1! Try Unpack Mode\n");
+			//fprintf(stderr,"Existing File Found at poistion 1! Try Unpack Mode\n");
 			program_option=program_options[UNPACK];
 			option_values.ramdisk_directory_name=DEFAULT_RAMDISK_DIRECTORY_NAME;
 			option_values.kernel_filename=DEFAULT_KERNEL_NAME;
@@ -307,6 +287,8 @@ int main(int argc, char **argv){
 		check_required_parameters();
 
 		int ret =(*program_option.function_name_p)();
+		fprintf(stderr,"Done\n"	);
+		
 	}
 	exit(0);
 		

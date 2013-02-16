@@ -29,8 +29,6 @@ int extract_boot_image_file();
 int update_boot_image_file();
 int log_write(const char *format, ...);
 
-void *memmem1(const void *haystack, size_t haystack_len,
-			  const void *needle,  size_t needle_len);
 #define ARRAYSIZE(a) ((int)(sizeof(a) / sizeof(*(a))))
 typedef struct _boot_block
 {

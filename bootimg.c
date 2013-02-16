@@ -45,7 +45,7 @@
 static unsigned long find_magic_offset(byte_p data , unsigned file_size){
 	long offset=-1;
 	long* poffset=&offset ;
-	poffset= memmem1((const unsigned char*)data,file_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
+	poffset= find_in_file((const unsigned char*)data,file_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
 	if(poffset==0) return -1;
 	return  0-( (unsigned long)&data[0]-(unsigned long)&poffset[0]);
 	
@@ -72,20 +72,20 @@ static int print_boot_image_info(boot_image_t boot_image,FILE* fp)
 	fprintf(fp,		"name:%s"EOL
 					"cmdline:%s"EOL
 					"magic_offset:[%u][0x%08x]"EOL
-					"page_size:[%d][0x%08x]"EOL
+					"page_size:[%u][0x%08x]"EOL
 					"kernel_addr:[%u][0x%08x]"EOL
 					"kernel_size:[%u][0x%08x]"EOL
 					"kernel_pagecount:[%u][0x%08x]"EOL
 					"kernel_offset:[%u][0x%08x]"EOL
 					"ramdisk_addr:[%u][0x%08x]"EOL
 					"ramdisk_size:[%u][0x%08x]"EOL
-					"ramdisk_pagecount:[%d][0x%08x]"EOL
-					"ramdisk_offset:[%d][0x%08x]"EOL
+					"ramdisk_pagecount:[%u][0x%08x]"EOL
+					"ramdisk_offset:[%u][0x%08x]"EOL
 					"second_addr:[%x][0x%08x]"EOL
-					"second_size:[%d][0x%08x]"EOL
-					"second_pagecount:[%d][0x%08x]"EOL
-					"second_offset:[%d][0x%08x]"EOL
-					"tags_addr:[%d][0x%08x]"EOL,
+					"second_size:[%u][0x%08x]"EOL
+					"second_pagecount:[%u][0x%08x]"EOL
+					"second_offset:[%u][0x%08x]"EOL
+					"tags_addr:[%u][0x%08x]"EOL,
 		    boot_image.header.name,boot_image.header.cmdline,
 		    boot_image.magic_offset,boot_image.magic_offset,
 		    boot_image.header.page_size,boot_image.header.page_size,
@@ -123,9 +123,13 @@ static boot_image_t parse_boot_image_info(byte_p data, unsigned file_size)
 	}
 	//log_write("parse_boot_image_info:image_magic_offset=[%ld][0x%lx]\n", magic_offset,magic_offset);
 	//log_write("parse_boot_image_info:image_header_address=[%ld][0x%lx]\n", magic_offset,magic_offset);
-	boot_image_t *boot_image_p=(boot_image_t *)data+magic_offset;
+	byte_p offset_data=data+magic_offset;
+	//boot_img_hdr * boot_image_header_p=(boot_img_hdr *)offset_data;
+	boot_image_t *boot_image_p=(boot_image_t *)offset_data;
 	boot_image_t boot_image=(*boot_image_p);
+	//boot_image_header_p = &boot_image.header;
 	
+	//log_write("parse_boot_image_info:boot_image=[%08x] : boot_image.header [%08x]\n", boot_image_p,boot_image_header_p);
     boot_image.magic_offset=magic_offset;
 	boot_image.boot_image_filesize = file_size;
 	boot_image.kernel_page_count = (boot_image.header.kernel_size + boot_image.header.page_size - 1) / boot_image.header.page_size;
@@ -135,10 +139,10 @@ static boot_image_t parse_boot_image_info(byte_p data, unsigned file_size)
 	boot_image.kernel_offset = boot_image.header.page_size;
 	boot_image.ramdisk_offset = boot_image.kernel_offset + (boot_image.kernel_page_count * boot_image.header.page_size);	
 	boot_image.second_offset = boot_image.ramdisk_offset + (boot_image.ramdisk_page_count *  boot_image.header.page_size);
-	boot_image.header_data_start=data+magic_offset;
-	boot_image.kernel_data_start=data+magic_offset+boot_image.kernel_offset;
-	boot_image.ramdisk_data_start=data+magic_offset+boot_image.ramdisk_offset;
-	boot_image.second_data_start=data+magic_offset+boot_image.second_offset;
+	boot_image.header_data_start=offset_data;
+	boot_image.kernel_data_start=offset_data+boot_image.kernel_offset;
+	boot_image.ramdisk_data_start=offset_data+boot_image.ramdisk_offset;
+	boot_image.second_data_start=offset_data+boot_image.second_offset;
 	
 	return boot_image;
 
@@ -173,7 +177,7 @@ fail:
 int process_header_switch(boot_image_t boot_image){
 	
 	if ( ( ACTION_UNPACK || ACTION_EXTRACT )  && (option_values.header_filename)){
-			log_write("unpack_boot_image_file:extracting_header:%08x\n",option_values.header_filename);
+			//log_write("unpack_boot_image_file:extracting_header:%08x\n",option_values.header_filename);
 			FILE* fp =fopen(option_values.header_filename,"wb");
 			print_boot_image_info(boot_image,fp);
 			fclose(fp);
@@ -183,7 +187,7 @@ int process_header_switch(boot_image_t boot_image){
 void process_cmdline_switch(boot_image_t boot_image){
 	if (!option_values.cmdline_filename) return ;
 	if( ( ACTION_UNPACK || ACTION_EXTRACT )  && (option_values.cmdline_filename)  ){
-		log_write("extract command line:%s\n",option_values.cmdline_filename);
+		//log_write("extract command line:%s\n",option_values.cmdline_filename);
 		write_single_line_to_file((const char*)option_values.cmdline_filename,(const char*)boot_image.header.cmdline,strlen((const char*)boot_image.header.cmdline));
 	}if(strlen(option_values.cmdline_filename)==0){
 			option_values.cmdline_filename=DEFAULT_CMDLINE_NAME;
@@ -195,18 +199,18 @@ int unpack_boot_image_file()
 	unsigned long 	file_size =0 ;
 	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
 	boot_image_t boot_image=parse_boot_image_info(raw_boot_image_data,file_size);
-	log_write("unpack_boot_image_file:page_size=[%d]kernel_size=[%x]\n",boot_image.header.page_size,boot_image.header.kernel_size);
+	//log_write("unpack_boot_image_file:page_size=[%d]kernel_size=[%x]\n",boot_image.header.page_size,boot_image.header.kernel_size);
 	int mkdir_result = mkdir(option_values.output_directory_name,0777);
-	log_write("unpack_boot_image_file:page_size=[%d]kernel_size=[%x]\n",boot_image.header.page_size,boot_image.header.kernel_size);
+	//log_write("unpack_boot_image_file:page_size=[%d]kernel_size=[%x]\n",boot_image.header.page_size,boot_image.header.kernel_size);
 	chdir(option_values.output_directory_name);
-	
+	fprintf(stderr,"Unpacking boot image %s to %s\n",option_values.image_filename,option_values.output_directory_name);	 
 	process_header_switch(boot_image);
 	process_cmdline_switch(boot_image);
 	
 	
 	if( option_values.ramdisk_archive_filename  ){
 			write_to_file(boot_image.ramdisk_data_start,boot_image.header.ramdisk_size,option_values.ramdisk_archive_filename);
-			fprintf(stderr,"extracting gzip ramdisk:%s\n",option_values.ramdisk_archive_filename);
+			//fprintf(stderr,"extracting gzip ramdisk:%s\n",option_values.ramdisk_archive_filename);
 
 	}
 	if(	option_values.ramdisk_cpio_filename || option_values.ramdisk_directory_name ){
@@ -216,10 +220,10 @@ int unpack_boot_image_file()
 		
 		if( option_values.ramdisk_cpio_filename ){
 			write_to_file(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_cpio_filename);
-			fprintf(stderr,"extracting cpio ramdisk:%s\n",option_values.ramdisk_cpio_filename);
+			//fprintf(stderr,"extracting cpio ramdisk:%s\n",option_values.ramdisk_cpio_filename);
 		}
 		if( option_values.ramdisk_directory_name )
-				fprintf(stderr,"extracting ramdisk:%s\n",option_values.ramdisk_directory_name);
+			//	fprintf(stderr,"extracting ramdisk:%s\n",option_values.ramdisk_directory_name);
 						
 		process_uncompressed_ramdisk(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_directory_name);
 			
@@ -232,7 +236,7 @@ int unpack_boot_image_file()
 	}
 	if	( option_values.second_filename ){
 		write_to_file(boot_image.second_data_start,boot_image.header.second_size,option_values.second_filename);
-		fprintf(stderr,"extracting second:%s\n",option_values.second_filename);
+	//	fprintf(stderr,"extracting second:%s\n",option_values.second_filename);
 	}
 	//chdir(starting_directory);	
 		
@@ -357,7 +361,7 @@ int update_boot_image_file(){
 	fclose(fp);
 	
 	free(raw_boot_image_data);
-	fprintf(stderr,"Done\n"	);
+	
 	
 	if(option_values.kernel_filename)
 		free(kernel_data);
