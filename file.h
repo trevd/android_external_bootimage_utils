@@ -45,4 +45,7 @@ byte_p load_file_from_offset(const char *filepath,int offset,unsigned long *file
 long read_file( const char *fn, unsigned char *output,unsigned long *output_size);
 byte_p load_file(const char *fn, unsigned long *file_size);
 byte_p find_in_file(const void *haystack, size_t haystack_len, const void *needle,  size_t needle_len);
+unsigned long unix_to_dos(char* output_buffer, const char* input_buffer);
+unsigned long dos_to_unix(char* output_buffer, const char* input_buffer);
+
 #endif

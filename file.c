@@ -328,3 +328,54 @@ byte_p find_in_file(const void *haystack, size_t haystack_len,
   return NULL;
 }
 
+unsigned long dos_to_unix(char* output_buffer, const char* input_buffer)
+{
+    const char* p = input_buffer;
+    char* q = output_buffer;
+    int times =0;
+    while (*p) {
+        if (p[0] == '\r' && p[1] == '\n') {
+            // dos
+            *q = '\n';
+            p += 2;
+            q += 1;
+            times+=1;
+        }
+        else if (p[0] == '\r') {
+            // old mac
+            *q = '\n';
+            p += 1;
+            q += 1;
+        }
+        else {
+            *q = *p;
+            p += 1;
+            q += 1;
+        }
+    }
+    *q = '\0';
+    return times;
+}
+
+unsigned long  unix_to_dos(char* output_buffer, const char* input_buffer)
+{
+    const char* p = input_buffer;
+    char* q = output_buffer;
+    int times=0;
+    while (*p) {
+        if (*p == '\n') {
+            q[0] = '\r';
+            q[1] = '\n';
+            q += 2;
+            p += 1;
+            times+=1; 
+        } else {
+            *q = *p;
+            p += 1;
+            q += 1;
+        }
+    }
+    *q = '\0';
+    return times;
+}
+
