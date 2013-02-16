@@ -8,12 +8,11 @@
 #include "file.h"	
 #include "../../zlib/zlib.h"
 #include <private/android_filesystem_config.h>
-#include "line_endings.h"
 
 	
 #define CPIO_HEADER_SIZE sizeof(cpio_newc_header_t)
 #define CPIO_TRAILER_MAGIC "TRAILER!!!"
-#define CPIO_TRAILER_MAGIC_LENGTH strlen("TRAILER!!!")
+#define CPIO_TRAILER_MAGIC_LENGTH 11
 typedef struct {
 		   char    c_magic[6];
 		   char    c_ino[8];
@@ -74,7 +73,7 @@ static cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header
 	cpio_entry.next_header_p = cpio_entry.file_start_p+(cpio_entry.file_size+cpio_entry.bytes_to_next_header_start); 
 	cpio_entry.file_name = (char *)data+CPIO_HEADER_SIZE;
 	cpio_entry.entry_size = cpio_entry.next_header_p  - cpio_entry.entry_start_p;
-	cpio_entry.is_trailer = !strncmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC,CPIO_TRAILER_MAGIC_LENGTH);
+	cpio_entry.is_trailer = !strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC);
 	//fprintf(stderr," %s\n",cpio_entry.file_name);
 	return cpio_entry;
 }
@@ -102,18 +101,18 @@ static void append_cpio_header_to_stream(struct stat s,char *filename,int name_s
            );     
 }
 
-unsigned long uncompress_gzip_ramdisk_memory(const byte_p data_in ,unsigned size,byte_p uncompressed_data,unsigned uncompressed_max_size)
+size_t uncompress_gzip_ramdisk_memory(const byte_p compressed_data ,const size_t compressed_data_size,byte_p uncompressed_data,const size_t uncompressed_max_size)
 {
 	
 	z_stream zInfo = {0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 
-	zInfo.avail_in=  size;
-    zInfo.total_in=  size;  
+	zInfo.avail_in=  compressed_data_size;
+    zInfo.total_in=  compressed_data_size;  
     zInfo.avail_out=  uncompressed_max_size;
     zInfo.total_out=  uncompressed_max_size;
-    zInfo.next_in= data_in	;
+    zInfo.next_in= compressed_data	;
     zInfo.next_out= uncompressed_data;
-    unsigned long err, return_value= -1;
-    err= inflateInit2( &zInfo,16+MAX_WBITS );               // zlib function
+    size_t return_value= 0;
+    unsigned long err= inflateInit2( &zInfo,16+MAX_WBITS );               // zlib function
     
     if ( err == Z_OK ) {
         err= inflate( &zInfo, Z_FINISH );     // zlib function
@@ -148,30 +147,30 @@ unsigned long compress_gzip_ramdisk_memory(const byte_p data_in , unsigned size,
     deflateEnd( &zInfo );    // zlib function
     return( return_value );
 }
-byte_p modify_ramdisk_entry(const byte_p cpio_data,unsigned cpio_size,unsigned long *new_cpio_size){
+byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t *new_cpio_size){
 	cpio_entry_t cpio_entry = populate_cpio_entry(cpio_data);
-	byte_p cpio_end  = cpio_data+cpio_size;
+	const byte_p cpio_end  = cpio_data+cpio_size;
 	//write_to_file(cpio_data,cpio_size,"cpio_full");
 	
 	while(!cpio_entry.is_trailer){
-		if(!strncmp(option_values.target_filename,cpio_entry.file_name,cpio_entry.name_size)){
+		if(!strlcmp(option_values.target_filename,cpio_entry.file_name)){
 			struct stat sb;
 			//log_write("stat=%s:\n",option_values.source_filename); 
 			lstat(option_values.source_filename, &sb); 
-			unsigned long  new_file_size=0 ;
+			size_t  new_file_size=0 ;
 			byte_p new_file_data = load_file(option_values.source_filename,&new_file_size);
 			
 			if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(new_file_data,new_file_size))){
-				char* buf=malloc(new_file_size*2);
+				byte_p output_buffer=malloc(new_file_size);
 				
-				unsigned long times = dos_to_unix((char*)buf , (char*)new_file_data) ; 
+				size_t times = dos_to_unix(output_buffer , new_file_data) ; 
 				//log_write("convert:%s\n",buf);
 				//log_write("nfs:%ld %ld\n",times, new_file_size);
 				new_file_size-= times ;
 				//log_write("nfs:%ld %ld\n",times, new_file_size);
 				//log_write("nfd:%p\n", new_file_data);
 				free(new_file_data);
-				new_file_data=(byte_p)buf;
+				new_file_data=output_buffer;
 				//log_write("nfd:%p\n", new_file_data);
 			}
 			
@@ -208,34 +207,34 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,unsigned cpio_size,unsigned l
 	}
 	return cpio_data;
 }
-long find_file_in_ramdisk_entries(byte_p data)
+long find_file_in_ramdisk_entries(const byte_p data)
 {
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);
 	while(!cpio_entry.is_trailer){
-			//log_write("cpio_entry:file_name=%s next_header:%p \n",cpio_entry.file_name,cpio_entry.next_header_p);
-			if(!strncmp(option_values.source_filename,cpio_entry.file_name,cpio_entry.name_size)){
+			log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d %d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
+			if(!strlcmp(option_values.source_filename,cpio_entry.file_name)){
 				
 				if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
-					char buf[cpio_entry.file_size*2];
-					int times = unix_to_dos((char *)&buf,(char *)cpio_entry.file_start_p);
-					//log_write("converting line endings\n");
-					write_to_file_mode((unsigned char*)buf, cpio_entry.file_size+times,option_values.target_filename,cpio_entry.mode);
+					byte input_buffer[cpio_entry.file_size*2];
+					int times = unix_to_dos((byte_p)&input_buffer,cpio_entry.file_start_p);
+					log_write("converting line endings\n");
+					write_to_file_mode(input_buffer, cpio_entry.file_size+times,option_values.target_filename,cpio_entry.mode);
 				}else
 					write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,option_values.target_filename,cpio_entry.mode);
 				return 0;
 			}else
 				cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				
 	}
-	//log_write("cpio_entry:file_name=%s next_header:%p \n",cpio_entry.file_name,cpio_entry.next_header_p);	
+	log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name));	
 	return -1;
 
 }	
-long extract_cpio_entry(byte_p data,unsigned size,unsigned long offset)
+long extract_cpio_entry(const byte_p data,unsigned size,unsigned long offset)
 {
 
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);	
 	//fprintf(stderr,"process_uncompressed_ramdisk:%lu %s ",offset,cpio_entry.file_name);
-	if(!strncmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC,CPIO_TRAILER_MAGIC_LENGTH)){	
+	if(!strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC)){	
 		return -1;
 	}
 	if(S_ISDIR(cpio_entry.mode)){
@@ -299,7 +298,7 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buf
 		char full_name[PATH_MAX];
 		full_name[0] = 0;
 		strncpy(full_name,path,PATH_MAX); 
-		strncat(full_name,entry->d_name,PATH_MAX );
+		strcat(full_name,entry->d_name);
 		name_size = strlen(full_name)+1;
 		bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
 		file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;
@@ -318,8 +317,8 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buf
 		}
 		else if(S_ISREG(statbuf.st_mode)){
 			//printf("Reg:%s %d\n",entry->d_name,statbuf.st_mode);
-			unsigned long file_size =0 ;
-			unsigned char* data = load_file(entry->d_name,&file_size);
+			size_t file_size =0 ;
+			byte_p data = load_file(entry->d_name,&file_size);
 			if(!strncmp((char*)data,"LNK:",4)){	
 				free(data);
 				file_size =0 ;
@@ -362,12 +361,12 @@ unsigned long pack_ramdisk_directory(byte_p ramdisk_cpio_data){
 	
 	struct stat s;
     memset(&s, 0, sizeof(s));
-    unsigned long name_size = strlen("TRAILER!!!")+1;
+    unsigned long name_size = CPIO_TRAILER_MAGIC_LENGTH;
     unsigned long  bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
 	unsigned long  file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;
 	unsigned long  bytes_to_next_header_start = (4 - ((file_start+0) % 4)) % 4;
 	unsigned long  next_header = file_start+0+bytes_to_next_header_start;
-    append_cpio_header_to_stream(s,"TRAILER!!!",name_size,ramdisk_cpio_data+offset);
+    append_cpio_header_to_stream(s,CPIO_TRAILER_MAGIC,name_size,ramdisk_cpio_data+offset);
     offset += next_header;
     return offset;
 }

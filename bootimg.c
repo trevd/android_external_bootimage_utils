@@ -42,13 +42,10 @@
   }
 }  */ 
 
-static unsigned long find_magic_offset(byte_p data , unsigned file_size){
-	long offset=-1;
-	long* poffset=&offset ;
-	poffset= find_in_file((const unsigned char*)data,file_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
+long find_magic_offset(const byte_p data , const size_t file_size){
+	byte_p poffset= find_in_file(data,file_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
 	if(poffset==0) return -1;
 	return  0-( (unsigned long)&data[0]-(unsigned long)&poffset[0]);
-	
 }
 static unsigned char padding[4096] = { 0, };
 int get_content_hash(boot_img_hdr* header,unsigned char *kernel_data,unsigned char *ramdisk_data,unsigned char *second_data)
@@ -106,7 +103,7 @@ static int print_boot_image_info(boot_image_t boot_image,FILE* fp)
 
 }
 // give the parse_boot_image_info
-static boot_image_t parse_boot_image_info(byte_p data, unsigned file_size)
+static boot_image_t parse_boot_image_info(byte_p data, size_t file_size)
 {
 	
 	if(file_size < sizeof(boot_img_hdr)) {	
@@ -196,7 +193,7 @@ void process_cmdline_switch(boot_image_t boot_image){
 
 int unpack_boot_image_file()
 {
-	unsigned long 	file_size =0 ;
+	size_t	file_size =0 ;
 	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
 	boot_image_t boot_image=parse_boot_image_info(raw_boot_image_data,file_size);
 	//log_write("unpack_boot_image_file:page_size=[%d]kernel_size=[%x]\n",boot_image.header.page_size,boot_image.header.kernel_size);
@@ -253,12 +250,12 @@ int pack_boot_image_file(){
 	char starting_directory[PATH_MAX];
 	getcwd(starting_directory,PATH_MAX);
 	log_write("create_boot_image_file:kernel:%s:ramdisk_directory:%s image:%s starting_directory=%s\n",option_values.kernel_filename,option_values.ramdisk_directory_name,option_values.image_filename,starting_directory);
-	unsigned char *ramdisk_gzip_data = NULL, *kernel_data = NULL ,*second_data = NULL,*cmdline_data = NULL;
-	unsigned long ramdisk_gzip_size = 0, kernel_size=0, second_size = 0;
+	byte_p ramdisk_gzip_data = NULL, kernel_data = NULL ,second_data = NULL,cmdline_data = NULL;
+	size_t ramdisk_gzip_size = 0, kernel_size=0, second_size = 0;
 	unsigned pagemask = option_values.page_size - 1; 
 	if ( option_values.ramdisk_directory_name || option_values.ramdisk_cpio_filename  ){
 		log_write("create_boot_image_file:packing_ramdisk_directory\n");
-		unsigned long cpio_size =0 ; 
+		size_t cpio_size =0 ; 
 		unsigned char* ramdisk_cpio_data =NULL;
 		if (option_values.ramdisk_directory_name) {
 			ramdisk_cpio_data = calloc(MEMORY_BUFFER_SIZE, sizeof(unsigned char)) ;
@@ -304,7 +301,7 @@ int pack_boot_image_file(){
 }
 int list_boot_image_info()
 {
-	unsigned long file_size =0 ;
+	size_t file_size =0 ;
 	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
 	boot_image_t boot_image=parse_boot_image_info(raw_boot_image_data,file_size);
 	print_boot_image_info(boot_image,stderr);
@@ -315,7 +312,7 @@ quit_now:
 }
 int extract_boot_image_file(){
 	
-	unsigned long file_size =0 ;
+	size_t file_size =0 ;
 	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
 	boot_image_t boot_image=parse_boot_image_info(raw_boot_image_data,file_size);
 	byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
@@ -329,7 +326,7 @@ int extract_boot_image_file(){
 int update_boot_image_file(){
 		
 	
-	unsigned long file_size =0, new_cpio_file_size=0;
+	size_t file_size =0, new_cpio_file_size=0;
 	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
 	boot_image_t boot_image = parse_boot_image_info(raw_boot_image_data,file_size);
 	
@@ -337,14 +334,14 @@ int update_boot_image_file(){
 	
 	if(option_values.kernel_filename){
 		fprintf(stderr,"Updating boot image %s kernel with %s\n",option_values.image_filename,option_values.kernel_filename);	 
-		 unsigned long kernel_size=0;
+		 size_t kernel_size=0;
 		 kernel_data = load_file(option_values.kernel_filename,	&kernel_size);
 		 ramdisk_gzip_data=boot_image.ramdisk_data_start;
 		 boot_image.header.kernel_size=kernel_size;
 	}else{
 		fprintf(stderr,"Updating ramdisk in boot image %s\n",option_values.image_filename);
 		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
-		unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(boot_image.ramdisk_data_start,boot_image.header.ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
+		size_t uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(boot_image.ramdisk_data_start,boot_image.header.ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
 		//log_write("modify_size:%ld\n",uncompressed_ramdisk_size);
 		byte_p new_cpio_data = modify_ramdisk_entry(uncompressed_ramdisk_data,uncompressed_ramdisk_size,&new_cpio_file_size);
 		free(uncompressed_ramdisk_data);

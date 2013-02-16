@@ -28,7 +28,7 @@ int list_boot_image_info();
 int extract_boot_image_file();
 int update_boot_image_file();
 int log_write(const char *format, ...);
-
+int strlcmp(const char *s1, const char *s2);
 #define ARRAYSIZE(a) ((int)(sizeof(a) / sizeof(*(a))))
 typedef struct _boot_block
 {
@@ -180,8 +180,7 @@ static struct option unpack_long_options[] = {
 
 
 
-typedef enum  _program_actions_t {  
-	NOT_SET=0,	UNPACK=1 , PACK=2 , LIST=3 , EXTRACT=4,ADD=5 , REMOVE=6 , UPDATE=7 } program_actions_t ;
+typedef enum  _program_actions_t {  NOT_SET,	UNPACK , PACK , LIST , EXTRACT,ADD , REMOVE , UPDATE } program_actions_t ;
 
 typedef struct _program_options_t  {
 	const char*	stringopts;
@@ -211,7 +210,7 @@ program_options_t program_option;
 #define ACTION_UPDATE (program_option.action==UPDATE )
 	
 #define GET_OPT_LONG_FUNCTION getopt_long(argc, argv,program_option.stringopts, program_option.options, &option_index);
-#define MEMORY_BUFFER_SIZE 8192*1024
+#define MEMORY_BUFFER_SIZE (const size_t)8192*1024
 
 #endif
 

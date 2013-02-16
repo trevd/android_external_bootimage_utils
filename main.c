@@ -51,30 +51,39 @@ int log_write(const char *format, ...)
 	
 	return 1;
 }
-
+int strlcmp(const char *s1, const char *s2){
+	
+	if(!s1 || !s2 )
+		return -99;
+	
+	size_t string_one_length=strlen(s1);
+	size_t string_two_length=strlen(s2);
+	size_t compare_length = string_one_length > string_two_length ?
+								string_one_length : string_two_length;
+	
+	return strncmp(s1,s2,compare_length); 
+								
+}
 program_options_t get_program_option(int argc, char **argv){
 	
 	program_options_t program_option=program_options[NOT_SET];
 	//log_write("main:program_option=%d\n",program_option.action);
-	int compare_length = strlen(argv[1]) > 6 ? strlen(argv[1]) : 6;
-	if(!strncmp(argv[1],"unpack",compare_length))
+	if(!strlcmp(argv[1],"unpack"))
 			return program_options[UNPACK];
 	
-	if(!strncmp(argv[1],"remove",compare_length))
+	if(!strlcmp(argv[1],"remove"))
 			return program_options[REMOVE];
 			
-	compare_length = strlen(argv[1]) > 7 ? strlen(argv[1]) : 7;
-	if(!strncmp(argv[1],"extract",compare_length)){
+	if(!strlcmp(argv[1],"extract")){
 			return program_options[EXTRACT];
 	}
-	compare_length = strlen(argv[1]) > 4 ? strlen(argv[1]) : 4;
-	if(!strncmp(argv[1],"list",compare_length)){
+	if(!strlcmp(argv[1],"list")){
 			return program_options[LIST];
 	}
-	if(!strncmp(argv[1],"pack",compare_length)){
+	if(!strlcmp(argv[1],"pack")){
 			return program_options[PACK];
 	}
-	if(!strncmp(argv[1],"update",compare_length)){
+	if(!strlcmp(argv[1],"update")){
 			return program_options[UPDATE];
 	}
 	return program_options[NOT_SET];

@@ -22,13 +22,9 @@ ssize_t readlink(const char *path, char *buf, size_t bufsiz);
 
 int vasprintf(char **strp, const char *fmt, va_list ap);
 
-#define MAGIC_GZIP 0x08088B1F
-#define MAGIC_GZIP_NONAME 0x00088B1F
-#define MAGIC_CPIO_ASCII "070701"
-#define MAGIC_CPIO_SIZE 7
+
 typedef unsigned char* byte_p ;
-static const mode_t defualt_file_mode = 0666 ;
-static const mode_t defualt_directory_mode = 0755 ;
+typedef unsigned char byte ;
 int is_path_directory(char *dname);
 int check_directory_exists(char *dname, int exitonfailure);
 int check_file_exists(char *fname, int exitonfailure);
@@ -39,13 +35,13 @@ int is_gzip_file(const char *filepath);
 int is_ascii_text(byte_p stream, unsigned long size);
 int write_single_line_to_file(const char *filepath, const char *output_buffer,unsigned size);
 int read_file_to_size(const char *filepath, unsigned size , unsigned char *output_buffer);
-int write_to_file_mode(unsigned char *data_in, unsigned output_size,char * output_filename, mode_t mode);
-int write_to_file(unsigned char *data_in, unsigned output_size,char * output_filename);
-byte_p load_file_from_offset(const char *filepath,int offset,unsigned long *file_size);
+int write_to_file_mode(unsigned char *data_in, size_t output_size,char * output_filename, mode_t mode);
+int write_to_file(unsigned char *data_in, size_t output_size,char * output_filename);
+byte_p load_file_from_offset(const char *filepath,int offset,size_t *file_size);
 long read_file( const char *fn, unsigned char *output,unsigned long *output_size);
-byte_p load_file(const char *fn, unsigned long *file_size);
-byte_p find_in_file(const void *haystack, size_t haystack_len, const void *needle,  size_t needle_len);
-unsigned long unix_to_dos(char* output_buffer, const char* input_buffer);
-unsigned long dos_to_unix(char* output_buffer, const char* input_buffer);
+byte_p load_file(const char *fn, size_t *file_size);
+byte_p find_in_file(const byte_p haystack, size_t haystack_len, const void *needle,  size_t needle_len);
+size_t unix_to_dos(byte_p output_buffer, const byte_p input_buffer);
+size_t dos_to_unix(byte_p output_buffer, const byte_p input_buffer);
 
 #endif

@@ -7,6 +7,12 @@
 #include <stdlib.h>
 #include "program.h"
 #include "file.h"
+
+#define MAGIC_GZIP 0x08088B1F
+#define MAGIC_GZIP_NONAME 0x00088B1F
+#define MAGIC_CPIO_ASCII "070701"
+#define MAGIC_CPIO_SIZE 7
+
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
 int symlink(char *symlink_src,char *filename){ 
 	FILE *output_file_fp = fopen(filename, "wb");
@@ -117,7 +123,7 @@ int is_cpio_file(const char *filepath)
 	char magic[MAGIC_CPIO_SIZE];
 	fread(&magic,MAGIC_CPIO_SIZE,1,fp);
 	magic[MAGIC_CPIO_SIZE-1] = '\0';
-	int result = strncmp(MAGIC_CPIO_ASCII,magic,MAGIC_CPIO_SIZE);
+	int result = strlcmp(MAGIC_CPIO_ASCII,magic);
 	//fprintf(stderr,"magic:%s magic:%s %d\n",MAGIC_CPIO_ASCII,magic,result);
 	fclose(fp);
 	return !result;
@@ -165,7 +171,7 @@ int read_file_to_size(const char *filepath, unsigned size , unsigned char *outpu
 	
 }
 
-byte_p load_file_from_offset(const char *filepath,int offset,unsigned long *file_size)
+byte_p load_file_from_offset(const char *filepath,int offset,size_t *file_size)
 {
 	
     unsigned char *data;
@@ -219,12 +225,12 @@ oops:
     fclose(fp);
     return 0;
 }
-int write_to_file_mode(byte_p data_in, unsigned output_size,char * output_filename, mode_t mode){
+int write_to_file_mode(byte_p data_in, size_t output_size,char * output_filename, mode_t mode){
 	write_to_file(data_in,output_size,output_filename);
 	chmod(output_filename,mode);
 	return 0;
 }
-int write_to_file(byte_p data_in, unsigned output_size,char * output_filename){
+int write_to_file(byte_p data_in, size_t output_size,char * output_filename){
 	// Validate input
 	
 	FILE *output_file_fp;
@@ -272,7 +278,7 @@ oops:
  * if successful load_file will return a pointer to the start of the data
  * The memory allocated by this function must be freed by the  caller 
  */
-byte_p load_file(const char *filname, unsigned long *file_size)
+byte_p load_file(const char *filname, size_t *file_size)
 {
     unsigned char *data;
     int sz; int fd;
@@ -301,7 +307,7 @@ oops:
     if(data != 0) free(data);
     return 0;
 }
-byte_p find_in_file(const void *haystack, size_t haystack_len,
+byte_p find_in_file(const byte_p haystack, size_t haystack_len,
 			  const void *needle,  size_t needle_len)
 {
   const char *begin;
@@ -328,11 +334,11 @@ byte_p find_in_file(const void *haystack, size_t haystack_len,
   return NULL;
 }
 
-unsigned long dos_to_unix(char* output_buffer, const char* input_buffer)
+size_t dos_to_unix(byte_p output_buffer, const byte_p input_buffer)
 {
-    const char* p = input_buffer;
-    char* q = output_buffer;
-    int times =0;
+    byte_p p = input_buffer;
+    byte_p q = output_buffer;
+    size_t times =0;
     while (*p) {
         if (p[0] == '\r' && p[1] == '\n') {
             // dos
@@ -357,11 +363,11 @@ unsigned long dos_to_unix(char* output_buffer, const char* input_buffer)
     return times;
 }
 
-unsigned long  unix_to_dos(char* output_buffer, const char* input_buffer)
+size_t  unix_to_dos(byte_p output_buffer, const byte_p input_buffer)
 {
-    const char* p = input_buffer;
-    char* q = output_buffer;
-    int times=0;
+    byte_p p = input_buffer;
+    byte_p q = output_buffer;
+    size_t times=0;
     while (*p) {
         if (*p == '\n') {
             q[0] = '\r';
