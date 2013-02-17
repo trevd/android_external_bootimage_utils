@@ -44,7 +44,10 @@ typedef struct  {
 	unsigned long entry_size ;  
 	unsigned long  	next_header ;
 	char * file_name ;
-	int is_trailer ; 
+	int is_trailer ;
+	int is_directory ; 
+	int is_file ;
+	int is_link ;
 }cpio_entry_t;
 
 
@@ -73,6 +76,9 @@ static cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header
 	cpio_entry.next_header_p = cpio_entry.file_start_p+(cpio_entry.file_size+cpio_entry.bytes_to_next_header_start); 
 	cpio_entry.file_name = (char *)data+CPIO_HEADER_SIZE;
 	cpio_entry.entry_size = cpio_entry.next_header_p  - cpio_entry.entry_start_p;
+	cpio_entry.is_directory=S_ISDIR(cpio_entry.mode);
+	cpio_entry.is_file=S_ISREG(cpio_entry.mode);
+	cpio_entry.is_link=S_ISLNK(cpio_entry.mode);
 	cpio_entry.is_trailer = !strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC);
 	//fprintf(stderr," %s\n",cpio_entry.file_name);
 	return cpio_entry;
@@ -157,7 +163,7 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 			struct stat sb;
 			//log_write("stat=%s:\n",option_values.source_filename); 
 			lstat(option_values.source_filename, &sb); 
-			size_t  new_file_size=0 ;
+			size_t new_file_size = 0 ;
 			byte_p new_file_data = load_file(option_values.source_filename,&new_file_size);
 			
 			if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(new_file_data,new_file_size))){
@@ -211,21 +217,22 @@ long find_file_in_ramdisk_entries(const byte_p data)
 {
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);
 	while(!cpio_entry.is_trailer){
-			log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d %d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
+			//log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d %d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
 			if(!strlcmp(option_values.source_filename,cpio_entry.file_name)){
 				
 				if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
-					byte input_buffer[cpio_entry.file_size*2];
-					int times = unix_to_dos((byte_p)&input_buffer,cpio_entry.file_start_p);
-					log_write("converting line endings\n");
-					write_to_file_mode(input_buffer, cpio_entry.file_size+times,option_values.target_filename,cpio_entry.mode);
+					byte output_buffer[cpio_entry.file_size*2];
+					cpio_entry.file_size += unix_to_dos((byte_p)&output_buffer,cpio_entry.file_start_p);
+					//log_write("converting line endings\n");
+					write_to_file_mode(output_buffer, cpio_entry.file_size,option_values.target_filename,cpio_entry.mode);
 				}else
+				
 					write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,option_values.target_filename,cpio_entry.mode);
 				return 0;
 			}else
 				cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				
 	}
-	log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name));	
+	//log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name));	
 	return -1;
 
 }	
@@ -237,17 +244,17 @@ long extract_cpio_entry(const byte_p data,unsigned size,unsigned long offset)
 	if(!strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC)){	
 		return -1;
 	}
-	if(S_ISDIR(cpio_entry.mode)){
+	if(cpio_entry.is_directory){
 		//fprintf(stderr,"directory\n");
 		mkdir(cpio_entry.file_name,cpio_entry.mode);
-	}else if(S_ISREG(cpio_entry.mode)){
+	}else if(cpio_entry.is_file){
 		//fprintf(stderr,"file\n");
 			write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,cpio_entry.file_name,cpio_entry.mode);
 		
 	}
-	else if(S_ISLNK(cpio_entry.mode)){
+	else if(cpio_entry.is_link){
 		//fprintf(stderr,"link\n");
-		char symlink_src[cpio_entry.file_size];
+		char symlink_src[cpio_entry.file_size+1];
 		memcpy(symlink_src,(const char*)cpio_entry.file_start_p,cpio_entry.file_size);
 		symlink_src[cpio_entry.file_size] ='\0';
 		symlink(symlink_src,cpio_entry.file_name);	

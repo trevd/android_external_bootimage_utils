@@ -74,6 +74,7 @@ struct _getopt_data
   int opterr;
   int optopt;
   char *optarg;
+  char *optdef;
 
   /* Internal members.  */
 

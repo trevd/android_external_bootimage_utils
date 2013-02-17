@@ -166,6 +166,7 @@ struct option
   int has_arg;
   int *flag;
   int val;
+  const char *default_value;
 };
 #  define GNULIB_defined_struct_option 1
 # endif
@@ -175,6 +176,7 @@ struct option
 # define no_argument            0
 # define required_argument      1
 # define optional_argument      2
+# define default_argument      3
 #endif  /* need getopt */
 
 

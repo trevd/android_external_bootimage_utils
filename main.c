@@ -10,6 +10,7 @@
 #include "file.h"
 #include "help.h"
 
+#define GET_OPT_LONG_FUNCTION getopt_long(argc, argv,program_option.stringopts, program_option.options, &long_option_index);
 
 int log_write(const char *format, ...)
 {
@@ -88,7 +89,8 @@ program_options_t get_program_option(int argc, char **argv){
 	}
 	return program_options[NOT_SET];
 }
-char * set_program_switch(char * default_value,char **argv){
+char * set_program_switch(char * default_value,char **argv,int long_option_index,int argc){
+	fprintf(stderr,"argc:%d opterr:%d optind:%d long_option_index:%d optopt:%d optarg:%s default_value:%s argv:%s\n",argc,opterr,optind,long_option_index ,optopt,optarg,default_value,argv[optind]);
 	//log_write("main:set_program_switch:default %s -", default_value);	
 	if(!(argv[optind]) || argv[optind][0]=='-'){
 		//log_write("using default argv[optind]=%s\n",  argv[optind]);	
@@ -114,8 +116,71 @@ int check_for_lazy_image(char * test_string){
 	//log_write("check_for_lazy_image:%s\n",test_string);	
 	
 }
-int check_required_parameters(){
-	switch(program_option.action){
+program_option_t get_option(char*** argv, program_option_t *options){
+
+	// Are we dealing with a short or long command
+	char *current_arg = (*argv[0]); const char * compare_string;
+	int check_long = ((current_arg[0]=='-') && (current_arg[1]=='-')) ? 2 : 1 ; 
+	while(options->option_type){
+		compare_string = check_long > 1 ? options->long_name :options->short_char ;
+		if (!strlcmp(current_arg+check_long,compare_string)) break;
+		options++;		
+	}
+	// Option not found return a point to the empty End of Array struct
+	if(!options->option_type) { (*argv)++; return (program_option_t) (*options); }
+	
+	switch(options->option_type){
+		case REQ_STR_ARG:{ 
+			    // required argument, move the argument pointer to be the next arg along
+				(*argv)++;
+				if((*argv[0][0])=='-'){ // invalid argument, bin it.
+				fprintf(stderr,"Invalid \n"); exit(0); }
+				// argument value is ok. assign the deference the dest_ptr so we can assign 
+				// a value to the option_value member directly
+				*(char **)options->dest_ptr=(*argv[0]);
+				// move to the next argument
+				(*argv)++;
+				break ; }
+			case DEF_STR_ARG:{ 
+				// argument comes with a default value
+				// move the argument pointer to be the next arg along
+				(*argv)++;
+				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, assign the default
+					const char* cha = *(const char **)options->dest_ptr =options->default_string;
+
+				}else{ // assign the argument value as normal
+					*(char **)options->dest_ptr=(*argv[0]);
+					// move to the next argument
+					(*argv)++;
+
+				}
+				break;
+			}
+		default: break;		 
+	}
+			
+	return (program_option_t) (*options);
+}
+
+int process_options(int argc, char **argv,program_option_t *options){
+	
+
+	while(argv[0]){
+		fprintf(stderr,"argc:%d argv:%s\n",argc,argv[0]);
+		program_option_t popt=get_option( &argv, options);
+		if(!popt.option_type) { continue;}
+		
+	}	
+	fprintf(stderr,"done:\n");
+	fprintf(stderr,"image:%s kernel:%s dir:%s arc:%s ps:%s cl:%s cpio:%s out:%s sec:%s b:%s h:%s\n",option_values.image_filename,option_values.kernel_filename,option_values.ramdisk_directory_name,
+	option_values.ramdisk_archive_filename,option_values.page_size_filename,option_values.cmdline_filename,option_values.ramdisk_cpio_filename,option_values.output_directory_name,
+	option_values.second_filename,option_values.board_filename,option_values.header_filename); 
+	
+	return 0;
+	
+}
+int check_required_parameters(const program_actions_emum action){
+	switch(action){
 			case UNPACK:{
 					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
 						//log_write("main:unpack no image set\n");		
@@ -174,7 +239,8 @@ int check_required_parameters(){
 }
 int main(int argc, char **argv){ 
 	
-	
+	argv++ ; argc--;
+	process_options(argc,argv,unpack_options);
 	if(argc==1){
 		print_main_usage();}	
 	
@@ -185,9 +251,9 @@ int main(int argc, char **argv){
 
 	
 	option_values.log_stdout=1;
-	int option_index =-1, option_return =-2, argument_count = argc,  settings =0; 
-	program_option=get_program_option(argc, argv);
-	
+	int long_option_index =-1, option_return =-2, argument_count = argc,  settings =0; 
+	program_options_t program_option=get_program_option(argc, argv);
+	option_values.action=program_option.action;
 	
 	if(program_option.action==NOT_SET)
 	{
@@ -210,30 +276,31 @@ int main(int argc, char **argv){
 	 }
 	//log_write("%s - %p Yes\n",option_values.image_filename,option_values.image_filename); 
 	//log_write("%s %p\n",option_values.kernel_filename,option_values.kernel_filename); 
+	opterr=0;
 	option_return = GET_OPT_LONG_FUNCTION;
 	while (option_return != -1){
 		switch(option_return){
 			case 'x':{ 	log_write("ramdisk_archive\n");   
-						option_values.ramdisk_archive_filename=set_program_switch(DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv);	break; }
-			case 'd':{ 	log_write("ramdisk_dir\n");   option_values.ramdisk_directory_name	=	set_program_switch(DEFAULT_RAMDISK_DIRECTORY_NAME,argv);	break;	}
-			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(DEFAULT_RAMDISK_NAME,argv); 						break;	}
+						option_values.ramdisk_archive_filename=set_program_switch(DEFAULT_RAMDISK_CPIO_GZIP_NAME, argv,long_option_index,argc);	break; }
+			case 'd':{ 	log_write("ramdisk_dir\n");   option_values.ramdisk_directory_name	=	set_program_switch(DEFAULT_RAMDISK_DIRECTORY_NAME,argv,long_option_index,argc);	break; }
+			case 'r':{ 	option_values.ramdisk_name				=	set_program_switch(DEFAULT_RAMDISK_NAME,argv,long_option_index,argc);	break; }
 			case 'k':{  //log_write("kernel_filename\n"); 
-						option_values.kernel_filename			=	set_program_switch(DEFAULT_KERNEL_NAME,argv);  						break; 	}
-			case 'c':{ 	option_values.cmdline_filename			=	set_program_switch(DEFAULT_CMDLINE_NAME,argv);  					break; 	}
-			case 'b':{	option_values.board_filename			=	set_program_switch(DEFAULT_BOARD_NAME,argv);  						break; 	}
-			case 'h':{	option_values.header_filename			=	set_program_switch(DEFAULT_HEADER_NAME,argv);  						break; 	}
+						option_values.kernel_filename			=	set_program_switch(DEFAULT_KERNEL_NAME,argv,long_option_index,argc);				break; 	}
+			case 'c':{ 	option_values.cmdline_filename			=	set_program_switch(DEFAULT_CMDLINE_NAME,argv,long_option_index,argc);			break; 	}
+			case 'b':{	option_values.board_filename			=	set_program_switch(DEFAULT_BOARD_NAME,argv,long_option_index,argc);				break; 	}
+			case 'h':{	option_values.header_filename			=	set_program_switch(DEFAULT_HEADER_NAME,argv,long_option_index,argc);				break; 	}
 			case 's':{
 				 if(ACTION_UNPACK){
-					 option_values.second_filename					=	set_program_switch(DEFAULT_SECOND_NAME,argv);	 break;
+					 option_values.second_filename					=	set_program_switch(DEFAULT_SECOND_NAME,argv,long_option_index,argc);	 break;
 				}else{
-					log_write("optarg:%s\n",optarg);
+			
 					option_values.source_filename = optarg;
 					}
 				break;
 				}
 			case 'p':{ 
 				if(ACTION_UNPACK){	
-					option_values.page_size_filename		=	set_program_switch(DEFAULT_PAGE_SIZE_NAME,argv); 					break; 	
+					option_values.page_size_filename		=	set_program_switch(DEFAULT_PAGE_SIZE_NAME,argv,long_option_index,argc); 					break; 	
 				}else if(ACTION_PACK){
 					char *endptr ; char *str ;
 					str = argv[optind];
@@ -257,28 +324,26 @@ int main(int argc, char **argv){
 				option_values.header_filename=DEFAULT_HEADER_NAME;
 				 break;	}
 			case 'i':{
-				//log_write("bootimage_filename:");
-				if(ACTION_PACK){
-					if(!(optarg) || optarg[0]=='-'){
-						//log_write("main:pack no image set %s\n",argv[optind]);		
-						exit(0);
-					}else{
-						if(!option_values.image_filename){
-							option_values.image_filename=optarg;
-							//fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s bootimage_filename:%s ",opterr,optind,option_index ,optopt,optarg,option_values.image_filename);
-						}
+				if(!(optarg) || optarg[0]=='-'){
+					fprintf(stderr,"opterr:%d optind:%d long_option_index:%d optopt:%d optarg:%s\n",opterr,optind,long_option_index ,optopt,optarg);
+					if(long_option_index==-1)
+						log_write("option requires an argument -- '%c'\n",option_return);			
+					else
+						log_write("option '%s' requires an argument\n",program_option.options[long_option_index].name);	
 						
-					}
-							
+					exit(0);
 				}else{
-					// log_write("o=%s\n",optarg);
-					if(check_file_exists(optarg,CHECK_FAIL_EXIT))
+					if(ACTION_PACK){
+						option_values.image_filename=optarg;
+					}else{
+						if(check_file_exists(optarg,CHECK_FAIL_EXIT))
 							option_values.image_filename=optarg;
+					}
 				}
-				log_write("\n");
-				//log_write("%s %p\n",option_values.image_filename,option_values.image_filename); 
-			 break;
-		}
+				//log_write("\n");
+			//log_write("%s %p\n",option_values.image_filename,option_values.image_filename); 
+				break;
+			}
 		case 'o':{
 			 option_values.output_directory_name=optarg;
 		
@@ -286,6 +351,7 @@ int main(int argc, char **argv){
 		}
 		default:	break;
 	}
+	fprintf(stderr,"argc:%d opterr:%d optind:%d long_option_index:%d optopt:%d optarg:%s  argv:%s\n",argc,opterr,optind,long_option_index ,optopt,optarg,argv[optind]);
 	option_return =  GET_OPT_LONG_FUNCTION
 		//fprintf(stderr,"opterr:%d optind:%d option_index:%d optopt:%d optarg:%s\n",opterr,optind,option_index ,optopt,optarg);
 	} // end while	
@@ -293,7 +359,7 @@ int main(int argc, char **argv){
 	
 	// We've Processed all the options now lets see if we have everything we need
 	if(!optopt){
-		check_required_parameters();
+		check_required_parameters(program_option.action);
 
 		int ret =(*program_option.function_name_p)();
 		fprintf(stderr,"Done\n"	);
