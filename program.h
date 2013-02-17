@@ -18,7 +18,6 @@
 #define DEFAULT_BOARD_NAME "board"
 #endif
 #include <limits.h>	
-#include "getopt.h"
 #include <bootimg.h>
 #include "file.h"
 
@@ -95,6 +94,7 @@ typedef struct {
 	char *source_filename;
 	char *log_filename;
 	int page_size;
+	int base_address;
 	int log_stdout;
 	program_actions_emum action;
 } optionvalues_t ;
@@ -102,8 +102,9 @@ optionvalues_t option_values;
 
 // Specified the switches that are allow for each action type
 // Most Switches have the same meaning between action types
-typedef enum  _option_type_enum {  NO_ARG=1, REQ_INT_ARG, REQ_STR_ARG, OPT_INT_ARG, OPT_STR_ARG, DEF_INT_ARG, DEF_STR_ARG
+typedef enum  _option_type_enum { NULL_ARG, NO_ARG=1, REQ_INT_ARG, REQ_STR_ARG, OPT_INT_ARG, OPT_STR_ARG, DEF_INT_ARG, DEF_STR_ARG
 									 } option_type_enum ;
+
 typedef struct _opt {
 		option_type_enum option_type;
 		const char* long_name;
@@ -111,10 +112,11 @@ typedef struct _opt {
 		const char* default_string;
 		int default_value;
 		void * dest_ptr;
-				
-} program_option_t ;
+} command_line_switch_t ;
 
-static program_option_t unpack_options[]={ 
+typedef const command_line_switch_t* command_line_switches_p ;
+
+static command_line_switch_t unpack_switches[]={ 
 	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename},
 	 { DEF_STR_ARG, "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename},
 	 { DEF_STR_ARG, "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename},
@@ -126,94 +128,60 @@ static program_option_t unpack_options[]={
 	 { DEF_STR_ARG, "second","s",DEFAULT_SECOND_NAME,0,&option_values.second_filename},
 	 { DEF_STR_ARG, "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename},
 	 { DEF_STR_ARG, "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name},
-	 {0, 0, 0, 0, 0,0}
+	 { NULL_ARG, 0, 0, 0, 0,0}
 };
-
-
-static struct option pack_global_options[] = {
-	{"help", optional_argument,0,(int)NULL,(const char*)NULL},   
-	{"log",  optional_argument,0,(int)NULL,(char*)NULL},  
-	 {0, 0, 0, 0, 0}
+static command_line_switch_t pack_switches[]={ 
+	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename},
+	 { DEF_STR_ARG, "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename},
+	 { DEF_STR_ARG, "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename},
+	 { DEF_STR_ARG, "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name},
+	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename},
+	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename},
+	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_filename},
+	 { DEF_STR_ARG, "header","h",DEFAULT_HEADER_NAME,0,&option_values.header_filename},
+	 { DEF_STR_ARG, "second","s",DEFAULT_SECOND_NAME,0,&option_values.second_filename},
+	 { DEF_STR_ARG, "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename},
+	 { DEF_STR_ARG, "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name},
+	 { DEF_INT_ARG, "base-address","b",NULL,DEFAULT_BASE_ADDRESS,&option_values.base_address },
+	 { NULL_ARG, 0, 0, 0, 0,0}
 };
-
-static struct option unpack_long_options[] = {
-			
-               {"boot-image",  required_argument,0, 'i',(char*)NULL},
-               {"all",			no_argument, 0,'a',(char*)NULL},
-               {"ramdisk",  no_argument,0, 'r',(char*)NULL},
-               {"ramdisk-cpio",  required_argument,0, 'C',DEFAULT_RAMDISK_CPIO_NAME},
-               {"ramdisk-archive",  required_argument,0, 'x',DEFAULT_RAMDISK_CPIO_GZIP_NAME},
-               {"ramdisk-directory",  required_argument,0, 'd',DEFAULT_RAMDISK_DIRECTORY_NAME},
-               {"kernel",  required_argument, 0, 'k',DEFAULT_KERNEL_NAME},
-               {"output-dir",  required_argument, 0, 'o',(char*)NULL},
-               {"cmdline",    required_argument, 0, 'c',DEFAULT_CMDLINE_NAME},
-               {"name",    required_argument, 0, 'n',DEFAULT_BOARD_NAME},
-               {"second",    required_argument, 0, 's',DEFAULT_SECOND_NAME},
-               {"header",    required_argument, 0, 'h',DEFAULT_HEADER_NAME},
-               {"pagesize",  required_argument, 0, 'p',DEFAULT_PAGESIZE_NAME},
-               {0, 0, 0, 0, 0}
-             };
-
-static struct option pack_long_options[] =
-	 {
-	   /* These options don't set a flag.
-		  We distinguish them by their indices. */
-	   {"boot-image",  required_argument,0, 'i',(char*)NULL} ,                        
-	  {"ramdisk",  no_argument,0, 'r',(char*)NULL},
-               {"ramdisk-cpio",  required_argument,0, 'C',DEFAULT_RAMDISK_CPIO_NAME},
-               {"ramdisk-archive",  required_argument,0, 'x',DEFAULT_RAMDISK_CPIO_GZIP_NAME},
-               {"ramdisk-directory",  required_argument,0, 'd',DEFAULT_RAMDISK_DIRECTORY_NAME},
-               {"kernel",  required_argument, 0, 'k',DEFAULT_KERNEL_NAME},
-             {"cmdline",    required_argument, 0, 'c',DEFAULT_CMDLINE_NAME},
-               {"name",    required_argument, 0, 'n',DEFAULT_BOARD_NAME},
-               {"second",    required_argument, 0, 's',DEFAULT_SECOND_NAME},
-               {"header",    required_argument, 0, 'h',DEFAULT_HEADER_NAME},
-        {"pagesize",  required_argument, 0, 'p',DEFAULT_PAGESIZE_NAME},
-		{"base-address", required_argument,0,'b',NULL },
-	   {0, 0, 0, 0, 0}
-	 };	
-	 
-
-             
-static struct option extract_long_options[] = {
-               {"boot-image",  required_argument,0, 'i',NULL},
-               {"target",  required_argument,0, 't',NULL},
-               {"source",  required_argument, 0, 's',NULL},
-               {0, 0, 0, 0, 0}
-             };
-static struct option update_long_options[] = {
-               {"boot-image",  required_argument,0, 'i',NULL},
-               {"target",  required_argument,0, 't',NULL},
-               {"source",  required_argument, 0, 's',NULL},
-               {"kernel",  required_argument,0, 'k',NULL},
-               {"cmdline",  required_argument,0, 'c',NULL},
-               {0, 0, 0, 0, 0}
-             };
- static struct option list_long_options[] = {
-			
-               {"boot-image",  required_argument,0, 'i',NULL},
-               {0, 0, 0, 0, 0}
-             };
-
+static command_line_switch_t list_switches[]={ 
+	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename},
+	  { NULL_ARG, 0, 0, 0, 0,0}
+};
+static command_line_switch_t extract_switches[]={ 
+	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename},
+	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename},
+	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename},
+	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename},
+	 { NULL_ARG, 0, 0, 0, 0,0}
+};
+static command_line_switch_t update_switches[]={ 
+	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename},
+	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename},
+	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename},
+	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename},
+	 { NULL_ARG, 0, 0, 0, 0,0}
+};
 
 
 
 typedef struct _program_options_t  {
 	const char*	stringopts;
-	const struct option* options;
+	command_line_switches_p command_line_switches;
 	program_actions_emum action ;
-	int (*function_name_p)();
+	int (*action_function_p)();
 } program_options_t; 
 		
 static program_options_t program_options[] ={
 		{ NULL,NULL,NOT_SET,NULL},
-		{OPTIONS_ACTION_UNPACK,unpack_long_options,UNPACK ,unpack_boot_image_file},
-		{OPTIONS_ACTION_PACK,pack_long_options,PACK ,pack_boot_image_file},		 
-			{OPTIONS_ACTION_LIST,list_long_options,LIST ,list_boot_image_info},
-					{OPTIONS_ACTION_EXTRACT,extract_long_options,EXTRACT,extract_boot_image_file },
+		{OPTIONS_ACTION_UNPACK,unpack_switches,UNPACK ,unpack_boot_image_file},
+		{OPTIONS_ACTION_PACK,pack_switches,PACK ,pack_boot_image_file},		 
+			{OPTIONS_ACTION_LIST,list_switches,LIST ,list_boot_image_info},
+					{OPTIONS_ACTION_EXTRACT,extract_switches,EXTRACT,extract_boot_image_file },
 					{OPTIONS_ACTION_ADD,NULL,ADD ,NULL},
 					{OPTIONS_ACTION_REMOVE,NULL,REMOVE ,NULL},
-					{OPTIONS_ACTION_UPDATE,update_long_options,UPDATE ,update_boot_image_file}
+					{OPTIONS_ACTION_UPDATE,update_switches,UPDATE ,update_boot_image_file}
 			};
 
 	

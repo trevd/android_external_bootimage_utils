@@ -1,6 +1,6 @@
 LOCAL_PATH:= $(call my-dir)
 
-src_files := main.c bootimg.c getopt_long.c	getopt.c file.c	ramdisk.c
+src_files := main.c bootimg.c file.c	ramdisk.c
 
 include $(CLEAR_VARS)
 

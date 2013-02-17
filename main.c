@@ -65,42 +65,21 @@ int strlcmp(const char *s1, const char *s2){
 	return strncmp(s1,s2,compare_length); 
 								
 }
-program_options_t get_program_option(int argc, char **argv){
+program_options_t get_program_options(char *program_action){
 	
-	program_options_t program_option=program_options[NOT_SET];
-	//log_write("main:program_option=%d\n",program_option.action);
-	if(!strlcmp(argv[1],"unpack"))
-			return program_options[UNPACK];
+	if(!strlcmp(program_action,"unpack")) return program_options[UNPACK];
 	
-	if(!strlcmp(argv[1],"remove"))
-			return program_options[REMOVE];
+	if(!strlcmp(program_action,"remove")) return program_options[REMOVE];
 			
-	if(!strlcmp(argv[1],"extract")){
-			return program_options[EXTRACT];
-	}
-	if(!strlcmp(argv[1],"list")){
-			return program_options[LIST];
-	}
-	if(!strlcmp(argv[1],"pack")){
-			return program_options[PACK];
-	}
-	if(!strlcmp(argv[1],"update")){
-			return program_options[UPDATE];
-	}
+	if(!strlcmp(program_action,"extract"))	return program_options[EXTRACT];
+	
+	if(!strlcmp(program_action,"list")) return program_options[LIST];
+	
+	if(!strlcmp(program_action,"pack")) return program_options[PACK];
+	
+	if(!strlcmp(program_action,"update")) return program_options[UPDATE];
+
 	return program_options[NOT_SET];
-}
-char * set_program_switch(char * default_value,char **argv,int long_option_index,int argc){
-	fprintf(stderr,"argc:%d opterr:%d optind:%d long_option_index:%d optopt:%d optarg:%s default_value:%s argv:%s\n",argc,opterr,optind,long_option_index ,optopt,optarg,default_value,argv[optind]);
-	//log_write("main:set_program_switch:default %s -", default_value);	
-	if(!(argv[optind]) || argv[optind][0]=='-'){
-		//log_write("using default argv[optind]=%s\n",  argv[optind]);	
-		return default_value;
-	}else if(argv[optind]){
-		// log_write("using argv[optind]=%s\n",  argv[optind]);	
-		return argv[optind];
-	}
-	log_write("using SHIT!!! argv[optind]=%s\n",  argv[optind]);	
-	return (char*)NULL;
 }
 int check_for_lazy_image(char * test_string){
 	
@@ -116,28 +95,29 @@ int check_for_lazy_image(char * test_string){
 	//log_write("check_for_lazy_image:%s\n",test_string);	
 	
 }
-program_option_t get_option(char*** argv, program_option_t *options){
+command_line_switch_t get_command_line_switch_arguments(char*** argv, command_line_switches_p command_lines_switches ){
 
 	// Are we dealing with a short or long command
 	char *current_arg = (*argv[0]); const char * compare_string;
 	int check_long = ((current_arg[0]=='-') && (current_arg[1]=='-')) ? 2 : 1 ; 
-	while(options->option_type){
-		compare_string = check_long > 1 ? options->long_name :options->short_char ;
+	while( command_lines_switches->option_type ){
+		compare_string = check_long > 1 ? command_lines_switches->long_name :command_lines_switches->short_char ;
 		if (!strlcmp(current_arg+check_long,compare_string)) break;
-		options++;		
+		command_lines_switches++;		
 	}
-	// Option not found return a point to the empty End of Array struct
-	if(!options->option_type) { (*argv)++; return (program_option_t) (*options); }
+	// Option not found return a pointer to the empty End of Array struct
+	// and move the argument along
+	if(!command_lines_switches->option_type) { fprintf(stderr,"unknown command line switch switch '%s'  \n",current_arg+check_long); exit(0); } //(*argv)++; return (*command_lines_switches); }
 	
-	switch(options->option_type){
+	switch(command_lines_switches->option_type){
 		case REQ_STR_ARG:{ 
 			    // required argument, move the argument pointer to be the next arg along
 				(*argv)++;
-				if((*argv[0][0])=='-'){ // invalid argument, bin it.
-				fprintf(stderr,"Invalid \n"); exit(0); }
+				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, bin it.
+				fprintf(stderr,"invalid argument for switch '%s'  \n",compare_string); exit(0); }
 				// argument value is ok. assign the deference the dest_ptr so we can assign 
 				// a value to the option_value member directly
-				*(char **)options->dest_ptr=(*argv[0]);
+				*(char **)command_lines_switches->dest_ptr=(*argv[0]);
 				// move to the next argument
 				(*argv)++;
 				break ; }
@@ -146,10 +126,10 @@ program_option_t get_option(char*** argv, program_option_t *options){
 				// move the argument pointer to be the next arg along
 				(*argv)++;
 				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, assign the default
-					const char* cha = *(const char **)options->dest_ptr =options->default_string;
+					const char* cha = *(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
 
 				}else{ // assign the argument value as normal
-					*(char **)options->dest_ptr=(*argv[0]);
+					*(char **)command_lines_switches->dest_ptr=(*argv[0]);
 					// move to the next argument
 					(*argv)++;
 
@@ -159,22 +139,24 @@ program_option_t get_option(char*** argv, program_option_t *options){
 		default: break;		 
 	}
 			
-	return (program_option_t) (*options);
+	return (*command_lines_switches);
 }
 
-int process_options(int argc, char **argv,program_option_t *options){
+int parse_command_line_switches(char **argv,command_line_switches_p command_line_switches){
 	
 
 	while(argv[0]){
-		fprintf(stderr,"argc:%d argv:%s\n",argc,argv[0]);
-		program_option_t popt=get_option( &argv, options);
-		if(!popt.option_type) { continue;}
+		command_line_switch_t command_line_switch=get_command_line_switch_arguments( &argv, command_line_switches);
+		
+		if(!command_line_switch.option_type) { continue;}
 		
 	}	
 	fprintf(stderr,"done:\n");
-	fprintf(stderr,"image:%s kernel:%s dir:%s arc:%s ps:%s cl:%s cpio:%s out:%s sec:%s b:%s h:%s\n",option_values.image_filename,option_values.kernel_filename,option_values.ramdisk_directory_name,
-	option_values.ramdisk_archive_filename,option_values.page_size_filename,option_values.cmdline_filename,option_values.ramdisk_cpio_filename,option_values.output_directory_name,
-	option_values.second_filename,option_values.board_filename,option_values.header_filename); 
+	fprintf(stderr,"image:%s kernel:%s dir:%s arc:%s ps:%s cl:%s cpio:%s out:%s sec:%s b:%s h:%s\n",
+		option_values.image_filename, option_values.kernel_filename, option_values.ramdisk_directory_name,
+		option_values.ramdisk_archive_filename,option_values.page_size_filename,option_values.cmdline_filename,
+		option_values.ramdisk_cpio_filename,option_values.output_directory_name,option_values.second_filename,
+		option_values.board_filename,option_values.header_filename); 
 	
 	return 0;
 	
@@ -239,23 +221,25 @@ int check_required_parameters(const program_actions_emum action){
 }
 int main(int argc, char **argv){ 
 	
-	argv++ ; argc--;
-	process_options(argc,argv,unpack_options);
+	
+	
 	if(argc==1){
 		print_main_usage();}	
 	
 	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	check_for_help_call(argc, argv);
-	
-	
-
-	
+		
 	option_values.log_stdout=1;
 	int long_option_index =-1, option_return =-2, argument_count = argc,  settings =0; 
-	program_options_t program_option=get_program_option(argc, argv);
-	option_values.action=program_option.action;
+	program_options_t program_options=get_program_options(argv[1]);
+	option_values.action=program_options.action;
+	parse_command_line_switches(argv+2,program_options.command_line_switches);
+	check_required_parameters(program_options.action);
+	int ret =(*program_options.action_function_p)();
+	fprintf(stderr,"Done\n"	);
 	
-	if(program_option.action==NOT_SET)
+	
+	/*if(program_options.action==NOT_SET)
 	{
 		//fprintf(stderr,"No Action Set! Lets see if I can help you out\n");
 		//fprintf(stderr,"SELECT FUZZY FUZZY FUZZY ANALYSIS MODE\ninteractive or JFMIW? [JFMIW]\n");
@@ -364,7 +348,7 @@ int main(int argc, char **argv){
 		int ret =(*program_option.function_name_p)();
 		fprintf(stderr,"Done\n"	);
 		
-	}
+	}*/
 	exit(0);
 		
 	return 0;
