@@ -7,12 +7,18 @@
 #include <stdlib.h>
 #include "program.h"
 #include "file.h"
+const byte magic_gzip[4]={ 0x1F,0x8B,0x08,0x08 }; //2067208
+const byte magic_gzip_no_name[4] =  { 0x1F,0x8B,0x08,0x00 };//529205256
+const byte magic_cpio_ascii[6] = { 0x30,0x37,0x30,0x37,0x30,0x31 } ;////0x303137303730
 
-#define MAGIC_GZIP 0x08088B1F
-#define MAGIC_GZIP_NONAME 0x00088B1F
-#define MAGIC_CPIO_ASCII "070701"
-#define MAGIC_CPIO_SIZE 7
-
+static file_info_enum dirty_magic_compare(const char *filepath, const byte_p magic,size_t	 length){
+	byte_p buff =load_file_to_size(filepath,length);
+	if(buff){
+		int res =  !memcmp(magic,buff,length	);
+		free(buff);
+		return res;	
+	}else return FILE_NO;
+}
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
 int symlink(char *symlink_src,char *filename){ 
 	FILE *output_file_fp = fopen(filename, "wb");
@@ -117,34 +123,36 @@ int check_directory_exists(char *fname, int exitonfailure){
 	return S_ISDIR(sb.st_mode);
 }
 
-int is_cpio_file(const char *filepath)
+file_info_enum is_cpio_file(const char *filepath)
 {
-	FILE* fp = fopen(filepath, "rb");
-	char magic[MAGIC_CPIO_SIZE];
-	fread(&magic,MAGIC_CPIO_SIZE,1,fp);
-	magic[MAGIC_CPIO_SIZE-1] = '\0';
-	int result = strlcmp(MAGIC_CPIO_ASCII,magic);
-	//fprintf(stderr,"magic:%s magic:%s %d\n",MAGIC_CPIO_ASCII,magic,result);
-	fclose(fp);
-	return !result;
-		
+	return dirty_magic_compare(filepath,(const byte_p)magic_cpio_ascii,6);		
 }
-int is_gzip_file(const char *filepath)
-{
-	FILE* fp = fopen(filepath, "rb");
-	int magic=0;
-	if (fp != NULL){
-		fread(&magic,sizeof(MAGIC_GZIP),1,fp);
-		//fprintf(stderr,"magic:%d magic:%d \n",MAGIC_GZIP,magic);
-		fclose(fp);
+file_info_enum is_android_boot_image_file(const char *filepath){
+	unsigned int filesize=0;	file_info_enum res = FILE_NO;
+	byte_p data = load_file(filepath,&filesize);
+	if(data){
+		if(find_in_memory(data,filesize,BOOT_MAGIC,BOOT_MAGIC_SIZE))
+			res=FILE_YES;
+		free(data);
 	}
-	if(magic==MAGIC_GZIP) return 1;
-	if(magic==MAGIC_GZIP_NONAME) return 1;
-	return 0;
+	return res;
+	
+}
+file_info_enum is_gzip_file(const char *filepath)
+{
+	file_info_enum res = dirty_magic_compare(filepath,(const byte_p)magic_gzip,4);
+	if(!res) res = dirty_magic_compare(filepath,(const byte_p)magic_gzip_no_name,4);
+	return res;			
 }
 // Crude ascii checker
-int is_ascii_text(byte_p stream, unsigned long size){
-	return !memchr(stream,(int)NULL,size);
+file_info_enum is_windows_text(const byte_p stream, const size_t size){
+	if(is_ascii_text(stream,size))
+		if(strstr((const char*)stream,WINDOWS_EOL))
+			return FILE_YES;
+	return FILE_NO;
+}
+file_info_enum is_ascii_text(const byte_p stream, const size_t size){
+	return (file_info_enum)!memchr(stream,(int)NULL,size);
 }
 
 int write_single_line_to_file(const char *filepath, const char *output_buffer,unsigned size)
@@ -168,7 +176,18 @@ int read_file_to_size(const char *filepath, unsigned size , unsigned char *outpu
 		return bread;
 	}
 	return 0;
-	
+}
+byte_p load_file_to_size(const char *filepath, unsigned size )
+{
+	byte_p output_buffer=malloc(size);
+	FILE* fp = fopen(filepath, "rb");
+	if (fp != NULL)
+    {
+		int bread = fread(output_buffer,size,1,fp);
+		fclose(fp);
+		return output_buffer;
+	}
+	return 0;
 }
 
 byte_p load_file_from_offset(const char *filepath,int offset,size_t *file_size)
@@ -281,7 +300,7 @@ oops:
 byte_p load_file(const char *filname, size_t *file_size)
 {
     unsigned char *data;
-    int sz; int fd;
+    size_t sz; int fd;
 
     data = 0;
     FILE *fp = fopen(filname, "rb");
@@ -289,14 +308,15 @@ byte_p load_file(const char *filname, size_t *file_size)
     if(fd < 0) return 0;
 
     sz = lseek(fd, 0, SEEK_END);
-    if(sz < 0) goto oops;
+    if((int)sz < 0) goto oops;
 
     if(lseek(fd, 0, SEEK_SET) != 0) goto oops;
 
+	if(sz > MEMORY_BUFFER_SIZE*2) sz=MEMORY_BUFFER_SIZE*2;
     data = (unsigned char*) malloc(sz);
     if(data == 0) goto oops;
 
-    if(read(fd, data, sz) != sz) goto oops; 
+    if(read(fd, data, sz) != (int)sz) goto oops; 
     close(fd);
 
     if(file_size) *file_size = sz;
@@ -307,7 +327,7 @@ oops:
     if(data != 0) free(data);
     return 0;
 }
-byte_p find_in_file(const byte_p haystack, size_t haystack_len,
+byte_p find_in_memory(const byte_p haystack, size_t haystack_len,
 			  const void *needle,  size_t needle_len)
 {
   const char *begin;
@@ -404,4 +424,12 @@ void mkdir_and_parents(const char *path)
         if(access(opath, F_OK))         /* if path is not terminated with / */
                 mkdir(opath, S_IRWXU);
 }
-
+file_info_enum confirm_file_replace(const char *source_filename,const char *target_filename){
+	fprintf(stderr,"file %s already exists\nReplace with %s? (Yes/No/All) [Y]",source_filename,target_filename);
+	char answer = getchar();
+	
+	if(answer=='a' || answer=='A' ) return FILE_ALL;
+	if(answer=='Y' || answer=='y' || answer==10) return FILE_YES; 
+	if(answer=='N' || answer=='n') return FILE_NO;
+	return FILE_NO;
+}

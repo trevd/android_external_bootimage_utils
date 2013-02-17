@@ -95,21 +95,23 @@ int check_for_lazy_image(char * test_string){
 	//log_write("check_for_lazy_image:%s\n",test_string);	
 	
 }
-command_line_switch_t get_command_line_switch_arguments(char*** argv, command_line_switches_p command_lines_switches ){
+int parse_command_line_switch_arguments(char*** argv, command_line_switches_p command_lines_switches ){
 
 	// Are we dealing with a short or long command
 	char *current_arg = (*argv[0]); const char * compare_string;
 	int check_long = ((current_arg[0]=='-') && (current_arg[1]=='-')) ? 2 : 1 ; 
-	while( command_lines_switches->option_type ){
+	while( command_lines_switches->argument_type ){
 		compare_string = check_long > 1 ? command_lines_switches->long_name :command_lines_switches->short_char ;
 		if (!strlcmp(current_arg+check_long,compare_string)) break;
 		command_lines_switches++;		
 	}
 	// Option not found return a pointer to the empty End of Array struct
 	// and move the argument along
-	if(!command_lines_switches->option_type) { fprintf(stderr,"unknown command line switch switch '%s'  \n",current_arg+check_long); exit(0); } //(*argv)++; return (*command_lines_switches); }
-	
-	switch(command_lines_switches->option_type){
+	if(!command_lines_switches->argument_type) { 
+		fprintf(stderr,"unknown command line switch '%s'\n",current_arg+check_long); 
+		exit(0); 
+	} 
+	switch(command_lines_switches->argument_type){
 		case REQ_STR_ARG:{ 
 			    // required argument, move the argument pointer to be the next arg along
 				(*argv)++;
@@ -117,6 +119,7 @@ command_line_switch_t get_command_line_switch_arguments(char*** argv, command_li
 				fprintf(stderr,"invalid argument for switch '%s'  \n",compare_string); exit(0); }
 				// argument value is ok. assign the deference the dest_ptr so we can assign 
 				// a value to the option_value member directly
+
 				*(char **)command_lines_switches->dest_ptr=(*argv[0]);
 				// move to the next argument
 				(*argv)++;
@@ -126,54 +129,45 @@ command_line_switch_t get_command_line_switch_arguments(char*** argv, command_li
 				// move the argument pointer to be the next arg along
 				(*argv)++;
 				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, assign the default
-					const char* cha = *(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
-
+					*(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
 				}else{ // assign the argument value as normal
 					*(char **)command_lines_switches->dest_ptr=(*argv[0]);
 					// move to the next argument
 					(*argv)++;
-
 				}
 				break;
 			}
 		default: break;		 
 	}
 			
-	return (*command_lines_switches);
-}
-
-int parse_command_line_switches(char **argv,command_line_switches_p command_line_switches){
-	
-
-	while(argv[0]){
-		command_line_switch_t command_line_switch=get_command_line_switch_arguments( &argv, command_line_switches);
-		
-		if(!command_line_switch.option_type) { continue;}
-		
-	}	
-	fprintf(stderr,"done:\n");
-	fprintf(stderr,"image:%s kernel:%s dir:%s arc:%s ps:%s cl:%s cpio:%s out:%s sec:%s b:%s h:%s\n",
-		option_values.image_filename, option_values.kernel_filename, option_values.ramdisk_directory_name,
-		option_values.ramdisk_archive_filename,option_values.page_size_filename,option_values.cmdline_filename,
-		option_values.ramdisk_cpio_filename,option_values.output_directory_name,option_values.second_filename,
-		option_values.board_filename,option_values.header_filename); 
-	
 	return 0;
-	
 }
+
+
 int check_required_parameters(const program_actions_emum action){
+	
+	if(!option_values.image_filename){
+			fprintf(stderr,"image file name not set\n"); exit(0);
+	}
+	if(action!=PACK){
+		check_file_exists(option_values.image_filename,CHECK_FAIL_EXIT);
+	}
+	
+	
 	switch(action){
 			case UNPACK:{
-					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
-						//log_write("main:unpack no image set\n");		
-						exit(0);
-					}
-					if(!option_values.output_directory_name){
-						//log_write("main:unpack no output set\n");	
+					// set output directory to working if not set
+					if(option_values.output_directory_name){
+						if(check_directory_exists(option_values.output_directory_name,CHECK_FAIL_OK)){
+							fprintf(stderr,"the directory %s already exists - overwrite existing files\n",option_values.output_directory_name);
+						}
+					else
 						option_values.output_directory_name = malloc(PATH_MAX); 
 						getcwd(option_values.output_directory_name,PATH_MAX);
-						
 					}
+					
+					
+					
 					break;
 				}
 			case LIST:{ 
@@ -183,13 +177,11 @@ int check_required_parameters(const program_actions_emum action){
 				if(!option_values.page_size) 
 					option_values.page_size=DEFAULT_PAGE_SIZE;
 					
-				if(!option_values.image_filename){ // Image file is not set look for a valid filename 
-					log_write("main:pack no image set\n");		
-					exit(0);
-				}
 				if(!option_values.kernel_filename){ // Image file is not set look for a valid filename 
-						log_write("main:pack no kernel set %s\n", option_values.kernel_filename);		
+						fprintf(stderr,"missing kernel filename");
 						exit(0);
+				}else {  
+					check_file_exists(option_values.kernel_filename,CHECK_FAIL_EXIT);
 				}
 				break;
 			}
@@ -200,18 +192,16 @@ int check_required_parameters(const program_actions_emum action){
 				break ; 
 			}
 			case EXTRACT:{
-					if(!option_values.image_filename){ // Image file is not set look for a valid filename 
-						log_write("main:extract no image set\n");		
-						exit(0);
-					}
+				
 					if(!option_values.source_filename){
 						log_write("main:extract no source file set\n");		
 						exit(0);
 					}
 					if(!option_values.target_filename){
-						log_write("main:extract no target file set - using source\n");		
+						//log_write("main:extract no target file set - using source\n");		
 						option_values.target_filename=option_values.source_filename;
-					}	
+					}
+						
 				
 			}
 			default:
@@ -219,8 +209,32 @@ int check_required_parameters(const program_actions_emum action){
 		}
 		return 0;
 }
+int parse_command_line_switches(char **argv,program_options_t program_options){
+	
+	
+	while(argv[0]){
+		parse_command_line_switch_arguments( &argv, program_options.command_line_switches);				
+	}	
+	check_required_parameters(program_options.action);
+	//fprintf(stderr,"done:\n");
+	/*fprintf(stderr,"image:%s kernel:%s dir:%s arc:%s ps:%s cl:%s cpio:%s out:%s sec:%s b:%s h:%s\n",
+		option_values.image_filename, option_values.kernel_filename, option_values.ramdisk_directory_name,
+		option_values.ramdisk_archive_filename,option_values.page_size_filename,option_values.cmdline_filename,
+		option_values.ramdisk_cpio_filename,option_values.output_directory_name,option_values.second_filename,
+		option_values.board_filename,option_values.header_filename); 
+	*/
+	return 0;
+	
+}
 int main(int argc, char **argv){ 
 	
+	//if(is_cpio_file(argv[1]))		printf("Yes io\n");
+	//else printf("no io\n");	
+	//if(is_gzip_file(argv[1]))		printf("Yes\n");
+	//else printf("no\n");	
+	//if(is_android_boot_image_file(argv[1]))		printf("Yes\n");
+	//else printf("no\n");	
+		
 	
 	
 	if(argc==1){
@@ -233,8 +247,7 @@ int main(int argc, char **argv){
 	int long_option_index =-1, option_return =-2, argument_count = argc,  settings =0; 
 	program_options_t program_options=get_program_options(argv[1]);
 	option_values.action=program_options.action;
-	parse_command_line_switches(argv+2,program_options.command_line_switches);
-	check_required_parameters(program_options.action);
+	parse_command_line_switches(argv+2,program_options);
 	int ret =(*program_options.action_function_p)();
 	fprintf(stderr,"Done\n"	);
 	

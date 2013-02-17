@@ -42,11 +42,6 @@
   }
 }  */ 
 
-long find_magic_offset(const byte_p data , const size_t file_size){
-	byte_p poffset= find_in_file(data,file_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
-	if(poffset==0) return -1;
-	return  0-( (unsigned long)&data[0]-(unsigned long)&poffset[0]);
-}
 static unsigned char padding[4096] = { 0, };
 int get_content_hash(boot_img_hdr* header,unsigned char *kernel_data,unsigned char *ramdisk_data,unsigned char *second_data)
 {
@@ -111,23 +106,22 @@ static boot_image_t parse_boot_image_info(byte_p data, size_t file_size)
 		free(data);
 		exit(0);
 	}
-	long magic_offset = find_magic_offset(data,file_size);
-	if(magic_offset==-1)
+	byte_p magic_position_p = find_in_memory(data,file_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
+	//
+	//long offset_data = magic_offset_p-data;
+	if(!magic_position_p)
 	{
 		//log_write("parse_boot_image_info:error_no_image_magic\n" );
 		free(data);
 		exit(0);
-	}
-	//log_write("parse_boot_image_info:image_magic_offset=[%ld][0x%lx]\n", magic_offset,magic_offset);
-	//log_write("parse_boot_image_info:image_header_address=[%ld][0x%lx]\n", magic_offset,magic_offset);
-	byte_p offset_data=data+magic_offset;
+	}	
 	//boot_img_hdr * boot_image_header_p=(boot_img_hdr *)offset_data;
-	boot_image_t *boot_image_p=(boot_image_t *)offset_data;
+	boot_image_t *boot_image_p=(boot_image_t *)magic_position_p;
 	boot_image_t boot_image=(*boot_image_p);
 	//boot_image_header_p = &boot_image.header;
 	
 	//log_write("parse_boot_image_info:boot_image=[%08x] : boot_image.header [%08x]\n", boot_image_p,boot_image_header_p);
-    boot_image.magic_offset=magic_offset;
+    boot_image.magic_offset=magic_position_p-data;
 	boot_image.boot_image_filesize = file_size;
 	boot_image.kernel_page_count = (boot_image.header.kernel_size + boot_image.header.page_size - 1) / boot_image.header.page_size;
 	boot_image.ramdisk_page_count = (boot_image.header.ramdisk_size + boot_image.header.page_size - 1) / boot_image.header.page_size;
@@ -136,10 +130,10 @@ static boot_image_t parse_boot_image_info(byte_p data, size_t file_size)
 	boot_image.kernel_offset = boot_image.header.page_size;
 	boot_image.ramdisk_offset = boot_image.kernel_offset + (boot_image.kernel_page_count * boot_image.header.page_size);	
 	boot_image.second_offset = boot_image.ramdisk_offset + (boot_image.ramdisk_page_count *  boot_image.header.page_size);
-	boot_image.header_data_start=offset_data;
-	boot_image.kernel_data_start=offset_data+boot_image.kernel_offset;
-	boot_image.ramdisk_data_start=offset_data+boot_image.ramdisk_offset;
-	boot_image.second_data_start=offset_data+boot_image.second_offset;
+	boot_image.header_data_start=magic_position_p;
+	boot_image.kernel_data_start=magic_position_p+boot_image.kernel_offset;
+	boot_image.ramdisk_data_start=magic_position_p+boot_image.ramdisk_offset;
+	boot_image.second_data_start=magic_position_p+boot_image.second_offset;
 	
 	return boot_image;
 

@@ -10,7 +10,6 @@
 #define DEFAULT_HEADER_NAME "header.txt"
 #define DEFAULT_CMDLINE_NAME "cmdline.txt"
 #define DEFAULT_PAGESIZE_NAME "pagesize.txt"
-#define DEFAULT_HEADER_NAME_LENGTH 10
 #else
 #define DEFAULT_HEADER_NAME "header"
 #define DEFAULT_CMDLINE_NAME "cmdline"
@@ -28,7 +27,7 @@ int extract_boot_image_file();
 int update_boot_image_file();
 int log_write(const char *format, ...);
 int strlcmp(const char *s1, const char *s2);
-#define ARRAYSIZE(a) ((int)(sizeof(a) / sizeof(*(a))))
+#define ARRAYSIZE(a) (sizeof(a)/sizeof(*a))
 
 typedef struct _boot_image
 {
@@ -68,14 +67,7 @@ typedef enum  _program_actions_enum {  NOT_SET,	UNPACK , PACK , LIST , EXTRACT,A
 #define DEFAULT_KERNEL_NAME_LENGTH 6
 #define DEFAULT_SECOND_NAME "second"
 #define DEFAULT_OUTPUT_DIRECTORY_NAME "."
-#define DEFAULT_LOG
-#define OPTIONS_ACTION_UNPACK "i:r:l:C:x:f:p:k:c:n:s:d:h:o:a"
-#define OPTIONS_ACTION_PACK  "kp:dr:c:s:i:"
-#define OPTIONS_ACTION_LIST  "i:"
-#define OPTIONS_ACTION_EXTRACT "i:t:s:"
-#define OPTIONS_ACTION_REMOVE "i:t:"
-#define OPTIONS_ACTION_ADD "i:t:s:"
-#define OPTIONS_ACTION_UPDATE "i:t:s:k:"
+#define DEFAULT_LOG_NAME "log"
 
 typedef struct {
 	char *image_filename ;
@@ -102,11 +94,13 @@ optionvalues_t option_values;
 
 // Specified the switches that are allow for each action type
 // Most Switches have the same meaning between action types
-typedef enum  _option_type_enum { NULL_ARG, NO_ARG=1, REQ_INT_ARG, REQ_STR_ARG, OPT_INT_ARG, OPT_STR_ARG, DEF_INT_ARG, DEF_STR_ARG
-									 } option_type_enum ;
+typedef enum  _argument_type_enum { 
+		NULL_ARG, NO_ARG=1, REQ_INT_ARG, 
+		REQ_STR_ARG, OPT_INT_ARG, 
+		OPT_STR_ARG, DEF_INT_ARG, DEF_STR_ARG } argument_type_enum ;
 
 typedef struct _opt {
-		option_type_enum option_type;
+		argument_type_enum argument_type;
 		const char* long_name;
 		const char* short_char;
 		const char* default_string;
@@ -167,22 +161,21 @@ static command_line_switch_t update_switches[]={
 
 
 typedef struct _program_options_t  {
-	const char*	stringopts;
 	command_line_switches_p command_line_switches;
 	program_actions_emum action ;
 	int (*action_function_p)();
 } program_options_t; 
 		
 static program_options_t program_options[] ={
-		{ NULL,NULL,NOT_SET,NULL},
-		{OPTIONS_ACTION_UNPACK,unpack_switches,UNPACK ,unpack_boot_image_file},
-		{OPTIONS_ACTION_PACK,pack_switches,PACK ,pack_boot_image_file},		 
-			{OPTIONS_ACTION_LIST,list_switches,LIST ,list_boot_image_info},
-					{OPTIONS_ACTION_EXTRACT,extract_switches,EXTRACT,extract_boot_image_file },
-					{OPTIONS_ACTION_ADD,NULL,ADD ,NULL},
-					{OPTIONS_ACTION_REMOVE,NULL,REMOVE ,NULL},
-					{OPTIONS_ACTION_UPDATE,update_switches,UPDATE ,update_boot_image_file}
-			};
+		{NULL,NOT_SET,NULL},
+		{unpack_switches,UNPACK ,unpack_boot_image_file},
+		{pack_switches,PACK ,pack_boot_image_file},		 
+		{list_switches,LIST ,list_boot_image_info},
+		{extract_switches,EXTRACT,extract_boot_image_file },
+		{NULL,ADD ,NULL},
+		{NULL,REMOVE ,NULL},
+		{update_switches,UPDATE ,update_boot_image_file}
+};
 
 	
 #define ACTION_UNPACK (option_values.action==UNPACK )

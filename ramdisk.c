@@ -221,7 +221,11 @@ long find_file_in_ramdisk_entries(const byte_p data)
 	while(!cpio_entry.is_trailer){
 			//log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d %d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
 			if(!strlcmp(option_values.source_filename,cpio_entry.file_name)){
-				
+				int ok_to_write=0;
+				if(check_file_exists(option_values.target_filename,CHECK_FAIL_OK)){
+					ok_to_write =confirm_file_replace(option_values.source_filename,option_values.target_filename);
+				}
+				if(!ok_to_write) return -1;	
 				if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
 					byte output_buffer[cpio_entry.file_size*2];
 					cpio_entry.file_size += unix_to_dos((byte_p)&output_buffer,cpio_entry.file_start_p);

@@ -1,128 +1,63 @@
-bootimg-tools is an highly flexible utility for managing android boot images 
 
-Usage:  bootimg-tools ACTION <switches>
-The following actions are available
-  unpack	unpack a boot image into it's constituent parts
-  pack		pack seperate files into a boot image
-  list		print boot image header details or ramdisk fileinfo
-  extract   extract a single file from a boot image ramdisk
-  update    update the boot image ramdisk and header property
-  
-See bootimg-tools help <action> for detailed information
+Notes on boot images - There have the magic.
+
+http://www.simtec.co.uk/products/SWLINUX/files/booting_article.html
 
 
 
-Summary
--------
-unpack a boot image into it's constituent parts
-
-Usage:  bootimg-tools <u|unpack> [ command-switches ] [ global-switches ]
-		
-
-Options:
-	-i, --boot-image				the source boot image
-	-o, --output-dir 				the output base output directory
-	-k, --kernel					unpack the kernel image to the specified file
-	-s, --second					write the secondary bootloader to the specified file
-	-h, --header					write the boot image header to the specified file
-	-c, --cmdline					write the cmdline to the specified file
-	-b, --board						write the boot image name to the specified file
-	-p, --pagesize					write the pagesize info to the specified file
-	
-	-r, --ramdisk-name				the name of the extracted ramdisk files
-	-d, --ramdisk-directory			unpack the ramdisk to directory to the specified location
-	-x, --ramdisk-archive			unpack the ramdisk to archive level to the specified file
-	--ramdisk-cpio					unpack the ramdisk to cpio level to the specified file
-
-Notes:
-	The --input switch must contain a path to file. This file must exist and contain
-	a valid android boot image. specified by the magic ANDROID! . The boot image can
-	be offset with in the file.
-	
-	The --output switch is optional it must contain a directory. 
-	If the directory does not exist	then it will be created 
-	If the directory exists:
-		with --overwrite switch, The existing contents will be deleted 
-		without --overwrite switch, The program will exit
-	
-	If the user does not have permission to create the directory then 
-	the program will exit
-	
-	If the --output is not set then the current directory is used.
-	The --overwrite switch is ignored for safety
-	
-	The --kernel flag specifies the name of the extracted kernel binary blob
+Usage:  bootimg-tools [actions] <switches>
+Actions:
+unpack		unpack a boot image into it's constituent parts
+pack		pack seperate files into a boot image
+list		print boot image header details or ramdisk fileinfo
+extract   	extract a single file from a boot image ramdisk
+update    	update the boot image ramdisk and header property
+help		print the help information for the specificed actionn
+See bootimg-tools help <action> for detailed informationn"
 
 
-Examples: All command switches for the unpack command can be combined 
+Unpack: unpacks a boot image into it's constituent parts
+Usage:  	bootimg-tools unpack <boot image file> <switches>
+Switches:
+    -h, --header [filename]           Extract the boot image header and additional useful
+                                      information to [filename] leave filename empty to use
+                                      default filename ( default=header)
+    -c, --cmdline [filename]          Extract the boot image kernel cmdline to [filename]
+                                      leave filename empty to use default filename ( default=cmdline )
+    -p, --pagesize [filename]         Extract the value of the boot image pagesize to [filename]
+                                      leave filename empty to use default filename ( default=pagesize )
+    -k, --kernel [filename]           Extract kernel image to [filename] leave filename
+                                      empty to use default filename ( defualt=kernel )
+    -d, --ramdisk-directory [dir]     Fully Extract the ramdisk to [dir] leave dir empty to use
+                                      default directory ( default=root )
+    -x, --ramdisk-archive [filename]  Extract the compressed ramdisk to [filename] leave filename
+                                      empty to use default ( default=initramfs.cpio.<type> ), when
+                                      using the defaults the <type> will be determined by the file magic
+                                      common type are lzop (.lzo) and gzip (.gz)
+Notes: <boot image file>  is required and must be a valid android boot image
+       --kernel, --header, --cmdline and --pagesize are optional --header includes the cmdline and pagesize info
+       --ramdisk-archive and --ramdisk-directory are optional
+  All optional commands can be used in any combination required.
+                                      
 
-
-# Unpack full boot image
-unpack --input <bootimage name> --all [ --output-dir [output dir] ]
-
-The following switches can be combined to your requirements
-
-# Unpack ramdisk examples
-1. Unpack all ramdisk files 
-unpack --input <bootimage name> --ramdisk-name [ramdisk-name] [ --ramdisk-cpio ] [ --ramdisk-archive ] [ --ramdisk-directory ]    [ --output-dir <output-dir> ]
-
-# Unpack kernel examples
-unpack --input <bootimage name> --kernel [kernel-name] [ --output-dir <output-dir> ]
-
-# Unpack second examples
-unpack --input <bootimage name> --second [second-bootloader] [ --output-dir <output-dir> ]
-
-# Unpack cmdline examples
-unpack --input <bootimage name> --cmdline [cmdline-filename] [ --output-dir <output-dir> ]
-
-# Unpack board examples
-unpack --input <bootimage name> --board [board-filename] [ --output-dir <output-dir> ]
-
-# Unpack details examples
-unpack --input <bootimage name> --details [details-filename] [ --output-dir <output-dir> ]
-
-# Unpack Combination
-
-
-Global Switches
-----------------
-Globals switches can be used with all commands the control the programs behaviour and 
-output, There are as follows
-
-	--no-logfile			The will automatically create a session log by default.
-							You can use the --no-log switch if logging is not required
-					
-	--log-name				By default the logfile created has the following pattern
-							<BOOT IMAGE NAME><ACTION><DATE>.log, use this switch to override
-							the default
-	--log-stdout			prints the log messages to stdout, use in combination with --no-logfile
-							to print to stdout only
-	--interactive			Interactive mode allows you to run or skip each part of the process
-	
-							
-	--cpio					Specific an external cpio binary
-	--gzip					Specific an external gzip binary
-	--lzop					Specific an external lzop binary
-	--xz					Specific an external xz binary
-							
-Smart-Lazy Mode ( SLMode )
---------------------------
-
-Using Smart/Lazy Mode allows you to be lazy and the program to be smart. 
-SLMode is activated by simply passing a string to as the command line parameter, 
-Then the program will try to figure out what to do with it.
-
-If the command is a valid boot image filename then the program will attempt to unpack the 
-image to the current directory
-
-
-Output Generated:
-
-kernel - Unpack Kernel Binary Blob
-initramfs.cpio.gz - gzipped cpio'd initial ramdisk  
-initramfs.cpio - cpio'd initial ramdisk
-ramdisk - directory containing initial ramdisk contents
-cmdline - file containing the kernel command line string
-board - file containing the boot image name
-second - Binary Blob containing Secondary Bootloader if present
-details - file containing full details including offsets, pagesizes etc
+Unpack: creates a boot image from constituent parts
+Usage:  	bootimg-tools pack <bootimage file> <switches>
+Switches:
+    -h, --header [filename]           Use cmdline and pagesize information contained in [filename]
+                                      leave filename empty to use default filename ( default=header)
+    -c, --cmdline <filename | text >  Use cmdline information contained in [filename] leave filename
+                                      empty to use default filename ( default=cmdline ) or specify a
+                                      cmdline text directly using text enclosed in single quotes ''
+    -p, --pagesize <filename | text > Use pagesize information contained in [filename] leave filename
+                                      empty to use default filename ( default=pagesize ) or specify a
+                                      pagesize value directly using text
+    -k, --kernel [filename]           Use kernel image in [filename] leave filename
+                                      empty to use default filename ( defualt=kernel )
+    -d, --ramdisk-directory [dir]     Use [dir] as the ramdisk root leave dir empty to use
+                                      default directory ( default=root ) 
+    -x, --ramdisk-archive [filename]  Use [filename] as compressed ramdisk leave filename
+                                      empty to use default ( default=initramfs.cpio.gz )
+Notes: <boot image file>  is required and must be a valid android boot image
+       --kernel, --header, --cmdline and --pagesize are optional --header includes the cmdline and pagesize info
+       --ramdisk-archive and --ramdisk-directory are require an exclusive to one another
+  All optional commands can be used in any combination required.
