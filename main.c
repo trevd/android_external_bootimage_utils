@@ -86,14 +86,11 @@ int check_for_lazy_image(char * test_string){
 	if(test_string[0]=='-')
 		return 0;
 		
-	if(check_file_exists(test_string,CHECK_FAIL_OK)){
+	if(check_file_exists(test_string)){
 		option_values.image_filename=test_string;
-	//	log_write("check_for_lazy_image:%s\n",test_string);	
 		return 1;
 	}
-	return 0;
-	//log_write("check_for_lazy_image:%s\n",test_string);	
-	
+	return 0;	
 }
 int parse_command_line_switch_arguments(char*** argv, command_line_switches_p command_lines_switches ){
 
@@ -106,7 +103,6 @@ int parse_command_line_switch_arguments(char*** argv, command_line_switches_p co
 		command_lines_switches++;		
 	}
 	// Option not found return a pointer to the empty End of Array struct
-	// and move the argument along
 	if(!command_lines_switches->argument_type) { 
 		fprintf(stderr,"unknown command line switch '%s'\n",current_arg+check_long); 
 		exit(0); 
@@ -117,22 +113,18 @@ int parse_command_line_switch_arguments(char*** argv, command_line_switches_p co
 				(*argv)++;
 				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, bin it.
 				fprintf(stderr,"invalid argument for switch '%s'  \n",compare_string); exit(0); }
-				// argument value is ok. assign the deference the dest_ptr so we can assign 
-				// a value to the option_value member directly
+				
+				
 
-				*(char **)command_lines_switches->dest_ptr=(*argv[0]);
-				// move to the next argument
-				(*argv)++;
+				*(char **)command_lines_switches->dest_ptr=(*argv[0]);  /* argument value is ok. assign the deference the dest_ptr so we can assign */
+				(*argv)++; 												/* a value to the option_value member directly and move to the next argument */
 				break ; }
 			case DEF_STR_ARG:{ 
-				// argument comes with a default value
-				// move the argument pointer to be the next arg along
-				(*argv)++;
-				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, assign the default
-					*(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
+				(*argv)++; // argument comes with a default value move the argument pointer to be the next arg along
+				if((!(*argv[0])) || (*argv[0][0])=='-'){ // next args appears to be a switch, use the default value instead
+									*(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
 				}else{ // assign the argument value as normal
 					*(char **)command_lines_switches->dest_ptr=(*argv[0]);
-					// move to the next argument
 					(*argv)++;
 				}
 				break;
@@ -142,23 +134,68 @@ int parse_command_line_switch_arguments(char*** argv, command_line_switches_p co
 			
 	return 0;
 }
-
-
-int check_required_parameters(const program_actions_emum action){
+void parse_direct_board_name(){
 	
+	size_t board_name_length=0;
+	if(option_values.board_name) {
+		board_name_length = strlen(option_values.board_name);
+	}else{
+		if(check_file_exists(option_values.board_filename)) { // found the start of a direct command line look for the end
+			option_values.board_name=(char*)	load_file(option_values.board_filename,&board_name_length);
+		}else{
+			if(strlcmp(option_values.board_filename,DEFAULT_BOARD_NAME)){ // File doesn't exist and the text is not default
+				board_name_length= strlen(option_values.board_filename); 
+				option_values.board_name=option_values.board_filename;
+			}				
+		}
+	}
+	if((board_name_length) > BOOT_NAME_SIZE){
+		fprintf(stderr,"board name input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",board_name_length ,BOOT_NAME_SIZE);
+		exit(1);
+	}
+}
+void parse_direct_cmdline(){
+	
+	size_t cmdline_length=0;
+	if(option_values.cmdline_text) {
+		cmdline_length = strlen(option_values.cmdline_text);
+	}else{
+		if(check_file_exists(option_values.cmdline_filename)) { // found the start of a direct command line look for the end
+			option_values.cmdline_text=(char*)	load_file(option_values.cmdline_filename,&cmdline_length);
+		}else{
+			if(strlcmp(option_values.cmdline_filename,DEFAULT_CMDLINE_NAME)){ // File doesn't exist and the text is not default
+				cmdline_length= strlen(option_values.cmdline_filename); 
+				option_values.cmdline_text=option_values.cmdline_filename;
+			}				
+		}
+	}
+	if((cmdline_length) > BOOT_ARGS_SIZE){
+		fprintf(stderr,"cmdline input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",cmdline_length ,BOOT_ARGS_SIZE);
+		exit(1);
+	}
+}
+int check_required_parameters(const program_actions_emum action){
+	option_values.direct_mode=0;
 	if(!option_values.image_filename){
 			fprintf(stderr,"image file name not set\n"); exit(0);
 	}
+	
 	if(action!=PACK){
-		check_file_exists(option_values.image_filename,CHECK_FAIL_EXIT);
+		if(!check_file_exists(option_values.image_filename)){
+			fprintf(stderr,"boot image file %s does not exist\n",option_values.image_filename);
+			exit(0);
+		}
+		if((check_file_exists(option_values.image_filename)) && (access(option_values.image_filename,R_OK))){
+			fprintf(stderr,"cannot open file boot image %s\n",option_values.image_filename);
+			exit(1);}
 	}
 	
-	
+	errno=0;
 	switch(action){
 			case UNPACK:{
 					// set output directory to working if not set
 					if(option_values.output_directory_name){
-						if(check_directory_exists(option_values.output_directory_name,CHECK_FAIL_OK)){
+						if(check_directory_exists(option_values.output_directory_name)){
 							fprintf(stderr,"the directory %s already exists - overwrite existing files\n",option_values.output_directory_name);
 						}
 					else
@@ -178,27 +215,50 @@ int check_required_parameters(const program_actions_emum action){
 					option_values.page_size=DEFAULT_PAGE_SIZE;
 					
 				if(!option_values.kernel_filename){ // Image file is not set look for a valid filename 
-						fprintf(stderr,"missing kernel filename");
-						exit(0);
+						fprintf(stderr,"no kernel filename set, you must supply a valid linux kernel file to create boot images\n");
+						exit(1);
 				}else {  
-					check_file_exists(option_values.kernel_filename,CHECK_FAIL_EXIT);
+					if((!check_file_exists(option_values.ramdisk_archive_filename)) && (!check_file_exists(option_values.ramdisk_archive_filename)) 
+						&& (!check_file_exists(option_values.ramdisk_cpio_filename))){ 
+							fprintf(stderr,"no ramdisk file or directory set, you must supply a valid ramdisk source to create boot images\n");
+							exit(1);
+						}
 				}
 				break;
 			}
 			case UPDATE:{
+				if((option_values.board_filename) || (option_values.board_name)  ){
+					parse_direct_board_name();
+					if(!option_values.direct_mode)option_values.direct_mode=1;
+					
+				}
+				
 				if(!option_values.kernel_filename){
 					
+				}else{
+					option_values.direct_mode=-1;
+				}
+				
+				if((option_values.cmdline_filename  || (option_values.cmdline_text)  )){
+					parse_direct_cmdline();
+					if(!option_values.direct_mode)option_values.direct_mode=1;
+				}
+				if(option_values.source_filename){
+					if(!check_file_exists(option_values.source_filename)){
+						fprintf(stderr,"source file %s not found\n",option_values.source_filename);
+						exit(0);
+					}
 				}
 				break ; 
 			}
 			case EXTRACT:{
 				
 					if(!option_values.source_filename){
-						log_write("main:extract no source file set\n");		
+						fprintf(stderr,"nothing to extract, you must set one or more sourcefiles\n");
 						exit(0);
 					}
 					if(!option_values.target_filename){
-						//log_write("main:extract no target file set - using source\n");		
+						log_write("main:extract no target file set - using source\n");		
 						option_values.target_filename=option_values.source_filename;
 					}
 						
@@ -207,6 +267,8 @@ int check_required_parameters(const program_actions_emum action){
 			default:
 					break;
 		}
+		if(option_values.direct_mode<0)option_values.direct_mode=0;
+		
 		return 0;
 }
 int parse_command_line_switches(char **argv,program_options_t program_options){
@@ -228,10 +290,8 @@ int parse_command_line_switches(char **argv,program_options_t program_options){
 }
 int main(int argc, char **argv){ 
 	
-	//if(is_cpio_file(argv[1]))		printf("Yes io\n");
-	//else printf("no io\n");	
-	//if(is_gzip_file(argv[1]))		printf("Yes\n");
-	//else printf("no\n");	
+	if(is_linux_kernal_zImage_file("zImage"))		printf("Yes kernel\n"); else printf("no kernel\n");	
+	if(is_gzip_file("initramfs.cpio.gz"))		printf("Yes\n");else printf("no\n");	
 	//if(is_android_boot_image_file(argv[1]))		printf("Yes\n");
 	//else printf("no\n");	
 		
@@ -248,7 +308,11 @@ int main(int argc, char **argv){
 	program_options_t program_options=get_program_options(argv[1]);
 	option_values.action=program_options.action;
 	parse_command_line_switches(argv+2,program_options);
-	int ret =(*program_options.action_function_p)();
+	int ret=0;
+	if(option_values.direct_mode) {	
+		ret = update_boot_image_file_direct();
+	}else
+		ret =(*program_options.action_function_p)();
 	fprintf(stderr,"Done\n"	);
 	
 	

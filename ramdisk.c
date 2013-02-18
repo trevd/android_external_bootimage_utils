@@ -135,13 +135,13 @@ size_t uncompress_gzip_ramdisk_memory(const byte_p compressed_data ,const size_t
 	inflateEnd( &zInfo );   
     return( return_value ); 
 }
-unsigned long compress_gzip_ramdisk_memory(const byte_p data_in , unsigned size,byte_p compressed_data,unsigned compressed_max_size)
+size_t compress_gzip_ramdisk_memory(const byte_p uncompressed_data , size_t uncompressed_data_size,byte_p compressed_data,size_t compressed_max_size)
 {
    
     z_stream zInfo = {0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 
-    zInfo.total_in=  zInfo.avail_in=  size;
+    zInfo.total_in=  zInfo.avail_in=  uncompressed_data_size;
     zInfo.total_out= zInfo.avail_out= compressed_max_size;
-    zInfo.next_in= data_in;
+    zInfo.next_in= uncompressed_data;
     zInfo.next_out= compressed_data;
 
     unsigned long err, return_value= -1;
@@ -219,21 +219,24 @@ long find_file_in_ramdisk_entries(const byte_p data)
 {
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);
 	while(!cpio_entry.is_trailer){
-			//log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d %d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
+			log_write("cpio_entry:source %s file_name=%s next_header:%p is_trailer:%d length:%d %d\n",option_values.source_filename,cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
 			if(!strlcmp(option_values.source_filename,cpio_entry.file_name)){
-				int ok_to_write=0;
-				if(check_file_exists(option_values.target_filename,CHECK_FAIL_OK)){
+				int ok_to_write=1	;
+				if(check_file_exists(option_values.target_filename)){
 					ok_to_write =confirm_file_replace(option_values.source_filename,option_values.target_filename);
 				}
+					
+				
 				if(!ok_to_write) return -1;	
 				if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
 					byte output_buffer[cpio_entry.file_size*2];
 					cpio_entry.file_size += unix_to_dos((byte_p)&output_buffer,cpio_entry.file_start_p);
 					//log_write("converting line endings\n");
 					write_to_file_mode(output_buffer, cpio_entry.file_size,option_values.target_filename,cpio_entry.mode);
-				}else
-				
+				}else{
+						
 					write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,option_values.target_filename,cpio_entry.mode);
+				}
 				return 0;
 			}else
 				cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				

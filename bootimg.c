@@ -79,20 +79,20 @@ static int print_boot_image_info(boot_image_t boot_image,FILE* fp)
 					"second_offset:[%u][0x%08x]"EOL
 					"tags_addr:[%u][0x%08x]"EOL,
 		    boot_image.header.name,boot_image.header.cmdline,
-		    boot_image.magic_offset,boot_image.magic_offset,
+		    (unsigned)boot_image.magic_offset,(unsigned)boot_image.magic_offset,
 		    boot_image.header.page_size,boot_image.header.page_size,
 			boot_image.header.kernel_addr,boot_image.header.kernel_addr,
 			boot_image.header.kernel_size,boot_image.header.kernel_size,
 			boot_image.kernel_page_count,boot_image.kernel_page_count,
-			boot_image.kernel_offset,boot_image.kernel_offset,
+			(unsigned)boot_image.kernel_offset,(unsigned)boot_image.kernel_offset,
 			boot_image.header.ramdisk_addr,boot_image.header.ramdisk_addr,
 			boot_image.header.ramdisk_size,boot_image.header.ramdisk_size,		
 			boot_image.ramdisk_page_count,boot_image.ramdisk_page_count,
-			boot_image.ramdisk_offset,boot_image.ramdisk_offset,
+			(unsigned)boot_image.ramdisk_offset,(unsigned)boot_image.ramdisk_offset,
 			boot_image.header.second_addr,boot_image.header.second_addr,
 			boot_image.header.second_size,boot_image.header.second_size,
 			boot_image.second_page_count,boot_image.second_page_count,
-			boot_image.second_offset,boot_image.second_offset,
+			(unsigned)boot_image.second_offset,(unsigned)boot_image.second_offset,
 			boot_image.header.tags_addr,boot_image.header.tags_addr);
 	return 0;
 
@@ -102,7 +102,7 @@ static boot_image_t parse_boot_image_info(byte_p data, size_t file_size)
 {
 	
 	if(file_size < sizeof(boot_img_hdr)) {	
-		//log_write("parse_boot_image_info:error_image_too_small\n");
+		log_write("parse_boot_image_info:error_image_too_small\n");
 		free(data);
 		exit(0);
 	}
@@ -112,6 +112,7 @@ static boot_image_t parse_boot_image_info(byte_p data, size_t file_size)
 	if(!magic_position_p)
 	{
 		//log_write("parse_boot_image_info:error_no_image_magic\n" );
+		fprintf(stderr,"%s does not contain a valid android boot image magic\n"	,option_values.image_filename);	
 		free(data);
 		exit(0);
 	}	
@@ -123,6 +124,7 @@ static boot_image_t parse_boot_image_info(byte_p data, size_t file_size)
 	//log_write("parse_boot_image_info:boot_image=[%08x] : boot_image.header [%08x]\n", boot_image_p,boot_image_header_p);
     boot_image.magic_offset=magic_position_p-data;
 	boot_image.boot_image_filesize = file_size;
+
 	boot_image.kernel_page_count = (boot_image.header.kernel_size + boot_image.header.page_size - 1) / boot_image.header.page_size;
 	boot_image.ramdisk_page_count = (boot_image.header.ramdisk_size + boot_image.header.page_size - 1) / boot_image.header.page_size;
 	boot_image.second_page_count =  (boot_image.header.second_size + boot_image.header.page_size - 1) / boot_image.header.page_size;
@@ -317,14 +319,73 @@ int extract_boot_image_file(){
 	return 0;
 }
 
+int update_boot_image_file_direct(){
+	//int fd = open(option_values.image_filename,O_RDWR);
+	FILE* fp = fopen(option_values.image_filename,"r+b");
+	int fd = fileno(fp);
+	if(!fd){
+		fprintf(stderr,"error opening file %s errno:%d %s\n",option_values.image_filename,errno,strerror(errno));
+		exit(1);
+	}
+	long size=lseek(fd,0,SEEK_END);
+	if(size<sizeof(boot_img_hdr)){
+		fprintf(stderr,"unexpected filesize %ld\n",(long int)size);
+		close(fd);
+		exit(0);
+	}
+	fprintf(stderr,"size %ld\n",size);
+	off_t position =lseek(fd,0,SEEK_SET);
+	fprintf(stderr,"position %ld\n",(long int)position);
+	
+	struct boot_img_hdr* header=NULL;
+	// allocate a double page
+	byte_p magic=malloc(8096*sizeof(byte));
+	ssize_t bytes_read = read(fd,magic,8096);
+	fprintf(stderr,"bytes_read %ld\n",(long int)bytes_read);
+	byte_p offset=find_in_memory(magic,8096,BOOT_MAGIC,BOOT_MAGIC_SIZE);
+	if(!offset) {
+		// offset not found in the first double page read the full file to check 
+		magic=realloc(magic,size);
+		position =lseek(fd,0,SEEK_SET);
+		if((bytes_read = read(fd,magic,size)) != size){
+			fprintf(stderr,"bytes_read  %ld size %ld\n",(long int)bytes_read,size);
+			exit(0);
+		}
+		fprintf(stderr,"bytes_read  %ld size %ld\n",(long int)bytes_read,size);
+		if ((offset=find_in_memory(magic,size,BOOT_MAGIC,BOOT_MAGIC_SIZE)) == NULL){
+			fprintf(stderr,"cannot find android boot image magic\n");
+			close(fd);
+			exit(0);
+		}
+	}
+	ssize_t bytes_written=0;
+	header=(struct boot_img_hdr*)offset;
+	if(option_values.board_name){
+		position= lseek(fd,header->name-magic,SEEK_SET);
+		bytes_written= write(fd,option_values.board_name,BOOT_NAME_SIZE);	
+	}
+	if (option_values.cmdline_text){
+		position= lseek(fd,header->cmdline-magic,SEEK_SET);
+		bytes_written= write(fd,option_values.cmdline_text,BOOT_ARGS_SIZE);	
+	}
+	fsync(fd);
+	fprintf(stderr,"position %ld bytes_written %ld\n",(long int)position,(long int)bytes_written);
+	
+	close(fd);
+	free(magic);
+	exit(0);
+	
+	
+}
+
 int update_boot_image_file(){
-		
+			
 	
 	size_t file_size =0, new_cpio_file_size=0;
 	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
 	boot_image_t boot_image = parse_boot_image_info(raw_boot_image_data,file_size);
 	
-	byte_p ramdisk_gzip_data;byte_p kernel_data;
+	byte_p ramdisk_gzip_data=NULL;byte_p kernel_data=NULL;
 	
 	if(option_values.kernel_filename){
 		fprintf(stderr,"Updating boot image %s kernel with %s\n",option_values.image_filename,option_values.kernel_filename);	 
@@ -332,7 +393,8 @@ int update_boot_image_file(){
 		 kernel_data = load_file(option_values.kernel_filename,	&kernel_size);
 		 ramdisk_gzip_data=boot_image.ramdisk_data_start;
 		 boot_image.header.kernel_size=kernel_size;
-	}else{
+	}
+	if(option_values.source_filename){
 		fprintf(stderr,"Updating ramdisk in boot image %s\n",option_values.image_filename);
 		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
 		size_t uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(boot_image.ramdisk_data_start,boot_image.header.ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
@@ -342,11 +404,12 @@ int update_boot_image_file(){
 		// nothing done
 		if(new_cpio_data==uncompressed_ramdisk_data) goto quit_now;
 		ramdisk_gzip_data = calloc(new_cpio_file_size, sizeof(unsigned char));
-		unsigned long ramdisk_gzip_size = compress_gzip_ramdisk_memory(new_cpio_data,new_cpio_file_size,ramdisk_gzip_data,new_cpio_file_size);
+		size_t ramdisk_gzip_size = compress_gzip_ramdisk_memory(new_cpio_data,new_cpio_file_size,ramdisk_gzip_data,new_cpio_file_size);
 		free(new_cpio_data);	
 		boot_image.header.ramdisk_size = ramdisk_gzip_size;
 		kernel_data=boot_image.kernel_data_start;
 	}
+	
 	FILE*fp = fopen(option_values.image_filename,"wb");
 	write_boot_image(fp,boot_image.header,kernel_data,ramdisk_gzip_data,boot_image.second_data_start);
 	fclose(fp);

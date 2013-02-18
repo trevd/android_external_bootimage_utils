@@ -8,16 +8,26 @@
 #include "program.h"
 #include "file.h"
 const byte magic_gzip[4]={ 0x1F,0x8B,0x08,0x08 }; //2067208
+const byte magic_linux_zimage[4]={ 0x18,0x28,0x6F,0x01 }; 
+const int magic_linux_zimage_offset=0x24; 
 const byte magic_gzip_no_name[4] =  { 0x1F,0x8B,0x08,0x00 };//529205256
 const byte magic_cpio_ascii[6] = { 0x30,0x37,0x30,0x37,0x30,0x31 } ;////0x303137303730
 
-static file_info_enum dirty_magic_compare(const char *filepath, const byte_p magic,size_t	 length){
-	byte_p buff =load_file_to_size(filepath,length);
+static file_info_enum dirty_magic_compare_offset(const char *filepath, const byte_p magic,size_t read_length,off_t offset){
+	byte_p buff =load_file_from_offset(filepath,offset,&read_length);
 	if(buff){
-		int res =  !memcmp(magic,buff,length	);
+		//int i = 0 ;printf("%s size:%d off:%d\n",filepath,(int)read_length,offset);for(i = 0 ; i<read_length;i++){printf("0x%x 0x%x\n",buff[i],magic[i]);}
+		int res =  !memcmp(magic,buff,read_length	);
 		free(buff);
 		return res;	
 	}else return FILE_NO;
+}
+
+
+static file_info_enum dirty_magic_compare(const char *filepath, const byte_p magic,size_t read_length){
+	off_t fpt = 0;
+
+	return dirty_magic_compare_offset(filepath ,magic, read_length, fpt);
 }
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
 int symlink(char *symlink_src,char *filename){ 
@@ -61,24 +71,16 @@ char *remove_file_extension(char* filename) {
         *lastdot = '\0';
     return retstr;
 }
-int check_file_exists(char *filename, int exitonfailure){
+file_info_enum check_file_exists(char *filename){
 	
 	struct stat sb;
-	//log_write("check_file_exists:%s\n",filename);
 	if (stat(filename, &sb) == -1) {
-	  // perror("bootimg-tools");
-	   //log_write("check_file_exists:file_not_found_%s\n",filename);
-	   if(exitonfailure){
-			fprintf(stderr,"%s not found\n",filename);
-			exit(EXIT_FAILURE);
-		}
-		else
-			return 0;
+		return FILE_NO;
 	}
 	
-	if(!S_ISREG(sb.st_mode) && !S_ISBLK(sb.st_mode)){
-		//log_write("check_file_exists:file_found_as_");
-		if(exitonfailure){
+	if((!S_ISREG(sb.st_mode)) && (!S_ISBLK(sb.st_mode))){
+		return FILE_NO;
+		
 			/*switch (sb.st_mode & S_IFMT) {
 				case S_IFBLK:  log_write("block_device\n");            break;
 				case S_IFCHR:  log_write("character_device\n");        break;
@@ -89,25 +91,19 @@ int check_file_exists(char *filename, int exitonfailure){
 				case S_IFREG: log_write("regular\n");                  break;
 				default:       log_write("unknown?\n");                break;
 			}*/
-			fprintf(stderr,"%s is not a valid file type\n",filename) ;
-			exit(EXIT_FAILURE);
-		}
+			
 	}//else
 	//	log_write("check_file_exists:file_found_as_regular_file\n");	
-	return 1;
+	return FILE_YES;
 }
-int check_directory_exists(char *fname, int exitonfailure){
+file_info_enum check_directory_exists(char *fname){
 	
 	struct stat sb;
-	if (stat(fname, &sb) == -1) {
-	   perror("bootimg-tools");
-	   if(exitonfailure)
-			exit(EXIT_FAILURE);
-		else
-			return 0;
+	if (stat(fname, &sb) == -1) {  
+			return FILE_NO;
 	}
 	if(!S_ISDIR(sb.st_mode)){
-		if(exitonfailure){
+		/*if(exitonfailure){
 			switch (sb.st_mode & S_IFMT) {
 				case S_IFBLK:  printf("block device\n");            break;
 				case S_IFCHR:  printf("character device\n");        break;
@@ -118,14 +114,18 @@ int check_directory_exists(char *fname, int exitonfailure){
 				default:       printf("unknown?\n");                break;
 			}        
 			exit(EXIT_FAILURE);
-		}
-	}
-	return S_ISDIR(sb.st_mode);
+		
+		}*/
+		return FILE_NO;
+	}else
+		return FILE_YES ;	//S_ISDIR(sb.st_mode);
 }
-
+file_info_enum is_linux_kernal_zImage_file(const char *filepath){
+	return dirty_magic_compare_offset(filepath,(const byte_p)magic_linux_zimage,sizeof(magic_linux_zimage),magic_linux_zimage_offset);
+}
 file_info_enum is_cpio_file(const char *filepath)
 {
-	return dirty_magic_compare(filepath,(const byte_p)magic_cpio_ascii,6);		
+	return dirty_magic_compare(filepath,(const byte_p)magic_cpio_ascii,sizeof(magic_cpio_ascii));		
 }
 file_info_enum is_android_boot_image_file(const char *filepath){
 	unsigned int filesize=0;	file_info_enum res = FILE_NO;
@@ -177,24 +177,11 @@ int read_file_to_size(const char *filepath, unsigned size , unsigned char *outpu
 	}
 	return 0;
 }
-byte_p load_file_to_size(const char *filepath, unsigned size )
-{
-	byte_p output_buffer=malloc(size);
-	FILE* fp = fopen(filepath, "rb");
-	if (fp != NULL)
-    {
-		int bread = fread(output_buffer,size,1,fp);
-		fclose(fp);
-		return output_buffer;
-	}
-	return 0;
-}
-
-byte_p load_file_from_offset(const char *filepath,int offset,size_t *file_size)
+byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size)
 {
 	
     unsigned char *data;
-    int sz; int fd;
+    size_t sz; int fd;
     data = 0;
    // fprintf(stderr,"load siz1e:%s  offset:%d\n",filepath,offset);
     FILE *fp = fopen(filepath, "rb");
@@ -203,17 +190,18 @@ byte_p load_file_from_offset(const char *filepath,int offset,size_t *file_size)
 	//fprintf(stderr,"load siz2:%s  offset:%d\n",filepath,offset);
     sz = lseek(fd, 0, SEEK_END);
     //fprintf(stderr,"load siz4:%s size:%d offset:%d\n",filepath,sz,offset);
-    if(sz < 0) goto oops;
+    if((int)sz < 0) goto oops;
 	rewind(fp);
 	//fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,sz,offset);	
     if(lseek(fd, offset, SEEK_SET) != offset) goto oops;
 	
-	sz -= offset;
-
+	// check if we have set a file_size 
+	sz = (*file_size)>0 ? (*file_size) : sz-offset;
+	
     data = (unsigned char*) malloc(sz);
     if(data == 0) goto oops;
 
-    if(read(fd, data, sz) != sz) goto oops; 
+    if(read(fd, data, sz) != (int)sz) goto oops; 
     close(fd);
 
     if(file_size) *file_size = sz;
@@ -228,7 +216,7 @@ long read_file( const char *fn, unsigned char *output,unsigned long *output_size
 
 	long  file_size; int fd;
 	output = 0 ;
-	 FILE *fp = fopen(fn, "rb");
+	FILE *fp = fopen(fn, "rb");
     fd = fileno(fp);
     if(fd < 0) return 0;
     file_size = lseek(fd, 0, SEEK_END);
@@ -297,9 +285,10 @@ oops:
  * if successful load_file will return a pointer to the start of the data
  * The memory allocated by this function must be freed by the  caller 
  */
-byte_p load_file(const char *filname, size_t *file_size)
+byte_p load_file(const char *filename, size_t *file_size)
 {
-    unsigned char *data;
+	return load_file_from_offset(filename , (off_t)0 , file_size) ;
+    /*unsigned char *data;
     size_t sz; int fd;
 
     data = 0;
@@ -325,7 +314,7 @@ byte_p load_file(const char *filname, size_t *file_size)
 oops:
     fclose(fp);
     if(data != 0) free(data);
-    return 0;
+    return 0;*/
 }
 byte_p find_in_memory(const byte_p haystack, size_t haystack_len,
 			  const void *needle,  size_t needle_len)

@@ -4,6 +4,17 @@ src_files := main.c bootimg.c file.c	ramdisk.c
 
 include $(CLEAR_VARS)
 
+LOCAL_SRC_FILES := main1.c
+
+LOCAL_STATIC_LIBRARIES := 
+
+LOCAL_MODULE := maco-test
+ 
+include $(BUILD_HOST_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 					$(LOCAL_PATH)/../../system/core/mkbootimg 
 LOCAL_SRC_FILES := $(src_files)

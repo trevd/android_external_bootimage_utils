@@ -5,6 +5,7 @@
 #define CHECK_FAIL_EXIT 1
 #define CHECK_FAIL_OK 0
 #define WINDOWS_EOL "\r\n"
+
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
 #include <windows.h>
 #define mkdir(fn,mode) _mkdir(fn);
@@ -23,20 +24,20 @@ ssize_t readlink(const char *path, char *buf, size_t bufsiz);
 
 int vasprintf(char **strp, const char *fmt, va_list ap);
 
-typedef enum _file_info_enum { FILE_NO=0 , FILE_YES=1,FILE_ALL=2 } file_info_enum ;
+typedef enum _file_info_enum { FILE_NO=0 , FILE_YES=1,FILE_ALL=2, FILE_NOT_FOUND=3,FILE_INVALID_TYPE } file_info_enum ;
 typedef unsigned char** byte_pp ;
 typedef unsigned char* byte_p ;
 typedef unsigned char byte ;
+typedef unsigned long offset_t ;
 int is_path_directory(char *dname);
-int check_directory_exists(char *dname, int exitonfailure);
-int check_file_exists(char *fname, int exitonfailure);
+file_info_enum check_directory_exists(char *dname);
+file_info_enum check_file_exists(char *fname);
 int check_magic(const char *filepath);
 char *remove_file_extension(char* filename);
-byte_p load_file_to_size(const char *filepath, unsigned size );
 file_info_enum is_android_boot_image_file(const char *filepath);
 //file_info_enum is_sony_boot_image_file(const char *filepath);
 //file_info_enum is_samsung_boot_zimage_file(const char *filepath);
-//file_info_enum is_linux_kernal_zimage_file(const char *filepath);
+file_info_enum is_linux_kernal_zImage_file(const char *filepath);
 //file_info_enum is_lzop_file(const char *filepath);
 file_info_enum is_cpio_file(const char *filepath);
 file_info_enum is_gzip_file(const char *filepath);
@@ -48,7 +49,7 @@ int write_single_line_to_file(const char *filepath, const char *output_buffer,un
 int read_file_to_size(const char *filepath, unsigned size , unsigned char *output_buffer);
 int write_to_file_mode(unsigned char *data_in, size_t output_size,char * output_filename, mode_t mode);
 int write_to_file(unsigned char *data_in, size_t output_size,char * output_filename);
-byte_p load_file_from_offset(const char *filepath,int offset,size_t *file_size);
+byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size);
 long read_file( const char *fn, unsigned char *output,unsigned long *output_size);
 byte_p load_file(const char *fn, size_t *file_size);
 byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void *needle,  size_t needle_len);

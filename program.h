@@ -21,6 +21,7 @@
 #include "file.h"
 
 int unpack_boot_image_file();
+int update_boot_image_file_direct();
 int pack_boot_image_file();
 int list_boot_image_info();
 int extract_boot_image_file();
@@ -32,14 +33,14 @@ int strlcmp(const char *s1, const char *s2);
 typedef struct _boot_image
 {
 	boot_img_hdr header; 
-	unsigned magic_offset;
+	off_t magic_offset;
 	size_t boot_image_filesize;
 	unsigned kernel_page_count;
-	unsigned kernel_offset;
+	off_t kernel_offset;
 	unsigned ramdisk_page_count;
-	unsigned ramdisk_offset;
+	off_t ramdisk_offset;
 	unsigned second_page_count;
-	unsigned second_offset;
+	off_t second_offset;
 	byte_p header_data_start;
 	byte_p kernel_data_start;
 	byte_p ramdisk_data_start;
@@ -85,9 +86,12 @@ typedef struct {
 	char *target_filename;
 	char *source_filename;
 	char *log_filename;
+	char *cmdline_text;
+	char *board_name;
 	int page_size;
 	int base_address;
 	int log_stdout;
+	int direct_mode;
 	program_actions_emum action;
 } optionvalues_t ;
 optionvalues_t option_values;
@@ -131,7 +135,8 @@ static command_line_switch_t pack_switches[]={
 	 { DEF_STR_ARG, "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name},
 	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename},
 	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename},
-	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_filename},
+	 { REQ_STR_ARG, "name","n",NULL,0,&option_values.board_name},
+	 { DEF_STR_ARG, "board-filename","y",DEFAULT_BOARD_NAME,0,&option_values.board_filename},
 	 { DEF_STR_ARG, "header","h",DEFAULT_HEADER_NAME,0,&option_values.header_filename},
 	 { DEF_STR_ARG, "second","s",DEFAULT_SECOND_NAME,0,&option_values.second_filename},
 	 { DEF_STR_ARG, "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename},
@@ -155,6 +160,9 @@ static command_line_switch_t update_switches[]={
 	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename},
 	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename},
 	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename},
+	 { REQ_STR_ARG, "name","n",NULL,0,&option_values.board_name},
+	 { REQ_STR_ARG, "cmdline","c",NULL,0,&option_values.cmdline_filename},
+	 { DEF_STR_ARG, "board-filename","y",DEFAULT_BOARD_NAME,0,&option_values.board_filename},
 	 { NULL_ARG, 0, 0, 0, 0,0}
 };
 
