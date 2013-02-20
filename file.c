@@ -154,46 +154,30 @@ file_info_enum is_windows_text(const byte_p stream, const size_t size){
 file_info_enum is_ascii_text(const byte_p stream, const size_t size){
 	return (file_info_enum)!memchr(stream,(int)NULL,size);
 }
-
-int write_single_line_to_file(const char *filepath, const char *output_buffer,unsigned size)
-{
-    FILE *output_file_fp = fopen(filepath, "wb");
-    if (output_file_fp != NULL)
-    {
-        fwrite(output_buffer,size,1,output_file_fp);
-        fclose(output_file_fp);
-    }
-    return 0;
-}
-int read_file_to_size(const char *filepath, unsigned size , unsigned char *output_buffer)
-{
-	
-	FILE* fp = fopen(filepath, "rb");
-	if (fp != NULL)
-    {
-		int bread = fread(output_buffer,size,1,fp);
-		fclose(fp);
-		return bread;
-	}
-	return 0;
-}
 byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size)
 {
 	
-    unsigned char *data;
-    size_t sz; int fd;
+    unsigned char *data;  size_t sz; int fd; 
+    size_t size_store=(*file_size);
+    
     data = 0;
-   // fprintf(stderr,"load siz1e:%s  offset:%d\n",filepath,offset);
     FILE *fp = fopen(filepath, "rb");
     fd = fileno(fp);
     if(fd < 0) return 0;
-	//fprintf(stderr,"load siz2:%s  offset:%d\n",filepath,offset);
     sz = lseek(fd, 0, SEEK_END);
-    //fprintf(stderr,"load siz4:%s size:%d offset:%d\n",filepath,sz,offset);
     if((int)sz < 0) goto oops;
 	rewind(fp);
-	//fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,sz,offset);	
+	
     if(lseek(fd, offset, SEEK_SET) != offset) goto oops;
+	if(size_store > 0 ){
+		fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,offset);	
+		sz=read(fd, data,10);
+		fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,sz);	
+		 //!= size_store) goto oops; 
+		close(fd);
+		fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,offset);	
+		return data;
+	}
 	
 	// check if we have set a file_size 
 	sz = (*file_size)>0 ? (*file_size) : sz-offset;
@@ -203,8 +187,9 @@ byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size
 
     if(read(fd, data, sz) != (int)sz) goto oops; 
     close(fd);
-
+	fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,sz,offset);	
     if(file_size) *file_size = sz;
+    fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,offset);	
     return data;
 
 oops:
@@ -212,26 +197,7 @@ oops:
     if(data != 0) free(data);
     return 0;
 }
-long read_file( const char *fn, unsigned char *output,unsigned long *output_size){
 
-	long  file_size; int fd;
-	output = 0 ;
-	FILE *fp = fopen(fn, "rb");
-    fd = fileno(fp);
-    if(fd < 0) return 0;
-    file_size = lseek(fd, 0, SEEK_END);
-    if(file_size < 0) goto oops;
-
-    if(lseek(fd, 0, SEEK_SET) != 0) goto oops;
-    if(read(fd, output, file_size) != file_size) goto oops;
-    close(fd);
-
-    if(output_size) *output_size = file_size;   
-	return file_size;
-oops:
-    fclose(fp);
-    return 0;
-}
 int write_to_file_mode(byte_p data_in, size_t output_size,char * output_filename, mode_t mode){
 	write_to_file(data_in,output_size,output_filename);
 	chmod(output_filename,mode);
@@ -288,48 +254,18 @@ oops:
 byte_p load_file(const char *filename, size_t *file_size)
 {
 	return load_file_from_offset(filename , (off_t)0 , file_size) ;
-    /*unsigned char *data;
-    size_t sz; int fd;
-
-    data = 0;
-    FILE *fp = fopen(filname, "rb");
-    fd = fileno(fp);
-    if(fd < 0) return 0;
-
-    sz = lseek(fd, 0, SEEK_END);
-    if((int)sz < 0) goto oops;
-
-    if(lseek(fd, 0, SEEK_SET) != 0) goto oops;
-
-	if(sz > MEMORY_BUFFER_SIZE*2) sz=MEMORY_BUFFER_SIZE*2;
-    data = (unsigned char*) malloc(sz);
-    if(data == 0) goto oops;
-
-    if(read(fd, data, sz) != (int)sz) goto oops; 
-    close(fd);
-
-    if(file_size) *file_size = sz;
-    return data;
-
-oops:
-    fclose(fp);
-    if(data != 0) free(data);
-    return 0;*/
 }
-byte_p find_in_memory(const byte_p haystack, size_t haystack_len,
-			  const void *needle,  size_t needle_len)
+byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void * needle,  size_t needle_len)
 {
   const char *begin;
   const char *const last_possible
     = (const char *) haystack + haystack_len - needle_len;
 
   if (needle_len == 0)
-    /* The first occurrence of the empty string is deemed to occur at
-       the beginning of the string.  */
+    /* The first occurrence of the empty string is deemed to occur at the beginning of the string.  */
     return (byte_p) haystack;
 
-  /* Sanity check, otherwise the loop might search through the whole
-     memory.  */
+  /* Sanity check, otherwise the loop might search through the whole memory.  */
   if (__builtin_expect (haystack_len < needle_len, 0))
     return NULL;
 

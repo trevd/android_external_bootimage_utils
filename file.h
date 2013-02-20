@@ -46,13 +46,17 @@ file_info_enum is_windows_text(const byte_p stream, const size_t size);
 file_info_enum confirm_file_replace(const char *source_filename,const char *target_filename);
 file_info_enum find_in_file(const char *filepath,byte_pp magic	);
 int write_single_line_to_file(const char *filepath, const char *output_buffer,unsigned size);
-int read_file_to_size(const char *filepath, unsigned size , unsigned char *output_buffer);
 int write_to_file_mode(unsigned char *data_in, size_t output_size,char * output_filename, mode_t mode);
 int write_to_file(unsigned char *data_in, size_t output_size,char * output_filename);
-byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size);
-long read_file( const char *fn, unsigned char *output,unsigned long *output_size);
-byte_p load_file(const char *fn, size_t *file_size);
+
+
 byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void *needle,  size_t needle_len);
+
+byte_p load_file(const char *fn, size_t *file_size);
+byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size);
+
+
+// Line Ending Conversion Functions
 size_t unix_to_dos(byte_p output_buffer, const byte_p input_buffer);
 size_t dos_to_unix(byte_p output_buffer, const byte_p input_buffer);
 
