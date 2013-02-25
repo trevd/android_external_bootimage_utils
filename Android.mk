@@ -1,15 +1,16 @@
 LOCAL_PATH:= $(call my-dir)
 
-src_files := main.c bootimg.c file.c ramdisk.c
+src_files := main.c bootimg.c file.c ramdisk.c ../../system/core/libmincrypt/sha.c 
 
 include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
+					external/zlib \
 					system/core/mkbootimg 
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := 	libmincrypt libz
+LOCAL_STATIC_LIBRARIES := 	libz
 
 LOCAL_MODULE := bootimg-tools
  
@@ -22,7 +23,7 @@ ifeq ($(strip $(USE_MINGW)),)
 						system/core/mkbootimg 
 	LOCAL_SRC_FILES := $(src_files)
 
-	LOCAL_STATIC_LIBRARIES :=  libc	libcutils libmincrypt libz
+	LOCAL_STATIC_LIBRARIES :=  libc	libcutils libz
 
 	LOCAL_MODULE := bootimg-tools
 

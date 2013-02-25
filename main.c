@@ -111,18 +111,18 @@ int parse_command_line_switch_arguments(char*** argv, command_line_switches_p co
 				(*argv)++;
 				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, bin it.
 				fprintf(stderr,"invalid argument for switch '%s'  \n",compare_string); exit(0); }
-				
-				
-
+				command_lines_switches->is_set=1;
 				*(char **)command_lines_switches->dest_ptr=(*argv[0]);  /* argument value is ok. assign the deference the dest_ptr so we can assign */
 				(*argv)++; 												/* a value to the option_value member directly and move to the next argument */
 				break ; }
 			case DEF_STR_ARG:{ 
 				(*argv)++; // argument comes with a default value move the argument pointer to be the next arg along
 				if((!(*argv[0])) || (*argv[0][0])=='-'){ // next args appears to be a switch, use the default value instead
-									*(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
+					*(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
+					command_lines_switches->is_set=1;
 				}else{ // assign the argument value as normal
 					*(char **)command_lines_switches->dest_ptr=(*argv[0]);
+					command_lines_switches->is_set=1;
 					(*argv)++;
 				}
 				break;
@@ -151,6 +151,7 @@ void parse_direct_board_name(){
 		fprintf(stderr,"board name input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",board_name_length ,BOOT_NAME_SIZE);
 		exit(1);
 	}
+	option_values.direct_mode=1;
 }
 void parse_direct_cmdline(){
 	
@@ -171,6 +172,7 @@ void parse_direct_cmdline(){
 		fprintf(stderr,"cmdline input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",cmdline_length ,BOOT_ARGS_SIZE);
 		exit(1);
 	}
+	option_values.direct_mode=1;
 }
 int check_required_parameters(const program_actions_emum action){
 
@@ -230,12 +232,12 @@ int check_required_parameters(const program_actions_emum action){
 						exit(0); }
 				if(!option_values.target_filename){
 						fprintf(stderr,"target_filename not specified, source file name will be used\n");
-						exit(0); }
+						}
 				break ; 
 			}
 			case EXTRACT:{
-				
 					if(!option_values.source_filename){
+				
 						fprintf(stderr,"nothing to extract, you must set one or more sourcefiles\n");
 						exit(0);
 					}
@@ -243,6 +245,10 @@ int check_required_parameters(const program_actions_emum action){
 						log_write("main:extract no target file set - using source\n");		
 						option_values.target_filename=option_values.source_filename;
 					}
+					if (strchr(option_values.source_filename,',')!=NULL){
+						option_values.target_filename=NULL;
+					}
+						
 						
 				
 			}
@@ -272,17 +278,38 @@ int main(int argc, char **argv){
 	option_values.log_stdout=1;
 	 
 	program_options_t program_options=get_program_options(argv[1]);
+	argc-- ; argv++ ;
+	if(argc==1){ print_main_usage();}	
+	
 	if(!(option_values.action=program_options.action)) { print_main_usage();}	
-	if(check_for_lazy_image(argv[2])){	
-		if(program_options.action==LIST){
+	argc-- ; argv++ ;
+	if(check_for_lazy_image(argv[0])){	
+		switch(program_options.action){
+		 case LIST:{
 			int ret =(*program_options.action_function_p)();
 			exit(0);
-		}else {
-			argc-- ; argv++ ; }
+			}
+		case EXTRACT: { // Extract implied order is Image,Source,Target
+			 argc-- ; argv++ ;
+			 if(argc>0){
+				fprintf(stderr,"argv[0]=%s\n",argv[0]);
+				if(argv[0][0]!='-'){ 
+					option_values.source_filename=argv[0];
+					check_required_parameters(program_options.action);
+					int ret =(*program_options.action_function_p)();
+					exit(0);
+				}
+			}else
+				fprintf(stderr,"no more args\n");
+			}break;
+		default:{
+			argc-- ; argv++ ; break;
+			}
+		}
 	}
 			
-	
-	parse_command_line_switches(argv+2,program_options);
+
+	parse_command_line_switches(argv,program_options);
 	int ret=0;
 	if(option_values.direct_mode) {	
 		ret = update_boot_image_file_direct();
