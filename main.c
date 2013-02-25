@@ -65,8 +65,8 @@ int strlcmp(const char *s1, const char *s2){
 }
 int strstrlcmp(const char *s1, const char *s2,size_t s2_len ){
 	
-	if(!s1 || !s2 )
-		return -99;
+	if(!s1 || !s2 || s2_len<0 )
+		return 99;
 	
 	size_t string_one_length=strlen(s1);
 	size_t string_two_length=s2_len;
@@ -165,10 +165,23 @@ char* parse_file_or_string(char *filename,char* value ,char* default_value, size
 			}				
 		}
 	}
+	// santize for new line
+	int counter=0;
+	for(counter=0 ; counter < length ; counter++){
+		if((counter+1<length) && ( (return_value[counter]=='\r') && (return_value[counter+1]=='\n'))){
+			return_value[counter]='\0'; break;
+		}
+		if(return_value[counter]=='\n'){
+			return_value[counter]='\0'; 
+			break;		
+		}
+	}
+	length  = strlen(return_value);
 	if((length) > max_size){
 		fprintf(stderr,"input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",length ,max_size);
 		exit(1);
 	};
+		 
 	return return_value;	
 }
 int check_required_parameters(const program_actions_emum action){

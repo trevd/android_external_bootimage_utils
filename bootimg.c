@@ -202,6 +202,7 @@ int unpack_boot_image_file()
 	boot_img_hdr* header = load_boot_image_header(boot_image_file);
 	long  offset = ftell(boot_image_file);
 	long data_size = 0,position =0;
+	
 	fprintf(stderr," Android Boot Image Found @ %ld\n",offset);
 	fseek(boot_image_file , header->page_size, SEEK_CUR);
 	unpack_kernel_file(boot_image_file,header);
@@ -209,6 +210,15 @@ int unpack_boot_image_file()
 	unpack_ramdisk(boot_image_file,header);
 	fprintf(stderr," Position  %ld\n",ftell(boot_image_file));
 	unpack_second_file(boot_image_file,header);	
+	if(option_values.header_filename){
+		FILE * header_file = fopen(option_values.header_filename,"wb");
+		if(header_file){
+			fprintf(header_file,"%u"EOL"0x%08x"EOL"%u"EOL"0x%08x"EOL"%u"EOL"0x%08x"EOL"0x%08x"EOL"%u"EOL"%s"EOL"%s"EOL,
+			header->kernel_size,header->kernel_addr,header->ramdisk_size,header->ramdisk_addr,
+			header->second_size,header->second_addr,header->tags_addr,header->page_size,header->name,header->cmdline);
+			fclose(header_file);
+		}
+	}
 	fclose(boot_image_file);
 	exit(0);	
 }

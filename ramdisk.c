@@ -37,14 +37,9 @@ typedef struct  {
 	unsigned long  	file_size ;
 	unsigned long  	name_size ;
 	mode_t  	mode ;
-	unsigned long  	bytes_to_file_start ;
-	unsigned long  	file_start ;
-	unsigned long  	bytes_to_next_header_start ;
 	byte_p entry_start_p;
 	byte_p file_start_p; 
 	byte_p next_header_p;
-	unsigned long entry_size ;  
-	unsigned long  	next_header ;
 	char * file_name ;
 	size_t parent_directory_length;
 	int is_trailer ;
@@ -60,6 +55,7 @@ static unsigned long  get_long_from_hex_field(char * header_field_value){
 	buffer[8]='\0';
 	return strtol(buffer,NULL,16);
 }
+
 static cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header_t *cpio_header) {
 
 	cpio_entry_t *cpio_entry_p=(cpio_entry_t *)data;
@@ -71,24 +67,19 @@ static cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header
 	cpio_entry.file_size = get_long_from_hex_field(cpio_entry.cpio_header.c_filesize);
 	cpio_entry.name_size = get_long_from_hex_field(cpio_entry.cpio_header.c_namesize);
 	cpio_entry.mode = get_long_from_hex_field(cpio_entry.cpio_header.c_mode);
-	cpio_entry.bytes_to_file_start = ((4 - ((CPIO_HEADER_SIZE+cpio_entry.name_size) % 4)) % 4);
-	cpio_entry.file_start_p = data+(cpio_entry.bytes_to_file_start + CPIO_HEADER_SIZE+cpio_entry.name_size);
-	cpio_entry.file_start = cpio_entry.bytes_to_file_start + CPIO_HEADER_SIZE+cpio_entry.name_size;
-	cpio_entry.bytes_to_next_header_start = (4 - ((cpio_entry.file_start+cpio_entry.file_size) % 4)) % 4;
-	cpio_entry.next_header = cpio_entry.file_start+cpio_entry.file_size+cpio_entry.bytes_to_next_header_start;
-	cpio_entry.next_header_p = cpio_entry.file_start_p+(cpio_entry.file_size+cpio_entry.bytes_to_next_header_start); 
+	unsigned long   name_align = ((4 - ((CPIO_HEADER_SIZE+cpio_entry.name_size) % 4)) % 4);
+	unsigned long   header_align = (4 - ((CPIO_HEADER_SIZE+cpio_entry.name_size+name_align+cpio_entry.file_size) % 4)) % 4;
+	cpio_entry.file_start_p=cpio_entry.entry_start_p+(CPIO_HEADER_SIZE+cpio_entry.name_size+name_align);
+	cpio_entry.next_header_p= cpio_entry.entry_start_p+(CPIO_HEADER_SIZE+cpio_entry.name_size+name_align+cpio_entry.file_size+header_align);
 	cpio_entry.file_name = (char *)data+CPIO_HEADER_SIZE;
-	cpio_entry.entry_size = cpio_entry.next_header_p  - cpio_entry.entry_start_p;
 	cpio_entry.is_directory=S_ISDIR(cpio_entry.mode);
 	cpio_entry.is_file=S_ISREG(cpio_entry.mode);
 	cpio_entry.is_link=S_ISLNK(cpio_entry.mode);
 	char *strslash = strchr(cpio_entry.file_name,'/');
-		
 	if(strslash){
 		cpio_entry.parent_directory_length= strslash-cpio_entry.file_name;
-		//strncpy(cpio_entry.parent_directory,cpio_entry.file_name,strslash-cpio_entry.file_name);
 	}else
-		cpio_entry.parent_directory_length=0;
+		cpio_entry.parent_directory_length=-1;
 	cpio_entry.is_trailer = !strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC);
 	return cpio_entry;
 }
@@ -194,7 +185,7 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 			
 			sb.st_size=new_file_size;
 			append_cpio_header_to_stream(sb,cpio_entry.file_name,strlen(cpio_entry.file_name)+1,next_p); 
-			next_p += cpio_entry.file_start;
+			next_p += cpio_entry.file_start_p-cpio_entry.entry_start_p;
 			
 			memcpy(next_p,new_file_data,aligned_file_size); 
 			next_p += aligned_file_size;
@@ -249,17 +240,11 @@ long find_file_in_ramdisk_entries(const byte_p data)
 			
 			// Ghetto Matching - Instead of breaking off into an array move through our sources string 
 			char* str_p = option_values.source_filename;
-
-				for(counter=0 ; counter<option_values.source_length; counter++){
-					has_match= strlcmp(str_p,cpio_entry.file_name);
-					if(!has_match){	
-						 break;
-					}				
-					has_match= strstrlcmp(str_p,cpio_entry.file_name,cpio_entry.parent_directory_length);
-					if(!has_match){ 
-						//fprintf(stderr,"parent dir match cpio_entry.file_name:%s %s\n",cpio_entry.file_name,str_p); 
-						option_values.target_filename=cpio_entry.file_name;
-						break;}
+			for(counter=0 ; counter<option_values.source_length; counter++){
+				if(!(has_match = strlcmp(str_p,cpio_entry.file_name)))
+					break;	
+				if(!(has_match =strstrlcmp(str_p,cpio_entry.file_name,cpio_entry.parent_directory_length)))
+					break;
 					str_p += (strlen(str_p)+1) ;
 				}
 		
@@ -278,7 +263,6 @@ long find_file_in_ramdisk_entries(const byte_p data)
 				}
 				//return 0;
 			}
-			str_p= NULL;
 			cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				
 	}
 	//log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name));	

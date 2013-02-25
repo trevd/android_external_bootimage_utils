@@ -76,7 +76,6 @@ typedef struct {
 	int page_size;
 	int base_address;
 	int log_stdout;
-	int direct_mode;
 	program_actions_emum action;
 } optionvalues_t ;
 optionvalues_t option_values;
@@ -146,8 +145,8 @@ static command_line_switch_t update_switches[]={
 	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename,0},
 	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename,0},
 	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,0},
-	 { REQ_STR_ARG, "name","n",NULL,0,&option_values.board_name,0},
-	 { REQ_STR_ARG, "cmdline","c",NULL,0,&option_values.cmdline_filename,0},
+	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_name,0},
+	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,0},
 	 { DEF_STR_ARG, "board-filename","y",DEFAULT_BOARD_NAME,0,&option_values.board_filename,0},
 	 { NULL_ARG, 0, 0, 0, 0,0,0}
 };
