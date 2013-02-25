@@ -29,25 +29,8 @@ int extract_boot_image_file();
 int update_boot_image_file();
 int log_write(const char *format, ...);
 int strlcmp(const char *s1, const char *s2);
+int strstrlcmp(const char *s1, const char *s2,const size_t s2len);
 #define ARRAYSIZE(a) (sizeof(a)/sizeof(*a))
-
-typedef struct _boot_image
-{
-	boot_img_hdr header; 
-	off_t magic_offset;
-	size_t boot_image_filesize;
-	unsigned kernel_page_count;
-	off_t kernel_offset;
-	unsigned ramdisk_page_count;
-	off_t ramdisk_offset;
-	unsigned second_page_count;
-	off_t second_offset;
-	byte_p header_data_start;
-	byte_p kernel_data_start;
-	byte_p ramdisk_data_start;
-	byte_p second_data_start;
-	
-} boot_image_t ;
 
 typedef enum  _program_actions_enum {  NOT_SET,	UNPACK , PACK , LIST , EXTRACT,ADD , REMOVE , UPDATE } program_actions_emum ;
 
@@ -86,7 +69,7 @@ typedef struct {
 	char *board_filename;
 	char *target_filename;
 	char *source_filename;
-	char *source_length;
+	int source_length;
 	char *log_filename;
 	char *cmdline_text;
 	char *board_name;

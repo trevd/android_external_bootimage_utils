@@ -63,6 +63,20 @@ int strlcmp(const char *s1, const char *s2){
 	return strncmp(s1,s2,compare_length); 
 								
 }
+int strstrlcmp(const char *s1, const char *s2,size_t s2_len ){
+	
+	if(!s1 || !s2 )
+		return -99;
+	
+	size_t string_one_length=strlen(s1);
+	size_t string_two_length=s2_len;
+	size_t compare_length = string_one_length > string_two_length ?
+								string_one_length : string_two_length;
+	int ret=  memcmp(s1,s2,compare_length); 
+	fprintf(stderr,"strstrlcmp:%d\n",ret);
+	return ret;
+								
+}
 program_options_t get_program_options(char *program_action){
 	
 	if(!strlcmp(program_action,"unpack")) return program_options[UNPACK];
@@ -79,11 +93,15 @@ program_options_t get_program_options(char *program_action){
 
 	return program_options[NOT_SET];
 }
-int check_for_lazy_image(char * test_string){
+int check_for_lazy_image(char * test_string,const program_actions_emum action){
 	
 	if(test_string[0]=='-')
 		return 0;
-		
+	
+	if(action == PACK){
+		option_values.image_filename=test_string;
+		return 1;
+	}
 	if(check_file_exists(test_string)){
 		option_values.image_filename=test_string;
 		return 1;
@@ -132,47 +150,27 @@ int parse_command_line_switch_arguments(char*** argv, command_line_switches_p co
 			
 	return 0;
 }
-void parse_direct_board_name(){
+char* parse_file_or_string(char *filename,char* value ,char* default_value, size_t  max_size){
 	
-	size_t board_name_length=0;
-	if(option_values.board_name) {
-		board_name_length = strlen(option_values.board_name);
+	size_t length=0; char *return_value = ""; 
+	if(value) {
+		length = strlen(value);
 	}else{
-		if(check_file_exists(option_values.board_filename)) { // found the start of a direct command line look for the end
-			option_values.board_name=(char*)	load_file(option_values.board_filename,&board_name_length);
+		if(check_file_exists(filename)) { // found the start of a direct command line look for the end
+			return_value = (char*) load_file(filename,&length);
 		}else{
-			if(strlcmp(option_values.board_filename,DEFAULT_BOARD_NAME)){ // File doesn't exist and the text is not default
-				board_name_length= strlen(option_values.board_filename); 
-				option_values.board_name=option_values.board_filename;
+			if(strlcmp(filename,default_value)){ 
+				// File doesn't exist and the text is not default assume direct input
+				length= strlen(filename); 
+				return_value = filename;
 			}				
 		}
 	}
-	if((board_name_length) > BOOT_NAME_SIZE){
-		fprintf(stderr,"board name input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",board_name_length ,BOOT_NAME_SIZE);
+	if((length) > max_size){
+		fprintf(stderr,"input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",length ,max_size);
 		exit(1);
-	}
-	option_values.direct_mode=1;
-}
-void parse_direct_cmdline(){
-	
-	size_t cmdline_length=0;
-	if(option_values.cmdline_text) {
-		cmdline_length = strlen(option_values.cmdline_text);
-	}else{
-		if(check_file_exists(option_values.cmdline_filename)) { // found the start of a direct command line look for the end
-			option_values.cmdline_text=(char*)	load_file(option_values.cmdline_filename,&cmdline_length);
-		}else{
-			if(strlcmp(option_values.cmdline_filename,DEFAULT_CMDLINE_NAME)){ // File doesn't exist and the text is not default
-				cmdline_length= strlen(option_values.cmdline_filename); 
-				option_values.cmdline_text=option_values.cmdline_filename;
-			}				
-		}
-	}
-	if((cmdline_length) > BOOT_ARGS_SIZE){
-		fprintf(stderr,"cmdline input exceeds allowed maximum size\ninput length = %d maximum size allowed = %d",cmdline_length ,BOOT_ARGS_SIZE);
-		exit(1);
-	}
-	option_values.direct_mode=1;
+	};
+	return return_value;	
 }
 int check_required_parameters(const program_actions_emum action){
 
@@ -205,28 +203,39 @@ int check_required_parameters(const program_actions_emum action){
 				}
 			case PACK:{
 				if(!option_values.page_size) option_values.page_size=DEFAULT_PAGE_SIZE;
-					
+				if((option_values.board_filename) || (option_values.board_name)  )	
+					option_values.cmdline_text =parse_file_or_string(option_values.board_filename,option_values.board_name,DEFAULT_BOARD_NAME,BOOT_NAME_SIZE);	
+				if((option_values.cmdline_filename)  || (option_values.cmdline_text)  )	
+					option_values.cmdline_text =parse_file_or_string(option_values.cmdline_filename,option_values.cmdline_text,DEFAULT_CMDLINE_NAME,BOOT_ARGS_SIZE);	
+				
 				if(!option_values.kernel_filename){ // Image file is not set look for a valid filename 
 						fprintf(stderr,"no kernel filename set, you must supply a valid linux kernel file to create boot images\n");
 						exit(1);
-				}else {  
-					if((!check_file_exists(option_values.ramdisk_archive_filename)) && (!check_file_exists(option_values.ramdisk_archive_filename)) 
-						&& (!check_file_exists(option_values.ramdisk_cpio_filename))){ 
+				}  
+				fprintf(stderr,"option_values.ramdisk_directory_name=%s\n",option_values.ramdisk_directory_name);
+				//if(option_values.ramdisk_directory_name  && (!check_directory_exists(option_values.ramdisk_directory_name))
+				if(!check_file_exists(option_values.ramdisk_archive_filename)){
+					if(!check_directory_exists(option_values.ramdisk_directory_name)){
+						if(!check_file_exists(option_values.ramdisk_cpio_filename)){ 
 							fprintf(stderr,"no ramdisk file or directory set, you must supply a valid ramdisk source to create boot images\n");
 							exit(1);
 						}
+					}
 				}
 				break;
 			}
 			case UPDATE:{
-				if((option_values.board_filename) || (option_values.board_name)  )	parse_direct_board_name();	
+				if((option_values.board_filename) || (option_values.board_name)  )	
+					option_values.board_name =parse_file_or_string(option_values.board_filename,option_values.board_name,DEFAULT_BOARD_NAME,BOOT_NAME_SIZE);	
+				if((option_values.cmdline_filename)  || (option_values.cmdline_text)  )	
+					option_values.cmdline_text =parse_file_or_string(option_values.cmdline_filename,option_values.cmdline_text,DEFAULT_CMDLINE_NAME,BOOT_ARGS_SIZE);	
 				
 				if((option_values.kernel_filename) ||  (!check_file_exists(option_values.ramdisk_archive_filename))){ 
 						fprintf(stderr,"kernel file %s not found\n",option_values.kernel_filename);
 				}
 				
-				if((option_values.cmdline_filename)  || (option_values.cmdline_text)  )	parse_direct_cmdline();
 				
+				fprintf(stderr,"cmdline_filename %s not found\n",option_values.cmdline_filename);
 				if((option_values.source_filename) && (!check_file_exists(option_values.source_filename))){
 						fprintf(stderr,"source file %s not found\n",option_values.source_filename);
 						exit(0); }
@@ -294,13 +303,22 @@ int main(int argc, char **argv){
 	
 	if(!(option_values.action=program_options.action)) { print_main_usage();}	
 	argc-- ; argv++ ;
-	if(check_for_lazy_image(argv[0])){	
+	fprintf(stderr,"argv[0]=%s\n",argv[0]);
+	if(check_for_lazy_image(argv[0],program_options.action)){	
 		switch(program_options.action){
 		 case LIST:{
 			int ret =(*program_options.action_function_p)();
 			exit(0);
 			break;
 			}
+		case UNPACK: {
+			argc-- ; argv++ ;
+			if(argc==0){ 
+				fprintf(stderr,"no more args\n");
+				exit(0);
+
+			}break;
+		}
 		case EXTRACT: { // Extract implied order is Image,Source,Target
 			 argc-- ; argv++ ;
 			 if(argc>0){
@@ -321,7 +339,9 @@ int main(int argc, char **argv){
 				fprintf(stderr,"argv[0]=%s\n",argv[0]);
 				if(argv[0][0]!='-'){ 
 					option_values.source_filename=argv[0];
-				}
+				
+				}else{ break;}
+				
 				if(argc==1){
 					option_values.target_filename=argv[0];
 				}
@@ -332,19 +352,20 @@ int main(int argc, char **argv){
 				fprintf(stderr,"no more args\n"); 
 			}break ; 
 		}
+		case PACK:{
+				fprintf(stderr,"pack\n"); 
+			argc-- ; argv++ ; break;
+		}
 		default:{
+			fprintf(stderr,"default\n"); 
 			argc-- ; argv++ ; break;
 			}
 		}
 	}
 			
-
+	fprintf(stderr,"argv[0]=%s\n",argv[0]);
 	parse_command_line_switches(argv,program_options);
-	int ret=0;
-	if(option_values.direct_mode) {	
-		ret = update_boot_image_file_direct();
-	}else
-		ret =(*program_options.action_function_p)();
+	int ret =(*program_options.action_function_p)();
 	
 	fprintf(stderr,"Done\n"	);
 	

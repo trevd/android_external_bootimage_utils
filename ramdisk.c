@@ -46,7 +46,7 @@ typedef struct  {
 	unsigned long entry_size ;  
 	unsigned long  	next_header ;
 	char * file_name ;
-	char * parent_directory;
+	size_t parent_directory_length;
 	int is_trailer ;
 	int is_directory ; 
 	int is_file ;
@@ -85,10 +85,10 @@ static cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header
 	char *strslash = strchr(cpio_entry.file_name,'/');
 		
 	if(strslash){
-		cpio_entry.parent_directory= calloc(strslash-cpio_entry.file_name+1,0);
-		strncpy(cpio_entry.parent_directory,cpio_entry.file_name,strslash-cpio_entry.file_name);
+		cpio_entry.parent_directory_length= strslash-cpio_entry.file_name;
+		//strncpy(cpio_entry.parent_directory,cpio_entry.file_name,strslash-cpio_entry.file_name);
 	}else
-		cpio_entry.parent_directory=NULL;
+		cpio_entry.parent_directory_length=0;
 	cpio_entry.is_trailer = !strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC);
 	return cpio_entry;
 }
@@ -244,44 +244,41 @@ long find_file_in_ramdisk_entries(const byte_p data)
 {
 	cpio_entry_t cpio_entry = populate_cpio_entry(data);
 	int ok_to_write=1	;int counter=0; int has_match = 99;
-	int original_target = option_values.target_filename ? 1 :0;
 		while(!cpio_entry.is_trailer){
 			//log_write("cpio_entry:source %s file_name=%s next_header:%p is_trailer:%d length:%d %d\n",option_values.source_filename,cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
 			
 			// Ghetto Matching - Instead of breaking off into an array move through our sources string 
 			char* str_p = option_values.source_filename;
-			if(option_values.source_length>1) 
+
 				for(counter=0 ; counter<option_values.source_length; counter++){
 					has_match= strlcmp(str_p,cpio_entry.file_name);
-					if(!has_match){
-						 if(!original_target)option_values.target_filename=cpio_entry.file_name;	
+					if(!has_match){	
 						 break;
 					}				
-					has_match= strlcmp(str_p,cpio_entry.parent_directory);
+					has_match= strstrlcmp(str_p,cpio_entry.file_name,cpio_entry.parent_directory_length);
 					if(!has_match){ 
-						fprintf(stderr,"parent dir match cpio_entry.file_name:%s %d\n",cpio_entry.file_name,original_target); 
+						//fprintf(stderr,"parent dir match cpio_entry.file_name:%s %s\n",cpio_entry.file_name,str_p); 
 						option_values.target_filename=cpio_entry.file_name;
 						break;}
 					str_p += (strlen(str_p)+1) ;
 				}
-			else
-				has_match= strlcmp(str_p,cpio_entry.file_name);
-			fprintf(stderr,"cpio_entry.file_name:%s\n",cpio_entry.file_name);
+		
+			//fprintf(stderr,"cpio_entry.file_name:%s\n",cpio_entry.file_name);
 			if(!has_match){
-
+				char *target_filename= (option_values.target_filename != NULL) ? option_values.target_filename : cpio_entry.file_name;
 				if(ok_to_write!=FILE_ALL)
-					if(check_file_exists(option_values.target_filename)){
-						ok_to_write =confirm_file_replace(cpio_entry.file_name,option_values.target_filename);
+					if(check_file_exists(target_filename)){
+						ok_to_write =confirm_file_replace(cpio_entry.file_name,target_filename);
 					}
 					
-				fprintf(stderr,"option_values.target_filename:%s\n",option_values.target_filename);
+				//fprintf(stderr,"option_values.target_filename:%s\n",target_filename);
 				if(ok_to_write!=FILE_NO){
-					extract_cpio_entry(cpio_entry,option_values.target_filename);
+					extract_cpio_entry(cpio_entry,target_filename);
 					
 				}
 				//return 0;
 			}
-			str_p= NULL;if(!original_target)option_values.target_filename=NULL;
+			str_p= NULL;
 			cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				
 	}
 	//log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name));	
@@ -308,7 +305,8 @@ int process_uncompressed_ramdisk(const byte_p cpio_raw_data ,unsigned cpio_raw_d
 }	
 static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buffer)
 {
-	//log_write("pack_ramdisk_entries:%s\n",path);
+	log_write("pack_ramdisk_entries:%s\n",path);
+	
 	DIR *dp;
 	char cwd[PATH_MAX];
 	getcwd(cwd,PATH_MAX);
@@ -330,14 +328,14 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buf
 	while((entry = readdir(dp)) != NULL) {
 		lstat(entry->d_name,&statbuf);
 		char full_name[PATH_MAX];
-		full_name[0] = 0;
+		full_name[0] = '\0';
 		strncpy(full_name,path,PATH_MAX); 
 		strcat(full_name,entry->d_name);
 		name_size = strlen(full_name)+1;
 		bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
 		file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;
 	
-		//printf("offset:%ld:%s\n",offset,entry->d_name);
+		printf("offset:%ld:%s %08x\n",offset,entry->d_name,statbuf.st_mode);
 		if(S_ISDIR(statbuf.st_mode)) {
 			/* Found a directory, but ignore . and .. */
 			if(strcmp(".",entry->d_name) == 0 || strcmp("..",entry->d_name) == 0)
@@ -350,7 +348,7 @@ static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buf
 			pack_ramdisk_entries(entry->d_name,full_name,output_buffer);
 		}
 		else if(S_ISREG(statbuf.st_mode)){
-			//printf("Reg:%s %d\n",entry->d_name,statbuf.st_mode);
+			printf("Reg:%s %d\n",entry->d_name,statbuf.st_mode);
 			size_t file_size =0 ;
 			byte_p data = load_file(entry->d_name,&file_size);
 			if(!strncmp((char*)data,"LNK:",4)){	

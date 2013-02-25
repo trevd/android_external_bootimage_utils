@@ -74,11 +74,13 @@ char *remove_file_extension(char* filename) {
 file_info_enum check_file_exists(char *filename){
 	
 	struct stat sb;
-	if (stat(filename, &sb) == -1) {
+	if (lstat(filename, &sb) == -1) {
 		return FILE_NO;
 	}
 	
-	if((!S_ISREG(sb.st_mode)) && (!S_ISBLK(sb.st_mode))){
+	if(S_ISREG(sb.st_mode) || S_ISBLK(sb.st_mode)|| S_ISLNK(sb.st_mode))
+		return FILE_YES;
+	else
 		return FILE_NO;
 		
 			/*switch (sb.st_mode & S_IFMT) {
@@ -92,9 +94,7 @@ file_info_enum check_file_exists(char *filename){
 				default:       log_write("unknown?\n");                break;
 			}*/
 			
-	}//else
-	//	log_write("check_file_exists:file_found_as_regular_file\n");	
-	return FILE_YES;
+	
 }
 file_info_enum check_directory_exists(char *fname){
 	
@@ -170,12 +170,9 @@ byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size
 	
     if(lseek(fd, offset, SEEK_SET) != offset) goto oops;
 	if(size_store > 0 ){
-		fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,offset);	
 		sz=read(fd, data,10);
-		fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,sz);	
 		 //!= size_store) goto oops; 
 		close(fd);
-		fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,offset);	
 		return data;
 	}
 	
@@ -187,9 +184,8 @@ byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size
 
     if(read(fd, data, sz) != (int)sz) goto oops; 
     close(fd);
-	fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,sz,offset);	
+
     if(file_size) *file_size = sz;
-    fprintf(stderr,"load size:%s size:%d offset:%d\n",filepath,size_store,offset);	
     return data;
 
 oops:
