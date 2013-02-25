@@ -246,12 +246,26 @@ int check_required_parameters(const program_actions_emum action){
 				if((option_values.kernel_filename) ||  (!check_file_exists(option_values.ramdisk_archive_filename))){ 
 						fprintf(stderr,"kernel file %s not found\n",option_values.kernel_filename);
 				}
+				if(option_values.source_filename){
+					if(strchr(option_values.source_filename,',')){ // file list 
+						int counter = 0 , original_length = strlen(option_values.source_filename);
+						for(counter =0 ; counter < original_length;counter++){
+							if(option_values.source_filename[counter]==','){
+								option_values.source_filename[counter]='\0';
+								option_values.source_length += 1;
+							}
+						}
+					}else{ // single file does it exists 
+						if(!check_file_exists(option_values.source_filename))	{
+							fprintf(stderr,"source file %s not found\n",option_values.source_filename);
+							exit(0); 
+						}
+					}
+				}else{ 
+					fprintf(stderr,"source file name not specified\n");
+					exit(0); 
+				}
 				
-				
-				fprintf(stderr,"cmdline_filename %s not found\n",option_values.cmdline_filename);
-				if((option_values.source_filename) && (!check_file_exists(option_values.source_filename))){
-						fprintf(stderr,"source file %s not found\n",option_values.source_filename);
-						exit(0); }
 				if(!option_values.target_filename){
 						fprintf(stderr,"target_filename not specified, source file name will be used\n");
 						}
@@ -352,10 +366,10 @@ int main(int argc, char **argv){
 				fprintf(stderr,"argv[0]=%s\n",argv[0]);
 				if(argv[0][0]!='-'){ 
 					option_values.source_filename=argv[0];
-				
-				}else{ break;}
-				
-				if(argc==1){
+				}else{ 
+					break;
+				}
+				if(argc==1){ // target and source are the same name
 					option_values.target_filename=argv[0];
 				}
 				check_required_parameters(program_options.action);

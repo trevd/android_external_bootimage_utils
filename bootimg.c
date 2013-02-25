@@ -362,8 +362,19 @@ int update_boot_image_file(){
 		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
 		size_t uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
 		//log_write("modify_size:%ld\n",uncompressed_ramdisk_size);
-		size_t new_cpio_file_size=0;
-		byte_p new_cpio_data = modify_ramdisk_entry(uncompressed_ramdisk_data,uncompressed_ramdisk_size,&new_cpio_file_size);
+		size_t new_cpio_file_size=uncompressed_ramdisk_size;
+		
+		char* str_p = option_values.source_filename;
+		byte_p new_cpio_data = uncompressed_ramdisk_data ; 
+		int counter=0;
+		for(counter=0 ; counter<=option_values.source_length; counter++){	
+			option_values.target_filename = option_values.source_filename;
+			fprintf(stderr,"mod: %s %s\n", option_values.source_filename,option_values.target_filename );
+			new_cpio_data =modify_ramdisk_entry(new_cpio_data,new_cpio_file_size,&new_cpio_file_size);
+			option_values.source_filename +=strlen(option_values.source_filename	)+1 ;
+		}
+		
+		
 		free(uncompressed_ramdisk_data);
 		free(ramdisk_data);
 		// nothing done

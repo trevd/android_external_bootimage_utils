@@ -158,6 +158,7 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 	cpio_entry_t cpio_entry = populate_cpio_entry(cpio_data);
 	const byte_p cpio_end  = cpio_data+cpio_size;
 	while(!cpio_entry.is_trailer){
+		
 		if(!strlcmp(option_values.target_filename,cpio_entry.file_name)){
 			struct stat sb;
 			lstat(option_values.source_filename, &sb); 
@@ -166,7 +167,6 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 			
 			if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(new_file_data,new_file_size))){
 				byte_p output_buffer=malloc(new_file_size);
-				
 				size_t times = dos_to_unix(output_buffer , new_file_data) ; 
 				new_file_size-= times ;
 				free(new_file_data);
@@ -179,14 +179,16 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 			(*new_cpio_size)=internal_new_cpio_size;
 			byte_p new_cpio_data = malloc(internal_new_cpio_size);
 			// copy all data upto current entry
-			long bytes_before_entry = cpio_entry.entry_start_p-cpio_data;
-			memcpy(new_cpio_data,cpio_data,bytes_before_entry);
-			byte_p next_p = new_cpio_data+bytes_before_entry;
+	
+			memcpy(new_cpio_data,cpio_data,cpio_entry.entry_start_p-cpio_data);
+			byte_p next_p = new_cpio_data+(cpio_entry.entry_start_p-cpio_data);
 			
 			sb.st_size=new_file_size;
+			// write a new header block.
 			append_cpio_header_to_stream(sb,cpio_entry.file_name,strlen(cpio_entry.file_name)+1,next_p); 
 			next_p += cpio_entry.file_start_p-cpio_entry.entry_start_p;
 			
+			// 
 			memcpy(next_p,new_file_data,aligned_file_size); 
 			next_p += aligned_file_size;
 			memcpy(next_p, cpio_entry.next_header_p, cpio_end-cpio_entry.next_header_p );
@@ -202,13 +204,10 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 byte_p extract_cpio_entry(cpio_entry_t cpio_entry,char * target_filename)
 {
 
-	
-	//fprintf(stderr,"process_uncompressed_ramdisk:%lu %s ",offset,cpio_entry.file_name);
 	if(!strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC)){	
 		return NULL;
 	}
 	if(cpio_entry.is_directory){
-		//fprintf(stderr,"directory\n");
 		mkdir_and_parents(target_filename,cpio_entry.mode);
 	}else if(cpio_entry.is_file){
 		if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
@@ -223,7 +222,6 @@ byte_p extract_cpio_entry(cpio_entry_t cpio_entry,char * target_filename)
 		
 	}
 	else if(cpio_entry.is_link){
-		//fprintf(stderr,"link\n");
 		char symlink_src[cpio_entry.file_size+1];
 		memcpy(symlink_src,(const char*)cpio_entry.file_start_p,cpio_entry.file_size);
 		symlink_src[cpio_entry.file_size] ='\0';
