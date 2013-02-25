@@ -73,7 +73,6 @@ int strstrlcmp(const char *s1, const char *s2,size_t s2_len ){
 	size_t compare_length = string_one_length > string_two_length ?
 								string_one_length : string_two_length;
 	int ret=  memcmp(s1,s2,compare_length); 
-	fprintf(stderr,"strstrlcmp:%d\n",ret);
 	return ret;
 								
 }
