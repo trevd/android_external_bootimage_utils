@@ -329,7 +329,7 @@ size_t  unix_to_dos(byte_p output_buffer, const byte_p input_buffer)
     *q = '\0';
     return times;
 }
-void mkdir_and_parents(const char *path)
+void mkdir_and_parents(const char *path,mode_t mode)
 {
         char opath[256];
         char *p;
@@ -343,11 +343,11 @@ void mkdir_and_parents(const char *path)
                 if(*p == '/') {
                         *p = '\0';
                         if(access(opath, F_OK))
-                                mkdir(opath, S_IRWXU);
+                                mkdir(opath, mode);
                         *p = '/';
                 }
         if(access(opath, F_OK))         /* if path is not terminated with / */
-                mkdir(opath, S_IRWXU);
+                mkdir(opath, mode);
 }
 file_info_enum confirm_file_replace(const char *source_filename,const char *target_filename){
 	fprintf(stderr,"file %s already exists\nReplace with %s? (Yes/No/All) [Y]",source_filename,target_filename);

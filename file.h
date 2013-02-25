@@ -48,7 +48,7 @@ file_info_enum find_in_file(const char *filepath,byte_pp magic	);
 int write_single_line_to_file(const char *filepath, const char *output_buffer,unsigned size);
 int write_to_file_mode(unsigned char *data_in, size_t output_size,char * output_filename, mode_t mode);
 int write_to_file(unsigned char *data_in, size_t output_size,char * output_filename);
-
+void mkdir_and_parents(const char *path,mode_t mode);
 
 byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void *needle,  size_t needle_len);
 

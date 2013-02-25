@@ -183,8 +183,10 @@ static boot_image_t parse_boot_image_info(byte_p data, size_t file_size)
 	return boot_image;
 
 }
-static int write_boot_image(FILE* fp,boot_img_hdr header,unsigned char *kernel_data,unsigned char *ramdisk_data,unsigned char *second_data)
+static int write_boot_image(FILE* fp,boot_img_hdr* header_p,unsigned char *kernel_data,unsigned char *ramdisk_data,unsigned char *second_data)
 {
+
+	boot_img_hdr header= (*header_p);
 	unsigned pagemask = header.page_size - 1; 
 	int header_size = sizeof( header);
 	get_content_hash(&header,kernel_data,ramdisk_data,second_data);
@@ -337,7 +339,7 @@ int pack_boot_image_file(){
 	 
 	struct dirent *entry;	
 	FILE*fp = fopen(option_values.image_filename,"wb");
-	write_boot_image(fp,boot_image_header,kernel_data,ramdisk_gzip_data,second_data);
+	write_boot_image(fp,&boot_image_header,kernel_data,ramdisk_gzip_data,second_data);
     fclose(fp);
     if(second_size) free(second_data);
     free(kernel_data);
@@ -358,17 +360,7 @@ int extract_boot_image_file(){
 	
 	byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
 	unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
-	int counter = 0,strcount =0 ;
 	
-	// replace comma's with null terminator - a dirty string split
-	option_values.source_length=1 ; //strlen(option_values.source_filename);
-	int original_length = strlen(option_values.source_filename);
-	for(counter =0 ; counter < original_length;counter++){
-			if(option_values.source_filename[counter]==','){
-				    option_values.source_filename[counter]='\0';
-				    option_values.source_length += 1;
-				}
-			}
 	
 	//fprintf(stderr,"second_filename=%s  strlen=%d ,count=%d\n",option_values.source_filename,strlen(option_values.source_filename),option_values.source_length);
 	free(ramdisk_data);
@@ -424,49 +416,62 @@ int update_boot_image_file_direct(){
 int update_boot_image_file(){
 			
 	
-	size_t file_size =0, new_cpio_file_size=0;
-	byte_p raw_boot_image_data = load_file(option_values.image_filename,&file_size);
-	boot_image_t boot_image = parse_boot_image_info(raw_boot_image_data,file_size);
-	
-	byte_p ramdisk_gzip_data=NULL;byte_p kernel_data=NULL;
+	FILE* boot_image_file = fopen(option_values.image_filename,"r+b");
+	boot_img_hdr* header = load_boot_image_header(boot_image_file);
+	unsigned pagemask = header->page_size - 1;
+	fseek(boot_image_file , header->page_size, SEEK_CUR);
+	byte_p ramdisk_gzip_data=NULL , kernel_data=NULL ,second_data=NULL;
 	
 	if(option_values.kernel_filename){
+		// updating the kernel
 		fprintf(stderr,"Updating boot image %s kernel with %s\n",option_values.image_filename,option_values.kernel_filename);	 
-		 size_t kernel_size=0;
-		 kernel_data = load_file(option_values.kernel_filename,	&kernel_size);
-		 ramdisk_gzip_data=boot_image.ramdisk_data_start;
-		 boot_image.header.kernel_size=kernel_size;
+		size_t kernel_size=0;
+		kernel_data = load_file(option_values.kernel_filename,	&kernel_size);
+		header->kernel_size=kernel_size;
+		fseek(boot_image_file,header->kernel_size,SEEK_CUR); 
+	}else{ //not updating the kernel . read the original
+		kernel_data=malloc(header->kernel_size);
+		fread(kernel_data,1,header->kernel_size,boot_image_file);
+		
 	}
-	if(option_values.source_filename){
+	fseek(boot_image_file,(header->page_size - (header->kernel_size & pagemask)),SEEK_CUR);
+	
+	if(option_values.source_filename){ //updating ramdisk 
 		fprintf(stderr,"Updating ramdisk in boot image %s\n",option_values.image_filename);
+		byte_p ramdisk_data =malloc(header->ramdisk_size);
+		fread(ramdisk_data,1,header->ramdisk_size,boot_image_file);
 		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
-		size_t uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(boot_image.ramdisk_data_start,boot_image.header.ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
+		size_t uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
 		//log_write("modify_size:%ld\n",uncompressed_ramdisk_size);
+		size_t new_cpio_file_size=0;
 		byte_p new_cpio_data = modify_ramdisk_entry(uncompressed_ramdisk_data,uncompressed_ramdisk_size,&new_cpio_file_size);
 		free(uncompressed_ramdisk_data);
+		free(ramdisk_data);
 		// nothing done
-		if(new_cpio_data==uncompressed_ramdisk_data) goto quit_now;
-		ramdisk_gzip_data = calloc(new_cpio_file_size, sizeof(unsigned char));
-		size_t ramdisk_gzip_size = compress_gzip_ramdisk_memory(new_cpio_data,new_cpio_file_size,ramdisk_gzip_data,new_cpio_file_size);
-		free(new_cpio_data);	
-		boot_image.header.ramdisk_size = ramdisk_gzip_size;
-		kernel_data=boot_image.kernel_data_start;
+		if(new_cpio_data!=uncompressed_ramdisk_data){
+			ramdisk_gzip_data = calloc(new_cpio_file_size, sizeof(unsigned char));
+			size_t ramdisk_gzip_size = compress_gzip_ramdisk_memory(new_cpio_data,new_cpio_file_size,ramdisk_gzip_data,new_cpio_file_size);
+			free(new_cpio_data);	
+			header->ramdisk_size = ramdisk_gzip_size;
+		}
+	}else {
+		ramdisk_gzip_data=malloc(header->ramdisk_size);
+		fread(ramdisk_gzip_data,1,header->ramdisk_size,boot_image_file);
 	}
+	fseek(boot_image_file,(header->page_size - (header->ramdisk_size & pagemask)),SEEK_CUR);
+	second_data=malloc(header->second_size);
+	fread(second_data,1,header->second_size,boot_image_file);
+	fseek(boot_image_file,(header->page_size - (header->second_size & pagemask)),SEEK_CUR);
+	fclose(boot_image_file);
 	
 	FILE*fp = fopen(option_values.image_filename,"wb");
-	write_boot_image(fp,boot_image.header,kernel_data,ramdisk_gzip_data,boot_image.second_data_start);
+	write_boot_image(fp,header,kernel_data,ramdisk_gzip_data,second_data);
 	fclose(fp);
 	
-	free(raw_boot_image_data);
+	free(kernel_data);
+	free(ramdisk_gzip_data);
+	free(second_data);
 	
-	
-	if(option_values.kernel_filename)
-		free(kernel_data);
-	else
-		free(ramdisk_gzip_data);
-	return 0;
-quit_now:
-	free(raw_boot_image_data);
 	return 0;
 	exit(0);
 }

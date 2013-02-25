@@ -236,17 +236,28 @@ int check_required_parameters(const program_actions_emum action){
 				break ; 
 			}
 			case EXTRACT:{
+					option_values.source_length=1 ;
 					if(!option_values.source_filename){
-				
+						
 						fprintf(stderr,"nothing to extract, you must set one or more sourcefiles\n");
 						exit(0);
 					}
 					if(!option_values.target_filename){
 						log_write("main:extract no target file set - using source\n");		
+						
 						option_values.target_filename=option_values.source_filename;
 					}
 					if (strchr(option_values.source_filename,',')!=NULL){
 						option_values.target_filename=NULL;
+		
+						int counter = 0 , original_length = strlen(option_values.source_filename);
+						for(counter =0 ; counter < original_length;counter++){
+								if(option_values.source_filename[counter]==','){
+									option_values.source_filename[counter]='\0';
+									option_values.source_length += 1;
+							}
+						}
+	
 					}
 						
 						
@@ -288,6 +299,7 @@ int main(int argc, char **argv){
 		 case LIST:{
 			int ret =(*program_options.action_function_p)();
 			exit(0);
+			break;
 			}
 		case EXTRACT: { // Extract implied order is Image,Source,Target
 			 argc-- ; argv++ ;
@@ -301,7 +313,25 @@ int main(int argc, char **argv){
 				}
 			}else
 				fprintf(stderr,"no more args\n");
-			}break;
+			
+			break;}
+		case UPDATE: {
+			argc-- ; argv++ ;
+			if(argc>0){
+				fprintf(stderr,"argv[0]=%s\n",argv[0]);
+				if(argv[0][0]!='-'){ 
+					option_values.source_filename=argv[0];
+				}
+				if(argc==1){
+					option_values.target_filename=argv[0];
+				}
+				check_required_parameters(program_options.action);
+				int ret =(*program_options.action_function_p)();
+				exit(0);
+			}else{
+				fprintf(stderr,"no more args\n"); 
+			}break ; 
+		}
 		default:{
 			argc-- ; argv++ ; break;
 			}
