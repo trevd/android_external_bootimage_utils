@@ -8,15 +8,13 @@
 #include "program.h"
 #include "file.h"
 const byte magic_gzip[4]={ 0x1F,0x8B,0x08,0x08 }; //2067208
-const byte magic_linux_zimage[4]={ 0x18,0x28,0x6F,0x01 }; 
-const int magic_linux_zimage_offset=0x24; 
+
 const byte magic_gzip_no_name[4] =  { 0x1F,0x8B,0x08,0x00 };//529205256
 const byte magic_cpio_ascii[6] = { 0x30,0x37,0x30,0x37,0x30,0x31 } ;////0x303137303730
 
 static file_info_enum dirty_magic_compare_offset(const char *filepath, const byte_p magic,size_t read_length,off_t offset){
 	byte_p buff =load_file_from_offset(filepath,offset,&read_length);
 	if(buff){
-		//int i = 0 ;printf("%s size:%d off:%d\n",filepath,(int)read_length,offset);for(i = 0 ; i<read_length;i++){printf("0x%x 0x%x\n",buff[i],magic[i]);}
 		int res =  !memcmp(magic,buff,read_length	);
 		free(buff);
 		return res;	
@@ -119,9 +117,6 @@ file_info_enum check_directory_exists(char *fname){
 		return FILE_NO;
 	}else
 		return FILE_YES ;	//S_ISDIR(sb.st_mode);
-}
-file_info_enum is_linux_kernal_zImage_file(const char *filepath){
-	return dirty_magic_compare_offset(filepath,(const byte_p)magic_linux_zimage,sizeof(magic_linux_zimage),magic_linux_zimage_offset);
 }
 file_info_enum is_cpio_file(const char *filepath)
 {

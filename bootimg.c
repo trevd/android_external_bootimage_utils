@@ -50,7 +50,6 @@
 static unsigned char padding[MAXIMUM_KNOWN_PAGE_SIZE] = { 0, };
 boot_img_hdr* load_boot_image_header(FILE *fp){
 	
-	//int fd = open(option_values.image_filename,O_RDWR);
 	if(!fp){
 		fprintf(stderr,"error opening file %s errno:%d %s\n",option_values.image_filename,errno,strerror(errno));
 		exit(1);
@@ -257,25 +256,23 @@ int pack_boot_image_file(){
 	if ( option_values.kernel_filename ) kernel_data=load_file(option_values.kernel_filename,&kernel_size);
 	if ( option_values.second_filename ) second_data=load_file(option_values.second_filename,&second_size);
 
-	boot_img_hdr boot_image_header;
-	memset(&boot_image_header, 0, sizeof(boot_image_header));
-	strncpy((char*)boot_image_header.magic,BOOT_MAGIC,BOOT_MAGIC_SIZE) ;
+	boot_img_hdr header;
+	memset(&header, 0, sizeof(header));
+	strncpy((char*)header.magic,BOOT_MAGIC,BOOT_MAGIC_SIZE) ;
 	
-	boot_image_header.kernel_size = kernel_size;
-	boot_image_header.kernel_addr = DEFAULT_KERNEL_ADDRESS;
-	boot_image_header.ramdisk_size = ramdisk_gzip_size;
-	boot_image_header.ramdisk_addr = DEFAULT_RAMDISK_ADDRESS;
-	boot_image_header.second_size = second_size;
-	boot_image_header.second_addr = DEFAULT_SECOND_ADDRESS;
-	boot_image_header.tags_addr = DEFAULT_TAGS_ADDRESS;
-	boot_image_header.page_size = option_values.page_size;	
+	header.kernel_size = kernel_size;
+	header.kernel_addr = DEFAULT_KERNEL_ADDRESS;
+	header.ramdisk_size = ramdisk_gzip_size;
+	header.ramdisk_addr = DEFAULT_RAMDISK_ADDRESS;
+	header.second_size = second_size;
+	header.second_addr = DEFAULT_SECOND_ADDRESS;
+	header.tags_addr = DEFAULT_TAGS_ADDRESS;
+	header.page_size = option_values.page_size;	
 	log_write("create_boot_image_file:kernel_size %d\n",kernel_size);
-	char *cmdline = (!option_values.cmdline_text) ? "" : option_values.cmdline_text;
-	char *board = (!option_values.board_name) ? "" : option_values.board_name;
-	strncpy((char*)boot_image_header.cmdline,cmdline,BOOT_ARGS_SIZE);
-	strncpy((char*)boot_image_header.name,board,BOOT_NAME_SIZE);	
+	strncpy((char*)header.cmdline,option_values.cmdline_text,BOOT_ARGS_SIZE);
+	strncpy((char*)header.name,option_values.board_name,BOOT_NAME_SIZE);	
 	FILE*fp = fopen(option_values.image_filename,"wb");
-	write_boot_image(fp,&boot_image_header,kernel_data,ramdisk_gzip_data,second_data);
+	write_boot_image(fp,&header,kernel_data,ramdisk_gzip_data,second_data);
     fclose(fp);
     log_write("create_boot_image_file:ramdisk_gzip_size=%lu\n",ramdisk_gzip_size);
     if(second_size) free(second_data);
@@ -343,6 +340,11 @@ int update_boot_image_file(){
 		fprintf(stderr,"Updating boot image %s kernel with %s\n",option_values.image_filename,option_values.kernel_filename);	 
 		size_t kernel_size=0;
 		kernel_data = load_file(option_values.kernel_filename,	&kernel_size);
+		if(memcmp(kernel_data+magic_linux_zimage_offset,magic_linux_zimage,4)){
+			fprintf(stderr,"%s is not a valid kernel zImage\n",option_values.kernel_filename);
+			fclose(boot_image_file);
+			exit(0);
+		};
 		header->kernel_size=kernel_size;
 		fseek(boot_image_file,header->kernel_size,SEEK_CUR); 
 		rewrite=1;

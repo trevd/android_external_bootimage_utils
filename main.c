@@ -65,7 +65,7 @@ int strlcmp(const char *s1, const char *s2){
 }
 int strstrlcmp(const char *s1, const char *s2,size_t s2_len ){
 	
-	if(!s1 || !s2 || s2_len<0 )
+	if(!s1 || !s2 || (int)s2_len<0 )
 		return 99;
 	
 	size_t string_one_length=strlen(s1);
@@ -151,7 +151,9 @@ int parse_command_line_switch_arguments(char*** argv, command_line_switches_p co
 }
 char* parse_file_or_string(char *filename,char* value ,char* default_value, size_t  max_size){
 	
-	size_t length=0; char *return_value = ""; 
+	if((!filename) && (!value)) return "\0";
+	size_t length=0; char *return_value = "\0"; 
+	
 	if(value) {
 		length = strlen(value);
 	}else{
@@ -166,7 +168,7 @@ char* parse_file_or_string(char *filename,char* value ,char* default_value, size
 		}
 	}
 	// santize for new line
-	int counter=0;
+	unsigned int counter=0;
 	for(counter=0 ; counter < length ; counter++){
 		if((counter+1<length) && ( (return_value[counter]=='\r') && (return_value[counter+1]=='\n'))){
 			return_value[counter]='\0'; break;
@@ -215,9 +217,7 @@ int check_required_parameters(const program_actions_emum action){
 				}
 			case PACK:{
 				if(!option_values.page_size) option_values.page_size=DEFAULT_PAGE_SIZE;
-				if((option_values.board_filename) || (option_values.board_name)  )	
-					option_values.cmdline_text =parse_file_or_string(option_values.board_filename,option_values.board_name,DEFAULT_BOARD_NAME,BOOT_NAME_SIZE);	
-				if((option_values.cmdline_filename)  || (option_values.cmdline_text)  )	
+					option_values.board_name =parse_file_or_string(option_values.board_filename,option_values.board_name,DEFAULT_BOARD_NAME,BOOT_NAME_SIZE);	
 					option_values.cmdline_text =parse_file_or_string(option_values.cmdline_filename,option_values.cmdline_text,DEFAULT_CMDLINE_NAME,BOOT_ARGS_SIZE);	
 				
 				if(!option_values.kernel_filename){ // Image file is not set look for a valid filename 
@@ -234,6 +234,7 @@ int check_required_parameters(const program_actions_emum action){
 						}
 					}
 				}
+				
 				break;
 			}
 			case UPDATE:{

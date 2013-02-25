@@ -29,6 +29,8 @@ typedef unsigned char** byte_pp ;
 typedef unsigned char* byte_p ;
 typedef unsigned char byte ;
 typedef unsigned long offset_t ;
+static byte magic_linux_zimage[4]={ 0x18,0x28,0x6F,0x01 }; 
+static int magic_linux_zimage_offset=0x24; 
 int is_path_directory(char *dname);
 file_info_enum check_directory_exists(char *dname);
 file_info_enum check_file_exists(char *fname);
