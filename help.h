@@ -23,12 +23,11 @@ update    	update the boot image ramdisk and header property\n\
 help		print the help information for the specificed action\n\n\
 See bootimg-tools help <action> for detailed information\n"
 
-#define HELP_UNPACK_MAIN "\
+#define HELP_EXTRACT_MAIN "\
 Unpack: unpacks a boot image into it's constituent parts\n\
-Usage:  	bootimg-tools unpack <boot image file> <switches>\n\
+Usage:  bootimg-tools extract <boot image file> <switches>\n\
 Switches:\n\
-    -h, --header [filename]           Extract the boot image header and additional useful\n\
-                                      information to [filename] leave filename empty to use\n\
+    -h, --header [filename]           Extract the boot image header information to [filename] leave filename empty to use\n\
                                       default filename ( default=header)\n\
     -c, --cmdline [filename]          Extract the boot image kernel cmdline to [filename]\n\
                                       leave filename empty to use default filename ( default=cmdline )\n\
@@ -41,7 +40,9 @@ Switches:\n\
     -x, --ramdisk-archive [filename]  Extract the compressed ramdisk to [filename] leave filename\n\
                                       empty to use default ( default=initramfs.cpio.<type> ), when\n\
                                       using the defaults the <type> will be determined by the file magic\n\
-                                      common type are lzop (.lzo) and gzip (.gz)\n\n\
+                                      common type are lzop (.lzo) and gzip (.gz)\n\
+    -f, --files < file1,file2,... >   Extract files specified in the comma seperated from the ramdisk\n\
+                                      if the file cannot be found the entry is ignored processed\n\n\
 Notes: <boot image file>  is required and must be a valid android boot image\n\
        --kernel, --header, --cmdline and --pagesize are optional --header includes the cmdline and pagesize info\n\
        --ramdisk-archive and --ramdisk-directory are optional\n\
@@ -71,19 +72,15 @@ Notes: <boot image file>  is required and must be a valid android boot image\n\
   All optional commands can be used in any combination required.\n\n"
 
 enum HELP_ME { HELP_NONE,HELP_MAIN, HELP_UNPACK , HELP_PACK, HELP_EXTRACT, HELP_UPDATE } ;	
-static void print_main_usage(){
-	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
-	PRINT_MAIN_USAGE
-	exit(0);
-}
-int print_usage(){
+
+static int print_usage(){
 	
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
 	PRINT_MAIN_USAGE
 	return 0;
 }
 
-void print_question(char *action){
+static  void print_question(char *action){
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE	
 	fprintf(stderr,"%s what?\n",action);
 	PRINT_MAIN_USAGE
@@ -115,21 +112,22 @@ static void check_for_help_call(int argc,char ** argv){
 			help_me=HELP_PACK;
 		}
 	}
-//	fprintf(stderr,"H:%d %d\n",help_me,argc);
-	if (help_me==HELP_MAIN){
-//		fprintf(stderr,"HM:%d %d\n",help_me,argc);
-		print_main_usage();
-	}
-	if(help_me==HELP_UNPACK){
-		fprintf(stderr,HELP_UNPACK_MAIN);
-		exit(0);	
-	}
-	if(help_me==HELP_PACK){
-		fprintf(stderr,HELP_PACK_MAIN);
-		exit(0);	
-	}
 	return ;
 	
 }
-
+static int help_main(){
+	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
+	PRINT_MAIN_USAGE
+	exit(0);
+}
+static int help_create(){exit(0);}
+static int help_extract(){ 
+	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
+	fprintf(stderr,HELP_EXTRACT_MAIN); 
+	exit(0);
+}
+static int help_remove(){exit(0);}
+static int help_add(){exit(0);}
+static int help_list(){exit(0);}
+static int help_update(){exit(0);}
 #endif 

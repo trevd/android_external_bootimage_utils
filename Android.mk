@@ -11,6 +11,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 LOCAL_SRC_FILES := $(src_files)
 
 LOCAL_STATIC_LIBRARIES := 	libz
+BUILD_HOST_64bit:=1
 
 LOCAL_MODULE := bootimg-tools
  

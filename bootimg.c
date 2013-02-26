@@ -139,7 +139,7 @@ fail:
 // Extract Kernel File
 // boot_image_file : Boot Image File. File Position must be at the start of the kernel
 // Returns : Sets boot_image_file file position to ramdisk entry
-static int unpack_kernel_file(FILE* boot_image_file,boot_img_hdr* header){
+static int process_kernel_section(FILE* boot_image_file,boot_img_hdr* header){
 	unsigned pagemask = header->page_size - 1;
 	if(option_values.kernel_filename){
 		fprintf(stderr," Extracting Kernel %s\n",option_values.kernel_filename);
@@ -153,7 +153,7 @@ static int unpack_kernel_file(FILE* boot_image_file,boot_img_hdr* header){
 	fseek(boot_image_file,(header->page_size - (header->kernel_size & pagemask)),SEEK_CUR);
 	return 0;
 } 
-static int unpack_ramdisk(FILE* boot_image_file,boot_img_hdr* header){
+static int process_ramdisk_section(FILE* boot_image_file,boot_img_hdr* header){
 	byte_p buffer=NULL;
 	unsigned pagemask = header->page_size - 1;
 	long ramdisk_padding = header->page_size - (header->ramdisk_size & pagemask);
@@ -166,6 +166,7 @@ static int unpack_ramdisk(FILE* boot_image_file,boot_img_hdr* header){
 		fseek(boot_image_file,header->ramdisk_size+ramdisk_padding,SEEK_CUR); 
 		return 0;
 	}
+	
 	if(option_values.ramdisk_archive_filename)	
 		write_to_file(buffer,header->ramdisk_size,option_values.ramdisk_archive_filename);
 	
@@ -185,6 +186,48 @@ static int unpack_ramdisk(FILE* boot_image_file,boot_img_hdr* header){
 		free(buffer);
 	return 0 ;	
 		
+}
+static int process_header_section(FILE* boot_image_file,boot_img_hdr* header){
+	if(option_values.header_filename){
+		FILE * header_file = fopen(option_values.header_filename,"wb");
+		if(header_file){
+			fprintf(header_file,"%u"EOL"0x%08x"EOL"%u"EOL"0x%08x"EOL"%u"EOL"0x%08x"EOL"0x%08x"EOL"%u"EOL"%s"EOL"%s"EOL,
+			header->kernel_size,header->kernel_addr,header->ramdisk_size,header->ramdisk_addr,
+			header->second_size,header->second_addr,header->tags_addr,header->page_size,header->name,header->cmdline);
+			fclose(header_file);
+		}
+	}
+	if(option_values.board_filename){
+		if(strlen((char*)header->name)==0){
+			fprintf(stderr,"Board Name file not written : name header entry is empty!\n");
+		}else{
+			FILE * board_file = fopen(option_values.board_filename,"wb");			
+			if(board_file){
+				fprintf(board_file,"%s\n",header->name);
+				fclose(board_file);
+			}	
+		}
+	}
+	if(option_values.cmdline_filename){
+		if(strlen((char*)header->cmdline)==0){
+			fprintf(stderr,"Cmdline file not written : cmdline header entry is empty!\n");
+		}else{
+			FILE * cmdline_file = fopen(option_values.cmdline_filename,"wb");
+			if(cmdline_file){
+				fprintf(cmdline_file,"%s\n",header->cmdline);
+				fclose(cmdline_file);
+			}
+		}	
+	}
+	if(option_values.page_size_filename){
+		FILE * pagesize_file = fopen(option_values.page_size_filename,"wb");
+		if(pagesize_file){
+			fprintf(pagesize_file,"%d\n",header->page_size);
+			fclose(pagesize_file);
+		}
+	}
+	fseek(boot_image_file , HEADER_PAGE_SIZE, SEEK_CUR);
+	return 0;
 }
 static int unpack_second_file(FILE* boot_image_file,boot_img_hdr* header){
 	unsigned pagemask = header->page_size - 1;
@@ -209,9 +252,9 @@ int unpack_boot_image_file()
 	
 	fprintf(stderr," Android Boot Image Found @ %ld\n",offset);
 	fseek(boot_image_file , header->page_size, SEEK_CUR);
-	unpack_kernel_file(boot_image_file,header);
+	//process_kernel_section(boot_image_file,header);
 	fprintf(stderr," Position  %ld\n",ftell(boot_image_file));
-	unpack_ramdisk(boot_image_file,header);
+	
 	fprintf(stderr," Position  %ld\n",ftell(boot_image_file));
 	unpack_second_file(boot_image_file,header);	
 	if(option_values.header_filename){
@@ -227,7 +270,7 @@ int unpack_boot_image_file()
 	exit(0);	
 }
 
-int pack_boot_image_file(){
+int create_boot_image_file(){
 	
 	
 	char starting_directory[PATH_MAX];
@@ -288,24 +331,24 @@ int pack_boot_image_file(){
 
 int extract_boot_image_file(){
 	
+	log_write("Extracting %s\n",option_values.image_filename);
 	FILE* boot_image_file = fopen(option_values.image_filename,"r+b");
 	boot_img_hdr* header = load_boot_image_header(boot_image_file);
-	fseek(boot_image_file , RAMDISK_START ,SEEK_CUR);
 	
-	// assign some memory to read the file	
-	byte_p ramdisk_data =  (byte_p) malloc(header->ramdisk_size) ;
-	fread(ramdisk_data,1,header->ramdisk_size,boot_image_file);
+	process_header_section(boot_image_file,header);
+	process_kernel_section(boot_image_file,header);
+	process_ramdisk_section(boot_image_file,header);
 	fclose(boot_image_file);
 	
-	byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
-	unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
+	//byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
+	//unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
 	
 	
-	//fprintf(stderr,"second_filename=%s  strlen=%d ,count=%d\n",option_values.source_filename,strlen(option_values.source_filename),option_values.source_length);
-	free(ramdisk_data);
+	////fprintf(stderr,"second_filename=%s  strlen=%d ,count=%d\n",option_values.source_filename,strlen(option_values.source_filename),option_values.source_length);
+	//free(ramdisk_data);
 	
-	find_file_in_ramdisk_entries(uncompressed_ramdisk_data);
-	free(uncompressed_ramdisk_data);
+	//find_file_in_ramdisk_entries(uncompressed_ramdisk_data);
+	//free(uncompressed_ramdisk_data);
 	
 	
 	return 0;

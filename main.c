@@ -8,7 +8,7 @@
 #include <string.h>
 #include "program.h"
 #include "file.h"
-#include "help.h"
+
 
 int log_write(const char *format, ...)
 {
@@ -78,33 +78,38 @@ int strstrlcmp(const char *s1, const char *s2,size_t s2_len ){
 }
 program_options_t get_program_options(char *program_action){
 	
-	if(!strlcmp(program_action,"unpack")) return program_options[UNPACK];
 	
-	if(!strlcmp(program_action,"remove")) return program_options[REMOVE];
+	if(!strlcmp(program_action,"remove") || !strlcmp(program_action,"r")) return program_options[REMOVE];
 			
-	if(!strlcmp(program_action,"extract"))	return program_options[EXTRACT];
+	if(!strlcmp(program_action,"extract")  || !strlcmp(program_action,"x"))	return program_options[EXTRACT];
 	
-	if(!strlcmp(program_action,"list")) return program_options[LIST];
+	if(!strlcmp(program_action,"list")  || !strlcmp(program_action,"l")) return program_options[LIST];
 	
-	if(!strlcmp(program_action,"pack")) return program_options[PACK];
+	if(!strlcmp(program_action,"pack")  || !strlcmp(program_action,"p")) return program_options[CREATE];
 	
-	if(!strlcmp(program_action,"update")) return program_options[UPDATE];
+	if(!strlcmp(program_action,"update")  || !strlcmp(program_action,"u")) return program_options[UPDATE];
 
-	return program_options[NOT_SET];
+	help_main();
+	exit(0);
+	
 }
 int check_for_lazy_image(char * test_string,const program_actions_emum action){
 	
-	if(test_string[0]=='-')
+	if(test_string[0]=='-'){
+		log_write("check_for_lazy_image:argument switch found\n");	
 		return 0;
-	
-	if(action == PACK){
+	}
+	if(action == CREATE){
+		log_write("check_for_lazy_image:creating new image:%s\n",test_string);	
 		option_values.image_filename=test_string;
 		return 1;
 	}
 	if(check_file_exists(test_string)){
 		option_values.image_filename=test_string;
+		log_write("check_for_lazy_image:found:%s\n",test_string);	
 		return 1;
 	}
+	help_main();
 	return 0;	
 }
 int parse_command_line_switch_arguments(char*** argv, command_line_switches_p command_lines_switches ){
@@ -190,7 +195,7 @@ int check_required_parameters(const program_actions_emum action){
 			fprintf(stderr,"image file name not set\n"); exit(0);
 	}
 	
-	if(action!=PACK){
+	if(action!=CREATE){
 		if(!check_file_exists(option_values.image_filename)){
 			fprintf(stderr,"boot image file %s does not exist\n",option_values.image_filename);
 			exit(0);
@@ -202,18 +207,10 @@ int check_required_parameters(const program_actions_emum action){
 	
 	errno=0; int got1=0;
 	switch(action){
-			case UNPACK:{
-					if((option_values.output_directory_name) && (check_directory_exists(option_values.output_directory_name))){
-							
-							fprintf(stderr,"the directory %s already exists - overwrite existing files\n",option_values.output_directory_name);
-					}else{
-							option_values.output_directory_name = malloc(PATH_MAX); 
-							getcwd(option_values.output_directory_name,PATH_MAX);
-					}
-					
-					break;
-				}
-			case PACK:{
+				
+				
+				
+			case CREATE:{
 				if(!option_values.page_size) option_values.page_size=DEFAULT_PAGE_SIZE;
 					option_values.board_name =parse_file_or_string(option_values.board_filename,option_values.board_name,DEFAULT_BOARD_NAME,BOOT_NAME_SIZE);	
 					option_values.cmdline_text =parse_file_or_string(option_values.cmdline_filename,option_values.cmdline_text,DEFAULT_CMDLINE_NAME,BOOT_ARGS_SIZE);	
@@ -270,32 +267,39 @@ int check_required_parameters(const program_actions_emum action){
 				break ; 
 			}
 			case EXTRACT:{
+				
+					if(option_values.kernel_filename){ // Image file is not set look for a valid filename 
+						fprintf(stderr,"kernel filename=%s\n",option_values.kernel_filename);
+					}  
+					if((option_values.output_directory_name) && (check_directory_exists(option_values.output_directory_name))){
+							
+							fprintf(stderr,"the directory %s already exists - overwrite existing files\n",option_values.output_directory_name);
+					}else{
+							option_values.output_directory_name = malloc(PATH_MAX); 
+							getcwd(option_values.output_directory_name,PATH_MAX);
+					}
+					
+					
 					option_values.source_length=1 ;
 					if(!option_values.source_filename){
-						
-						fprintf(stderr,"nothing to extract, you must set one or more sourcefiles\n");
-						exit(0);
-					}
-					if(!option_values.target_filename){
+							if(!option_values.target_filename){
 						log_write("main:extract no target file set - using source\n");		
-						
 						option_values.target_filename=option_values.source_filename;
-					}
-					if (strchr(option_values.source_filename,',')!=NULL){
-						option_values.target_filename=NULL;
-		
-						int counter = 0 , original_length = strlen(option_values.source_filename);
-						for(counter =0 ; counter < original_length;counter++){
+						}
+								//fprintf(stderr,"nothing to extract, you must set one or more sourcefiles\n");
+					}else{
+						if (strchr(option_values.source_filename,',')!=NULL){
+							option_values.target_filename=NULL;
+							int counter = 0 , original_length = strlen(option_values.source_filename);
+							for(counter =0 ; counter < original_length;counter++){
 								if(option_values.source_filename[counter]==','){
 									option_values.source_filename[counter]='\0';
 									option_values.source_length += 1;
+								}
 							}
 						}
-	
 					}
-						
-						
-				
+					break;
 			}
 			default:
 					break;
@@ -306,14 +310,15 @@ int check_required_parameters(const program_actions_emum action){
 int parse_command_line_switches(char **argv,program_options_t program_options){
 	while(argv[0]){
 		parse_command_line_switch_arguments( &argv, program_options.command_line_switches);				
-	}	
+	}
+
 	check_required_parameters(program_options.action);
 	return 0;
 	
 }
 int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options){
 
-	fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+	//fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
 	if(check_for_lazy_image((*argv)[0],program_options->action)){	
 		switch(program_options->action){
 		 case LIST:{
@@ -321,18 +326,11 @@ int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options
 			exit(0);
 			break;
 			}
-		case UNPACK: {
-			(*argc)-- ; (*argv)++ ;
-			if((*argc)==0){ 
-				fprintf(stderr,"no more args\n");
-				exit(0);
-
-			}break;
-		}
 		case EXTRACT: { // Extract implied order is Image,Source,Target
 			 (*argc)-- ; (*argv)++ ;
+			 
 			 if((*argc)>0){
-				fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+				//fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
 				if((*argv)[0][0]!='-'){ 
 					option_values.source_filename=(*argv)[0];
 					check_required_parameters(program_options->action);
@@ -362,7 +360,7 @@ int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options
 				fprintf(stderr,"no more args\n"); 
 			}break ; 
 		}
-		case PACK:{
+		case CREATE:{
 				fprintf(stderr,"pack\n"); 
 			(*argc)-- ; (*argv)++ ; break;
 		}
@@ -377,7 +375,7 @@ int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options
 int main(int argc, char **argv){ 
 	
 
-	if(argc==1){ print_main_usage();}	
+	if(argc==1){ help_main();}	
 	
 	
 	//fprintf(stderr,"%d %s\n",argc,argv[1]);
@@ -387,15 +385,15 @@ int main(int argc, char **argv){
 	 
 	program_options_t program_options=get_program_options(argv[1]);
 	argc-- ; argv++ ;
-	if(argc==1){ print_main_usage();}	
-	if(!(option_values.action=program_options.action)) { print_main_usage();}	
+	if(argc==1){(*program_options.help_function_p)();}	
 	argc-- ; argv++ ;
 	
 	try_implicit_mode(&argc,&argv,&program_options);
 	
 			
-	fprintf(stderr,"otu argv[0]=%s\n",argv[0]);
+	//fprintf(stderr,"otu argv[0]=%s\n",argv[0]);
 	parse_command_line_switches(argv,program_options);
+		fprintf(stderr,"Done\n"	);
 	int ret =(*program_options.action_function_p)();
 	
 	fprintf(stderr,"Done\n"	);
