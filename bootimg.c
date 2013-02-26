@@ -113,8 +113,10 @@ static int write_boot_image(FILE* fp,boot_img_hdr* header,unsigned char *kernel_
 	int kernel_padding = header->page_size - (header->kernel_size & pagemask);
 	int second_padding =  header->page_size - (header->second_size & pagemask);
 	int fd = fileno(fp);
-	log_write("write_boot_image %d %d %d\n",header_padding,header_size,pagemask); 
-	log_write("write_boot_image %d %d %d\n",kernel_padding,header->kernel_size,pagemask); 
+	log_write("write_boot_image Header P:%d S:%ld T:%ld\n",header_padding,header_size,header_size+header_padding); 
+	log_write("write_boot_image Kernel P:%d S:%ld T:%ld\n",kernel_padding,header->kernel_size,kernel_padding+header->kernel_size); 
+	//log_write("write_boot_image Kernel P:%d S:%d\n",kernel_padding,header->kernel_size,kernel_padding+header->kernel_size); 
+	log_write("write_boot_image Ramdisk P:%d S:%ld T:%ld\n",ramdisk_padding,header->ramdisk_size,ramdisk_padding+header->ramdisk_size); 
 	if(write(fd, header, header_size) != header_size) goto fail;
     if(write(fd, padding, header_padding) != header_padding) goto fail;
 
@@ -123,11 +125,15 @@ static int write_boot_image(FILE* fp,boot_img_hdr* header,unsigned char *kernel_
 
     if(write(fd, ramdisk_data, header->ramdisk_size) !=(int) header->ramdisk_size) goto fail;
     if(write(fd, padding, ramdisk_padding ) != ramdisk_padding ) goto fail;
+    
+    
     if(header->second_size>0) {
         if(write(fd, second_data,header->second_size) !=(int) header->second_size) goto fail;
         if(write(fd, padding, second_padding ) != second_padding ) goto fail;
     }
+    return 0;
 fail:
+	fprintf(stderr,"FAIL\n");
 	return 0; 
 }
 // Extract Kernel File
@@ -153,7 +159,6 @@ static int unpack_ramdisk(FILE* boot_image_file,boot_img_hdr* header){
 	long ramdisk_padding = header->page_size - (header->ramdisk_size & pagemask);
 	if(option_values.ramdisk_archive_filename || option_values.ramdisk_directory_name || option_values.ramdisk_cpio_filename){
 		fprintf(stderr," Extracting Ramdisk\n");
-	
 		buffer=malloc(header->ramdisk_size);
 		fread(buffer,1,header->ramdisk_size,boot_image_file);
 		fseek(boot_image_file,ramdisk_padding,SEEK_CUR); 
@@ -326,17 +331,15 @@ int list_boot_image_info(){
 	fclose(fp);
 	return 0;
 }
-int update_boot_image_file(){
-			
-	
-	FILE* boot_image_file = fopen(option_values.image_filename,"r+b");
-	boot_img_hdr* header = load_boot_image_header(boot_image_file);
+// 
+byte_p pick_kernel_data(FILE*boot_image_file, const boot_img_hdr* header,boot_img_hdr* new_header, int *rewrite){
+	byte_p kernel_data=NULL;
 	unsigned pagemask = header->page_size - 1;
-	fseek(boot_image_file , header->page_size, SEEK_CUR);
-	byte_p ramdisk_gzip_data=NULL , kernel_data=NULL ,second_data=NULL; int rewrite=0;
-	
 	if(option_values.kernel_filename){
-		// updating the kernel
+		// Using external kernel file. Move file pointer to ramdisk - before we adjust the header
+		// Style Note: Probably should use a different variable for the new header values
+		// to save confusion
+
 		fprintf(stderr,"Updating boot image %s kernel with %s\n",option_values.image_filename,option_values.kernel_filename);	 
 		size_t kernel_size=0;
 		kernel_data = load_file(option_values.kernel_filename,	&kernel_size);
@@ -345,17 +348,33 @@ int update_boot_image_file(){
 			fclose(boot_image_file);
 			exit(0);
 		};
-		header->kernel_size=kernel_size;
+		new_header->kernel_size=kernel_size;
 		fseek(boot_image_file,header->kernel_size,SEEK_CUR); 
-		rewrite=1;
+		(*rewrite)=1;
 	}else{ //not updating the kernel . read the original
 		kernel_data=malloc(header->kernel_size);
 		fread(kernel_data,1,header->kernel_size,boot_image_file);
 		
 	}
 	fseek(boot_image_file,(header->page_size - (header->kernel_size & pagemask)),SEEK_CUR);
+	return kernel_data;
+}
+
+int update_boot_image_file(){
+			
+	
+	FILE* boot_image_file = fopen(option_values.image_filename,"r+b");
+	boot_img_hdr* header = load_boot_image_header(boot_image_file);
+	boot_img_hdr new_header ;
+	memcpy(&new_header,header,sizeof(boot_img_hdr));
+	unsigned pagemask = header->page_size - 1;
+	fseek(boot_image_file , header->page_size, SEEK_CUR);
+	byte_p ramdisk_gzip_data=NULL , kernel_data=NULL ,second_data=NULL; int rewrite=0;
+	kernel_data = pick_kernel_data(boot_image_file,header,&new_header,&rewrite);
+	fprintf(stderr,"Kernel ramdisk in boot image %s\n",option_values.image_filename);
 	
 	if(option_values.source_filename){ //updating ramdisk 
+		fseek(boot_image_file,header->ramdisk_size+(header->page_size - (header->ramdisk_size & pagemask)),SEEK_CUR);
 		fprintf(stderr,"Updating ramdisk in boot image %s\n",option_values.image_filename);
 		byte_p ramdisk_data =malloc(header->ramdisk_size);
 		fread(ramdisk_data,1,header->ramdisk_size,boot_image_file);
@@ -379,13 +398,15 @@ int update_boot_image_file(){
 		free(ramdisk_data);
 		// nothing done
 		if(new_cpio_data!=uncompressed_ramdisk_data){
+			
 			ramdisk_gzip_data = calloc(new_cpio_file_size, sizeof(unsigned char));
 			size_t ramdisk_gzip_size = compress_gzip_ramdisk_memory(new_cpio_data,new_cpio_file_size,ramdisk_gzip_data,new_cpio_file_size);
 			free(new_cpio_data);	
-			header->ramdisk_size = ramdisk_gzip_size;
+			new_header.ramdisk_size = ramdisk_gzip_size;
 			rewrite=1;
 		}
 	}else {
+		fprintf(stderr,"Using Existing  ramdisk in boot image %s %u\n",option_values.image_filename,header->ramdisk_size);
 		ramdisk_gzip_data=malloc(header->ramdisk_size);
 		fread(ramdisk_gzip_data,1,header->ramdisk_size,boot_image_file);
 	}
@@ -398,7 +419,7 @@ int update_boot_image_file(){
 		if (option_values.cmdline_text)strncpy((char*)header->cmdline,option_values.cmdline_text,BOOT_ARGS_SIZE);
 		fclose(boot_image_file);
 		FILE*fp = fopen(option_values.image_filename,"wb");
-		write_boot_image(fp,header,kernel_data,ramdisk_gzip_data,second_data);
+		write_boot_image(fp,&new_header,kernel_data,ramdisk_gzip_data,second_data);
 		fclose(fp);
 		
 		free(kernel_data);

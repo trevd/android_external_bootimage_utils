@@ -153,15 +153,13 @@ char* parse_file_or_string(char *filename,char* value ,char* default_value, size
 	
 	if((!filename) && (!value)) return "\0";
 	size_t length=0; char *return_value = "\0"; 
-	
 	if(value) {
 		length = strlen(value);
 	}else{
 		if(check_file_exists(filename)) { // found the start of a direct command line look for the end
 			return_value = (char*) load_file(filename,&length);
 		}else{
-			if(strlcmp(filename,default_value)){ 
-				// File doesn't exist and the text is not default assume direct input
+			if(strlcmp(filename,default_value)){ // File doesn't exist and the text is not default assume direct input
 				length= strlen(filename); 
 				return_value = filename;
 			}				
@@ -263,7 +261,7 @@ int check_required_parameters(const program_actions_emum action){
 					}
 				}else{ 
 					fprintf(stderr,"source file name not specified\n");
-					exit(0); 
+					//exit(0); 
 				}
 				
 				if(!option_values.target_filename){
@@ -313,6 +311,69 @@ int parse_command_line_switches(char **argv,program_options_t program_options){
 	return 0;
 	
 }
+int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options){
+
+	fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+	if(check_for_lazy_image((*argv)[0],program_options->action)){	
+		switch(program_options->action){
+		 case LIST:{
+			int ret =(*program_options->action_function_p)();
+			exit(0);
+			break;
+			}
+		case UNPACK: {
+			(*argc)-- ; (*argv)++ ;
+			if((*argc)==0){ 
+				fprintf(stderr,"no more args\n");
+				exit(0);
+
+			}break;
+		}
+		case EXTRACT: { // Extract implied order is Image,Source,Target
+			 (*argc)-- ; (*argv)++ ;
+			 if((*argc)>0){
+				fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+				if((*argv)[0][0]!='-'){ 
+					option_values.source_filename=(*argv)[0];
+					check_required_parameters(program_options->action);
+					int ret =(*program_options->action_function_p)();
+					exit(0);
+				}
+			}else
+				fprintf(stderr,"no more args\n");
+			
+			break;}
+		case UPDATE: {
+			(*argc)-- ; (*argv)++ ;
+			if((*argc)>0){
+				fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+				if((*argv)[0][0]!='-'){ 
+					option_values.source_filename=(*argv)[0];
+				}else{ 
+					break;
+				}
+				if((*argc)==1){ // target and source are the same name
+					option_values.target_filename=(*argv)[0];
+				}
+				check_required_parameters(program_options->action);
+				int ret =(*program_options->action_function_p)();
+				exit(0);
+			}else{
+				fprintf(stderr,"no more args\n"); 
+			}break ; 
+		}
+		case PACK:{
+				fprintf(stderr,"pack\n"); 
+			(*argc)-- ; (*argv)++ ; break;
+		}
+		default:{
+			fprintf(stderr,"default\n"); 
+			(*argc)-- ; (*argv)++ ; break;
+			}
+		}
+	}
+	return 0;
+}
 int main(int argc, char **argv){ 
 	
 
@@ -327,70 +388,13 @@ int main(int argc, char **argv){
 	program_options_t program_options=get_program_options(argv[1]);
 	argc-- ; argv++ ;
 	if(argc==1){ print_main_usage();}	
-	
 	if(!(option_values.action=program_options.action)) { print_main_usage();}	
 	argc-- ; argv++ ;
-	fprintf(stderr,"argv[0]=%s\n",argv[0]);
-	if(check_for_lazy_image(argv[0],program_options.action)){	
-		switch(program_options.action){
-		 case LIST:{
-			int ret =(*program_options.action_function_p)();
-			exit(0);
-			break;
-			}
-		case UNPACK: {
-			argc-- ; argv++ ;
-			if(argc==0){ 
-				fprintf(stderr,"no more args\n");
-				exit(0);
-
-			}break;
-		}
-		case EXTRACT: { // Extract implied order is Image,Source,Target
-			 argc-- ; argv++ ;
-			 if(argc>0){
-				fprintf(stderr,"argv[0]=%s\n",argv[0]);
-				if(argv[0][0]!='-'){ 
-					option_values.source_filename=argv[0];
-					check_required_parameters(program_options.action);
-					int ret =(*program_options.action_function_p)();
-					exit(0);
-				}
-			}else
-				fprintf(stderr,"no more args\n");
+	
+	try_implicit_mode(&argc,&argv,&program_options);
+	
 			
-			break;}
-		case UPDATE: {
-			argc-- ; argv++ ;
-			if(argc>0){
-				fprintf(stderr,"argv[0]=%s\n",argv[0]);
-				if(argv[0][0]!='-'){ 
-					option_values.source_filename=argv[0];
-				}else{ 
-					break;
-				}
-				if(argc==1){ // target and source are the same name
-					option_values.target_filename=argv[0];
-				}
-				check_required_parameters(program_options.action);
-				int ret =(*program_options.action_function_p)();
-				exit(0);
-			}else{
-				fprintf(stderr,"no more args\n"); 
-			}break ; 
-		}
-		case PACK:{
-				fprintf(stderr,"pack\n"); 
-			argc-- ; argv++ ; break;
-		}
-		default:{
-			fprintf(stderr,"default\n"); 
-			argc-- ; argv++ ; break;
-			}
-		}
-	}
-			
-	fprintf(stderr,"argv[0]=%s\n",argv[0]);
+	fprintf(stderr,"otu argv[0]=%s\n",argv[0]);
 	parse_command_line_switches(argv,program_options);
 	int ret =(*program_options.action_function_p)();
 	
