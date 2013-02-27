@@ -103,35 +103,48 @@ int get_content_hash(boot_img_hdr* header,unsigned char *kernel_data,unsigned ch
     return 0;
 
 }
-static int write_boot_image(FILE* fp,boot_img_hdr* header,unsigned char *kernel_data,unsigned char *ramdisk_data,unsigned char *second_data)
+static int write_boot_image(FILE* boot_image_file,boot_img_hdr* header,unsigned char *kernel_data,unsigned char *ramdisk_data,unsigned char *second_data)
 {
 	unsigned pagemask = header->page_size - 1; 
-	int header_size = sizeof(boot_img_hdr);
+	size_t header_size = (size_t)sizeof(boot_img_hdr);
 	get_content_hash(header,kernel_data,ramdisk_data,second_data);
-	int ramdisk_padding = header->page_size - (header->ramdisk_size & pagemask);
-	int header_padding = header->page_size - (header_size & pagemask);
-	int kernel_padding = header->page_size - (header->kernel_size & pagemask);
-	int second_padding =  header->page_size - (header->second_size & pagemask);
-	int fd = fileno(fp);
+	size_t ramdisk_padding = header->page_size - (header->ramdisk_size & pagemask);
+	size_t header_padding = header->page_size - (header_size & pagemask);
+	size_t kernel_padding = header->page_size - (header->kernel_size & pagemask);
+	size_t second_padding =  header->page_size - (header->second_size & pagemask);
 	log_write("write_boot_image Header P:%d S:%ld T:%ld\n",header_padding,header_size,header_size+header_padding); 
 	log_write("write_boot_image Kernel P:%d S:%ld T:%ld\n",kernel_padding,header->kernel_size,kernel_padding+header->kernel_size); 
 	//log_write("write_boot_image Kernel P:%d S:%d\n",kernel_padding,header->kernel_size,kernel_padding+header->kernel_size); 
 	log_write("write_boot_image Ramdisk P:%d S:%ld T:%ld\n",ramdisk_padding,header->ramdisk_size,ramdisk_padding+header->ramdisk_size); 
-	if(write(fd, header, header_size) != header_size) goto fail;
-    if(write(fd, padding, header_padding) != header_padding) goto fail;
+	
+	if(fwrite(header,1,header_size,boot_image_file) !=  header_size) goto header_fail;
+	
+    if(fwrite(padding,1,header_padding,boot_image_file) != header_padding) goto kernel_fail;
 
-    if(write(fd, kernel_data,  header->kernel_size) != (int) header->kernel_size) goto fail;
-	if(write(fd, padding, kernel_padding) != kernel_padding ) goto fail;
+    if(fwrite(kernel_data,1,  header->kernel_size,boot_image_file) !=  header->kernel_size) goto kernel_fail;
+	if(fwrite(padding,1,kernel_padding,boot_image_file) != kernel_padding ) goto kernel_fail;
 
-    if(write(fd, ramdisk_data, header->ramdisk_size) !=(int) header->ramdisk_size) goto fail;
-    if(write(fd, padding, ramdisk_padding ) != ramdisk_padding ) goto fail;
+    if(fwrite(ramdisk_data,1, header->ramdisk_size,boot_image_file) != header->ramdisk_size) goto ramdisk_fail;
+    if(fwrite(padding,1,ramdisk_padding,boot_image_file) != ramdisk_padding ) goto ramdisk_fail;
     
     
     if(header->second_size>0) {
-        if(write(fd, second_data,header->second_size) !=(int) header->second_size) goto fail;
-        if(write(fd, padding, second_padding ) != second_padding ) goto fail;
+        if(fwrite(second_data,1,header->second_size,boot_image_file) != header->second_size) goto second_fail;
+        if(fwrite(padding,1,second_padding,boot_image_file) != second_padding ) goto second_fail;
     }
     return 0;
+header_fail:
+	fprintf(stderr,"HEADER FAIL\n");
+	return 0; 
+kernel_fail:
+	fprintf(stderr,"KERNEL FAIL\n");
+	return 0; 
+ramdisk_fail:
+	fprintf(stderr,"RAM FAIL\n");
+	return 0; 
+second_fail:
+	fprintf(stderr,"SECOND FAIL\n");
+	return 0; 
 fail:
 	fprintf(stderr,"FAIL\n");
 	return 0; 
@@ -153,37 +166,47 @@ static int process_kernel_section(FILE* boot_image_file,boot_img_hdr* header){
 	fseek(boot_image_file,(header->page_size - (header->kernel_size & pagemask)),SEEK_CUR);
 	return 0;
 } 
+static int process_ramdisk_archive(boot_img_hdr* header,byte_p ramdisk_data){
+	if(option_values.ramdisk_archive_filename)	
+		write_to_file(ramdisk_data,header->ramdisk_size,option_values.ramdisk_archive_filename);
+	
+	if(	option_values.ramdisk_cpio_filename || option_values.ramdisk_directory_name || option_values.file_list ){
+		
+		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
+		unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
+		
+		if( option_values.ramdisk_cpio_filename )
+			write_to_file(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_cpio_filename);
+		
+		if( option_values.ramdisk_directory_name )	{
+			process_uncompressed_ramdisk(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_directory_name);
+		}
+		if(option_values.file_list){
+			find_file_in_ramdisk_entries(uncompressed_ramdisk_data);
+		}
+		free(uncompressed_ramdisk_data);
+	}
+	return 0;
+}
 static int process_ramdisk_section(FILE* boot_image_file,boot_img_hdr* header){
-	byte_p buffer=NULL;
+	byte ramdisk_data[header->ramdisk_size];
+	 fprintf(stderr," Extracting Ramdisk %s\n",option_values.ramdisk_directory_name);			
 	unsigned pagemask = header->page_size - 1;
 	long ramdisk_padding = header->page_size - (header->ramdisk_size & pagemask);
 	if(option_values.ramdisk_archive_filename || option_values.ramdisk_directory_name || option_values.ramdisk_cpio_filename){
 		fprintf(stderr," Extracting Ramdisk\n");
-		buffer=malloc(header->ramdisk_size);
-		fread(buffer,1,header->ramdisk_size,boot_image_file);
+		memset(ramdisk_data,0,header->ramdisk_size);
+		fprintf(stderr," Extracting Ramdisk\n");
+		fread(ramdisk_data,1,header->ramdisk_size,boot_image_file);
 		fseek(boot_image_file,ramdisk_padding,SEEK_CUR); 
 	}else{
 		fseek(boot_image_file,header->ramdisk_size+ramdisk_padding,SEEK_CUR); 
 		return 0;
 	}
+	process_ramdisk_archive( header, ramdisk_data);
 	
-	if(option_values.ramdisk_archive_filename)	
-		write_to_file(buffer,header->ramdisk_size,option_values.ramdisk_archive_filename);
-	
-	if(	option_values.ramdisk_cpio_filename || option_values.ramdisk_directory_name ){
-		
-		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
-		unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(buffer,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
-		
-		if( option_values.ramdisk_cpio_filename )
-			write_to_file(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_cpio_filename);
-		
-		if( option_values.ramdisk_directory_name )				
-			process_uncompressed_ramdisk(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_directory_name);
-		
-	}
-	if(option_values.ramdisk_archive_filename || option_values.ramdisk_directory_name || option_values.ramdisk_cpio_filename)
-		free(buffer);
+	//if(option_values.ramdisk_archive_filename || option_values.ramdisk_directory_name || option_values.ramdisk_cpio_filename)
+		//free(ramdisk_data);
 	return 0 ;	
 		
 }
@@ -338,6 +361,8 @@ int extract_boot_image_file(){
 	process_header_section(boot_image_file,header);
 	process_kernel_section(boot_image_file,header);
 	process_ramdisk_section(boot_image_file,header);
+	log_write("Extracting %s\n",option_values.image_filename);
+	
 	fclose(boot_image_file);
 	
 	//byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
@@ -429,11 +454,11 @@ int update_boot_image_file(){
 		char* str_p = option_values.source_filename;
 		byte_p new_cpio_data = uncompressed_ramdisk_data ; 
 		int counter=0;
-		for(counter=0 ; counter<=option_values.source_length; counter++){	
-			option_values.target_filename = option_values.source_filename;
+		for(counter=0 ; counter<=option_values.file_list_count; counter++){	
+			option_values.target_filename = option_values.source_filename=option_values.file_list;
 			fprintf(stderr,"mod: %s %s\n", option_values.source_filename,option_values.target_filename );
 			new_cpio_data =modify_ramdisk_entry(new_cpio_data,new_cpio_file_size,&new_cpio_file_size);
-			option_values.source_filename +=strlen(option_values.source_filename	)+1 ;
+			option_values.file_list +=strlen(option_values.file_list	)+1 ;
 		}
 		
 		

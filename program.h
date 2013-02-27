@@ -1,3 +1,4 @@
+
 #ifndef _PROGAM_H_
 #define _PROGAM_H_
 
@@ -69,7 +70,8 @@ typedef struct {
 	char *board_filename;
 	char *target_filename;
 	char *source_filename;
-	int source_length;
+	char *file_list;
+	int file_list_count;
 	char *log_filename;
 	char *cmdline_text;
 	char *board_name;
@@ -85,15 +87,14 @@ optionvalues_t option_values;
 // Specified the switches that are allow for each action type
 // Most Switches have the same meaning between action types
 typedef enum  _argument_type_enum { 
-		NULL_ARG, NO_ARG=1, REQ_INT_ARG, 
-		REQ_STR_ARG, OPT_INT_ARG, 
-		OPT_STR_ARG, DEF_INT_ARG, DEF_STR_ARG } argument_type_enum ;
+		NULL_ARG, NO_ARG=1, REQ_INT_ARG, DEF_INT_ARG, OPT_INT_ARG, 
+		REQ_STR_ARG, OPT_STR_ARG, DEF_STR_ARG } argument_type_enum ;
 
 typedef struct _opt {
 		argument_type_enum argument_type;
 		const char* long_name;
 		const char* short_char;
-		const char* default_string;
+		char* default_string;
 		int default_value;
 		void * dest_ptr;
 		int* is_set;
@@ -114,6 +115,7 @@ static command_line_switch_t extract_switches[]={
 	 { DEF_STR_ARG, "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename,0},
 	 { DEF_STR_ARG, "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name,0},
 	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename,0},
+	 { REQ_STR_ARG, "files","f",NULL,0,&option_values.file_list,0},
 	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename,0},
 	 { NULL_ARG, 0, 0, 0, 0,0,0}
 };
@@ -143,8 +145,12 @@ static command_line_switch_t update_switches[]={
 	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename,0},
 	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename,0},
 	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,0},
+	 { DEF_STR_ARG, "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,0},
+	 { DEF_STR_ARG, "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,0},
+	 { DEF_STR_ARG, "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,0},
 	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_name,0},
 	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,0},
+	 { REQ_STR_ARG, "files","f",NULL,0,&option_values.file_list,0},
 	 { DEF_STR_ARG, "board-filename","y",DEFAULT_BOARD_NAME,0,&option_values.board_filename,0},
 	 { NULL_ARG, 0, 0, 0, 0,0,0}
 };
@@ -157,6 +163,7 @@ typedef struct _program_options_t  {
 	int (*action_function_p)();
 	int (*help_function_p)();
 } program_options_t; 
+	
 		
 static program_options_t program_options[] ={
 		{NULL,NOT_SET,NULL,NULL},
@@ -167,6 +174,8 @@ static program_options_t program_options[] ={
 		{NULL,REMOVE ,NULL,help_remove },
 		{update_switches,UPDATE ,update_boot_image_file,help_update}
 };
+typedef  program_options_t* program_options_p;
+
 
 #define ACTION_EXTRACT (option_values.action==EXTRACT )
 #define ACTION_PACK (option_values.action==CREATE )

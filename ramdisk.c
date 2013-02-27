@@ -237,8 +237,8 @@ long find_file_in_ramdisk_entries(const byte_p data)
 			//log_write("cpio_entry:source %s file_name=%s next_header:%p is_trailer:%d length:%d %d\n",option_values.source_filename,cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
 			
 			// Ghetto Matching - Instead of breaking off into an array move through our sources string 
-			char* str_p = option_values.source_filename;
-			for(counter=0 ; counter<option_values.source_length; counter++){
+			char* str_p = option_values.file_list;
+			for(counter=0 ; counter<option_values.file_list; counter++){
 				if(!(has_match = strlcmp(str_p,cpio_entry.file_name)))
 					break;	
 				if(!(has_match =strstrlcmp(str_p,cpio_entry.file_name,cpio_entry.parent_directory_length)))

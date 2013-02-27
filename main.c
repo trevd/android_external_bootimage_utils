@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
@@ -112,48 +113,7 @@ int check_for_lazy_image(char * test_string,const program_actions_emum action){
 	help_main();
 	return 0;	
 }
-int parse_command_line_switch_arguments(char*** argv, command_line_switches_p command_lines_switches ){
 
-	// Are we dealing with a short or long command
-	char *current_arg = (*argv[0]); const char * compare_string;
-	int check_long = ((current_arg[0]=='-') && (current_arg[1]=='-')) ? 2 : 1 ; 
-	while( command_lines_switches->argument_type ){
-		compare_string = check_long > 1 ? command_lines_switches->long_name :command_lines_switches->short_char ;
-		if (!strlcmp(current_arg+check_long,compare_string)) break;
-		command_lines_switches++;		
-	}
-	// Option not found return a pointer to the empty End of Array struct
-	if(!command_lines_switches->argument_type) { 
-		fprintf(stderr,"unknown command line switch '%s'\n",current_arg+check_long); 
-		exit(0); 
-	} 
-	switch(command_lines_switches->argument_type){
-		case REQ_STR_ARG:{ 
-			    // required argument, move the argument pointer to be the next arg along
-				(*argv)++;
-				if((!(*argv[0])) || (*argv[0][0])=='-'){ // invalid argument, bin it.
-				fprintf(stderr,"invalid argument for switch '%s'  \n",compare_string); exit(0); }
-				command_lines_switches->is_set=1;
-				*(char **)command_lines_switches->dest_ptr=(*argv[0]);  /* argument value is ok. assign the deference the dest_ptr so we can assign */
-				(*argv)++; 												/* a value to the option_value member directly and move to the next argument */
-				break ; }
-			case DEF_STR_ARG:{ 
-				(*argv)++; // argument comes with a default value move the argument pointer to be the next arg along
-				if((!(*argv[0])) || (*argv[0][0])=='-'){ // next args appears to be a switch, use the default value instead
-					*(const char **)command_lines_switches->dest_ptr =command_lines_switches->default_string;
-					command_lines_switches->is_set=1;
-				}else{ // assign the argument value as normal
-					*(char **)command_lines_switches->dest_ptr=(*argv[0]);
-					command_lines_switches->is_set=1;
-					(*argv)++;
-				}
-				break;
-			}
-		default: break;		 
-	}
-			
-	return 0;
-}
 char* parse_file_or_string(char *filename,char* value ,char* default_value, size_t  max_size){
 	
 	if((!filename) && (!value)) return "\0";
@@ -241,13 +201,13 @@ int check_required_parameters(const program_actions_emum action){
 				if((option_values.kernel_filename) ||  (!check_file_exists(option_values.ramdisk_archive_filename))){ 
 						fprintf(stderr,"kernel file %s not found\n",option_values.kernel_filename);
 				}
-				if(option_values.source_filename){
-					if(strchr(option_values.source_filename,',')){ // file list 
-						int counter = 0 , original_length = strlen(option_values.source_filename);
+				if(option_values.file_list){
+					if(strchr(option_values.file_list,',')){ // file list 
+						int counter = 0 , original_length = strlen(option_values.file_list);
 						for(counter =0 ; counter < original_length;counter++){
-							if(option_values.source_filename[counter]==','){
-								option_values.source_filename[counter]='\0';
-								option_values.source_length += 1;
+							if(option_values.file_list[counter]==','){
+								option_values.file_list[counter]='\0';
+								option_values.file_list_count += 1;
 							}
 						}
 					}else{ // single file does it exists 
@@ -270,7 +230,8 @@ int check_required_parameters(const program_actions_emum action){
 				
 					if(option_values.kernel_filename){ // Image file is not set look for a valid filename 
 						fprintf(stderr,"kernel filename=%s\n",option_values.kernel_filename);
-					}  
+					}
+					//if(option_values.file_list)  
 					if((option_values.output_directory_name) && (check_directory_exists(option_values.output_directory_name))){
 							
 							fprintf(stderr,"the directory %s already exists - overwrite existing files\n",option_values.output_directory_name);
@@ -280,7 +241,7 @@ int check_required_parameters(const program_actions_emum action){
 					}
 					
 					
-					option_values.source_length=1 ;
+					option_values.file_list_count=1 ;
 					if(!option_values.source_filename){
 							if(!option_values.target_filename){
 						log_write("main:extract no target file set - using source\n");		
@@ -288,13 +249,13 @@ int check_required_parameters(const program_actions_emum action){
 						}
 								//fprintf(stderr,"nothing to extract, you must set one or more sourcefiles\n");
 					}else{
-						if (strchr(option_values.source_filename,',')!=NULL){
+						if (strchr(option_values.file_list,',')!=NULL){
 							option_values.target_filename=NULL;
-							int counter = 0 , original_length = strlen(option_values.source_filename);
+							int counter = 0 , original_length = strlen(option_values.file_list);
 							for(counter =0 ; counter < original_length;counter++){
-								if(option_values.source_filename[counter]==','){
-									option_values.source_filename[counter]='\0';
-									option_values.source_length += 1;
+								if(option_values.file_list[counter]==','){
+									option_values.file_list[counter]='\0';
+									option_values.file_list_count += 1;
 								}
 							}
 						}
@@ -308,15 +269,57 @@ int check_required_parameters(const program_actions_emum action){
 		return 0;
 }
 int parse_command_line_switches(char **argv,program_options_t program_options){
+	
+	
+	command_line_switch_t* switches_start = program_options.command_line_switches;
 	while(argv[0]){
-		parse_command_line_switch_arguments( &argv, program_options.command_line_switches);				
+		fprintf(stderr,"argv[0]=%s\n",argv[0]);
+		char* arg = strrchr(argv[0],'-')==NULL ? argv[0] : strrchr(argv[0],'-')+1;
+		while(program_options.command_line_switches){
+			if((!strlcmp(program_options.command_line_switches->short_char,arg)) || (!strlcmp(program_options.command_line_switches->long_name,arg))){
+				fprintf(stderr,"match argv[0]=%s short\n",arg);
+				switch(program_options.command_line_switches->argument_type){
+					case REQ_STR_ARG:{ 
+						// cast the void * to a double char pointer ( or a pointer to a pointer
+						char** dest = (char**)program_options.command_line_switches->dest_ptr;
+						if((!argv[1]) || (argv[1][0]=='-') ){
+							fprintf(stderr,"invalid argument for switch '%s'  \n",arg); 
+							exit(0);
+						}else{
+							(*dest)=argv[1];
+						}
+						argv++;
+						break;
+					}
+					case DEF_STR_ARG:{ 
+						char** dest = (char**)program_options.command_line_switches->dest_ptr;
+						if((!argv[1]) || (argv[1][0]=='-') ){
+							(*dest)=program_options.command_line_switches->default_string;
+						}else{
+							(*dest)==argv[1];
+							
+						}
+						
+						break;	
+					}
+				}
+			break ;
+			} //endif	
+			if(program_options.command_line_switches->argument_type==0){
+				fprintf(stderr,"unknown command line switch '%s'\n",arg);
+				exit(0);
+			}
+			program_options.command_line_switches++;
+		} //endwhile inner
+		program_options.command_line_switches=switches_start;
+		argv++;
 	}
-
-	check_required_parameters(program_options.action);
+	fprintf(stderr,"argv[0]=%s\n",argv[0]);
+	
 	return 0;
 	
 }
-int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options){
+int try_implicit_mode(char ***argv,program_options_p program_options){
 
 	//fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
 	if(check_for_lazy_image((*argv)[0],program_options->action)){	
@@ -327,10 +330,10 @@ int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options
 			break;
 			}
 		case EXTRACT: { // Extract implied order is Image,Source,Target
-			 (*argc)-- ; (*argv)++ ;
+			 (*argv)++ ;
 			 
-			 if((*argc)>0){
-				//fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+			 if((*argv)){
+				
 				if((*argv)[0][0]!='-'){ 
 					option_values.source_filename=(*argv)[0];
 					check_required_parameters(program_options->action);
@@ -342,15 +345,15 @@ int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options
 			
 			break;}
 		case UPDATE: {
-			(*argc)-- ; (*argv)++ ;
-			if((*argc)>0){
+			(*argv)++ ;
+			if((*argv)){
 				fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
 				if((*argv)[0][0]!='-'){ 
 					option_values.source_filename=(*argv)[0];
 				}else{ 
 					break;
 				}
-				if((*argc)==1){ // target and source are the same name
+				if((*argv)){ // target and source are the same name
 					option_values.target_filename=(*argv)[0];
 				}
 				check_required_parameters(program_options->action);
@@ -362,11 +365,11 @@ int try_implicit_mode(int *argc, char ***argv,program_options_t* program_options
 		}
 		case CREATE:{
 				fprintf(stderr,"pack\n"); 
-			(*argc)-- ; (*argv)++ ; break;
+			(*argv)++ ; break;
 		}
 		default:{
 			fprintf(stderr,"default\n"); 
-			(*argc)-- ; (*argv)++ ; break;
+			(*argv)++ ; break;
 			}
 		}
 	}
@@ -386,14 +389,12 @@ int main(int argc, char **argv){
 	program_options_t program_options=get_program_options(argv[1]);
 	argc-- ; argv++ ;
 	if(argc==1){(*program_options.help_function_p)();}	
-	argc-- ; argv++ ;
+	argv++ ;
 	
-	try_implicit_mode(&argc,&argv,&program_options);
+	try_implicit_mode(&argv,&program_options);
 	
-			
-	//fprintf(stderr,"otu argv[0]=%s\n",argv[0]);
+
 	parse_command_line_switches(argv,program_options);
-		fprintf(stderr,"Done\n"	);
 	int ret =(*program_options.action_function_p)();
 	
 	fprintf(stderr,"Done\n"	);
