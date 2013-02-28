@@ -29,6 +29,7 @@ typedef unsigned char** byte_pp ;
 typedef unsigned char* byte_p ;
 typedef unsigned char byte ;
 typedef unsigned long offset_t ;
+static byte magic_cpio_ascii[6] = { 0x30,0x37,0x30,0x37,0x30,0x31 };
 static byte magic_linux_zimage[4]={ 0x18,0x28,0x6F,0x01 }; 
 static int magic_linux_zimage_offset=0x24; 
 int is_path_directory(char *dname);
@@ -53,7 +54,7 @@ int write_to_file(unsigned char *data_in, size_t output_size,char * output_filen
 void mkdir_and_parents(const char *path,mode_t mode);
 
 byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void *needle,  size_t needle_len);
-
+byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const char * needle);
 byte_p load_file(const char *fn, size_t *file_size);
 byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size);
 

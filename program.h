@@ -30,7 +30,7 @@ int update_boot_image_file();
 
 int log_write(const char *format, ...);
 int strlcmp(const char *s1, const char *s2);
-int strstrlcmp(const char *s1, const char *s2,const size_t s2len);
+int strstrlcmp(const char *s1,size_t s1_len, const char *s2,size_t s2_len );
 #define ARRAYSIZE(a) (sizeof(a)/sizeof(*a))
 
 typedef enum  _program_actions_enum {  NOT_SET,	 CREATE , LIST , EXTRACT,ADD , REMOVE , UPDATE } program_actions_emum ;
@@ -97,7 +97,7 @@ typedef struct _opt {
 		char* default_string;
 		int default_value;
 		void * dest_ptr;
-		int* is_set;
+		int (*parser_function_p)();
 } command_line_switch_t ;
 
 typedef command_line_switch_t* command_line_switches_p ;
@@ -148,10 +148,9 @@ static command_line_switch_t update_switches[]={
 	 { DEF_STR_ARG, "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,0},
 	 { DEF_STR_ARG, "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,0},
 	 { DEF_STR_ARG, "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,0},
-	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_name,0},
+	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_filename,0},
 	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,0},
 	 { REQ_STR_ARG, "files","f",NULL,0,&option_values.file_list,0},
-	 { DEF_STR_ARG, "board-filename","y",DEFAULT_BOARD_NAME,0,&option_values.board_filename,0},
 	 { NULL_ARG, 0, 0, 0, 0,0,0}
 };
 

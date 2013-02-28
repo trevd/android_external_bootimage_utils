@@ -166,6 +166,7 @@ static int process_kernel_section(FILE* boot_image_file,boot_img_hdr* header){
 	fseek(boot_image_file,(header->page_size - (header->kernel_size & pagemask)),SEEK_CUR);
 	return 0;
 } 
+
 static int process_ramdisk_archive(boot_img_hdr* header,byte_p ramdisk_data){
 	if(option_values.ramdisk_archive_filename)	
 		write_to_file(ramdisk_data,header->ramdisk_size,option_values.ramdisk_archive_filename);
@@ -182,7 +183,30 @@ static int process_ramdisk_archive(boot_img_hdr* header,byte_p ramdisk_data){
 			process_uncompressed_ramdisk(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_directory_name);
 		}
 		if(option_values.file_list){
-			find_file_in_ramdisk_entries(uncompressed_ramdisk_data);
+			int counter , ok_to_write=FILE_YES;
+			for(counter=0 ; counter<option_values.file_list_count; counter++){			
+				byte_p result = find_string_in_memory(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.file_list);
+				//fprintf(stderr,"uncompressed_ramdisk_data:  %lu  size:%lu\n", uncompressed_ramdisk_data,uncompressed_ramdisk_size);
+				while(result){
+					byte_p cpio_start = result-CPIO_HEADER_SIZE;result+=1;
+					if(!strstrlcmp((const char*)magic_cpio_ascii,6,(const char*)cpio_start,6)){
+						//fprintf(stderr,"mod:  %s %s\n", option_values.file_list,cpio_start);
+						cpio_entry_t cpio_entry = populate_cpio_entry((const byte_p)(cpio_start));
+						if(ok_to_write!=FILE_ALL)
+							if(check_file_exists(cpio_entry.file_name))
+								ok_to_write =confirm_file_replace(cpio_entry.file_name,cpio_entry.file_name);
+							if(ok_to_write!=FILE_NO)
+								extract_cpio_entry(cpio_entry,cpio_entry.file_name);
+					  result=NULL;
+					  break; 
+					}else{	
+						result = find_string_in_memory(result,uncompressed_ramdisk_size-(result-uncompressed_ramdisk_data),option_values.file_list);
+						
+					}
+					
+				}option_values.file_list+=strlen(option_values.file_list)+1;
+				
+			}
 		}
 		free(uncompressed_ramdisk_data);
 	}
@@ -193,10 +217,10 @@ static int process_ramdisk_section(FILE* boot_image_file,boot_img_hdr* header){
 	 fprintf(stderr," Extracting Ramdisk %s\n",option_values.ramdisk_directory_name);			
 	unsigned pagemask = header->page_size - 1;
 	long ramdisk_padding = header->page_size - (header->ramdisk_size & pagemask);
-	if(option_values.ramdisk_archive_filename || option_values.ramdisk_directory_name || option_values.ramdisk_cpio_filename){
-		fprintf(stderr," Extracting Ramdisk\n");
+	if(option_values.ramdisk_archive_filename || option_values.ramdisk_directory_name || option_values.ramdisk_cpio_filename || option_values.file_list){
+		//fprintf(stderr," Extracting Ramdisk\n");
 		memset(ramdisk_data,0,header->ramdisk_size);
-		fprintf(stderr," Extracting Ramdisk\n");
+		//fprintf(stderr," Extracting Ramdisk\n");
 		fread(ramdisk_data,1,header->ramdisk_size,boot_image_file);
 		fseek(boot_image_file,ramdisk_padding,SEEK_CUR); 
 	}else{
@@ -439,32 +463,38 @@ int update_boot_image_file(){
 	fseek(boot_image_file , header->page_size, SEEK_CUR);
 	byte_p ramdisk_gzip_data=NULL , kernel_data=NULL ,second_data=NULL; int rewrite=0;
 	kernel_data = pick_kernel_data(boot_image_file,header,&new_header,&rewrite);
-	fprintf(stderr,"Kernel ramdisk in boot image %s\n",option_values.image_filename);
+	fprintf(stderr,"Kernel in boot image %s %ld\n",option_values.image_filename,ftell(boot_image_file));
 	
-	if(option_values.source_filename){ //updating ramdisk 
-		fseek(boot_image_file,header->ramdisk_size+(header->page_size - (header->ramdisk_size & pagemask)),SEEK_CUR);
-		fprintf(stderr,"Updating ramdisk in boot image %s\n",option_values.image_filename);
-		byte_p ramdisk_data =malloc(header->ramdisk_size);
+	if(option_values.file_list){ //updating ramdisk 
+		fseek(boot_image_file,RAMDISK_START,SEEK_SET);
+		fprintf(stderr,"Updating ramdisk in boot image %s\n",option_values.image_filename,ftell(boot_image_file));
+		byte_p ramdisk_data=malloc(header->ramdisk_size);
+		log_write("ramdisk_size:%ld\n",header->ramdisk_size);
+		
 		fread(ramdisk_data,1,header->ramdisk_size,boot_image_file);
 		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
 		size_t uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
-		//log_write("modify_size:%ld\n",uncompressed_ramdisk_size);
+		log_write("uncompressed_ramdisk_size:%ld\n",uncompressed_ramdisk_size);
 		size_t new_cpio_file_size=uncompressed_ramdisk_size;
 		
-		char* str_p = option_values.source_filename;
+		
 		byte_p new_cpio_data = uncompressed_ramdisk_data ; 
 		int counter=0;
-		for(counter=0 ; counter<=option_values.file_list_count; counter++){	
-			option_values.target_filename = option_values.source_filename=option_values.file_list;
-			fprintf(stderr,"mod: %s %s\n", option_values.source_filename,option_values.target_filename );
-			new_cpio_data =modify_ramdisk_entry(new_cpio_data,new_cpio_file_size,&new_cpio_file_size);
-			option_values.file_list +=strlen(option_values.file_list	)+1 ;
+		for(counter=0 ; counter<option_values.file_list_count; counter++){	
+			byte_p result = find_in_memory(new_cpio_data,new_cpio_file_size,option_values.file_list,strlen(option_values.file_list));
+			if(result){
+				result-=CPIO_HEADER_SIZE;
+				if(!strstrlcmp((const char*)magic_cpio_ascii,6,(const char*)result,6)){
+					//fprintf(stderr,"mod:  %s %s\n", option_values.file_list,result);
+					cpio_entry_t cpio_entry = populate_cpio_entry((const byte_p)(result));
+					new_cpio_data = modify_ramdisk_entry(new_cpio_data,&new_cpio_file_size,cpio_entry);
+					
+				}
+			}
 		}
-		
 		
 		free(uncompressed_ramdisk_data);
 		free(ramdisk_data);
-		// nothing done
 		if(new_cpio_data!=uncompressed_ramdisk_data){
 			
 			ramdisk_gzip_data = calloc(new_cpio_file_size, sizeof(unsigned char));
@@ -494,6 +524,7 @@ int update_boot_image_file(){
 		free(ramdisk_gzip_data);
 		free(second_data);
 	}else{ 
+		fprintf(stderr,"NO rewrite %s\n",option_values.cmdline_text);
 		if(option_values.board_name){
 			fseek(boot_image_file,header->name-(unsigned char*)header,SEEK_SET);
 			fwrite(option_values.board_name,1,BOOT_NAME_SIZE,boot_image_file);	

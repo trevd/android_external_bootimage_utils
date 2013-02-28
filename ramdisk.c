@@ -12,41 +12,11 @@
 #include <private/android_filesystem_config.h>
 
 	
-#define CPIO_HEADER_SIZE sizeof(cpio_newc_header_t)
+
 #define CPIO_TRAILER_MAGIC "TRAILER!!!"
 #define CPIO_TRAILER_MAGIC_LENGTH 11
-typedef struct {
-		   char    c_magic[6];
-		   char    c_ino[8];
-		   char    c_mode[8];
-		   char    c_uid[8];
-		   char    c_gid[8];
-		   char    c_nlink[8];
-		   char    c_mtime[8];
-		   char    c_filesize[8];
-		   char    c_devmajor[8];
-		   char    c_devminor[8];
-		   char    c_rdevmajor[8];
-		   char    c_rdevminor[8];
-		   char    c_namesize[8];
-		   char    c_check[8];
-	   } cpio_newc_header_t;
 
-typedef struct  {
-	cpio_newc_header_t cpio_header;
-	unsigned long  	file_size ;
-	unsigned long  	name_size ;
-	mode_t  	mode ;
-	byte_p entry_start_p;
-	byte_p file_start_p; 
-	byte_p next_header_p;
-	char * file_name ;
-	size_t parent_directory_length;
-	int is_trailer ;
-	int is_directory ; 
-	int is_file ;
-	int is_link ;
-}cpio_entry_t;
+
 
 
 static unsigned long  get_long_from_hex_field(char * header_field_value){
@@ -56,7 +26,7 @@ static unsigned long  get_long_from_hex_field(char * header_field_value){
 	return strtol(buffer,NULL,16);
 }
 
-static cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header_t *cpio_header) {
+cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header_t *cpio_header) {
 
 	cpio_entry_t *cpio_entry_p=(cpio_entry_t *)data;
 	cpio_entry_t cpio_entry = (*cpio_entry_p);
@@ -154,16 +124,20 @@ size_t compress_gzip_ramdisk_memory(const byte_p uncompressed_data , size_t unco
     deflateEnd( &zInfo );    // zlib function
     return( return_value );
 }
-byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t *new_cpio_size){
-	cpio_entry_t cpio_entry = populate_cpio_entry(cpio_data);
-	const byte_p cpio_end  = cpio_data+cpio_size;
-	while(!cpio_entry.is_trailer){
-		
-		if(!strlcmp(option_values.target_filename,cpio_entry.file_name)){
+
+byte_p modify_ramdisk_entry(const byte_p cpio_data,size_t *new_cpio_size,cpio_entry_t cpio_entry){
+	
+	const byte_p cpio_end  = cpio_data+(*new_cpio_size);
+		fprintf(stderr,"cpio_end %p %ld\n",cpio_end,(*new_cpio_size));
 			struct stat sb;
-			lstat(option_values.source_filename, &sb); 
+			if(lstat(option_values.file_list, &sb)< 0){
+				fprintf(stderr,"cannot stat\n",cpio_end,(*new_cpio_size));
+				return NULL;
+			}
+				
+			
 			size_t new_file_size = 0 ;
-			byte_p new_file_data = load_file(option_values.source_filename,&new_file_size);
+			byte_p new_file_data = load_file(cpio_entry.file_name,&new_file_size);
 			
 			if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(new_file_data,new_file_size))){
 				byte_p output_buffer=malloc(new_file_size);
@@ -175,8 +149,9 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 			
 			
 			long aligned_file_size=new_file_size + ((4 - ((new_file_size) % 4)) % 4);
-			unsigned long internal_new_cpio_size = cpio_size +(aligned_file_size - cpio_entry.file_size) ;
+			unsigned long internal_new_cpio_size = (*new_cpio_size) +(aligned_file_size - cpio_entry.file_size) ;
 			(*new_cpio_size)=internal_new_cpio_size;
+			//fprintf(stderr,"new_cpio_size %p %ld\n",(*new_cpio_size));
 			byte_p new_cpio_data = malloc(internal_new_cpio_size);
 			// copy all data upto current entry
 	
@@ -195,11 +170,6 @@ byte_p modify_ramdisk_entry(const byte_p cpio_data,const size_t cpio_size,size_t
 			
 			free(new_file_data);
 			return new_cpio_data;
-			
-		}else
-			cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);			
-	}
-	return cpio_data;
 }
 byte_p extract_cpio_entry(cpio_entry_t cpio_entry,char * target_filename)
 {
@@ -229,44 +199,7 @@ byte_p extract_cpio_entry(cpio_entry_t cpio_entry,char * target_filename)
 	}	
 	return cpio_entry.next_header_p;
 }
-long find_file_in_ramdisk_entries(const byte_p data)
-{
-	cpio_entry_t cpio_entry = populate_cpio_entry(data);
-	int ok_to_write=1	;int counter=0; int has_match = 99;
-		while(!cpio_entry.is_trailer){
-			//log_write("cpio_entry:source %s file_name=%s next_header:%p is_trailer:%d length:%d %d\n",option_values.source_filename,cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name),cpio_entry.name_size);	
-			
-			// Ghetto Matching - Instead of breaking off into an array move through our sources string 
-			char* str_p = option_values.file_list;
-			for(counter=0 ; counter<option_values.file_list; counter++){
-				if(!(has_match = strlcmp(str_p,cpio_entry.file_name)))
-					break;	
-				if(!(has_match =strstrlcmp(str_p,cpio_entry.file_name,cpio_entry.parent_directory_length)))
-					break;
-					str_p += (strlen(str_p)+1) ;
-				}
-		
-			//fprintf(stderr,"cpio_entry.file_name:%s\n",cpio_entry.file_name);
-			if(!has_match){
-				char *target_filename= (option_values.target_filename != NULL) ? option_values.target_filename : cpio_entry.file_name;
-				if(ok_to_write!=FILE_ALL)
-					if(check_file_exists(target_filename)){
-						ok_to_write =confirm_file_replace(cpio_entry.file_name,target_filename);
-					}
-					
-				//fprintf(stderr,"option_values.target_filename:%s\n",target_filename);
-				if(ok_to_write!=FILE_NO){
-					extract_cpio_entry(cpio_entry,target_filename);
-					
-				}
-				//return 0;
-			}
-			cpio_entry = populate_cpio_entry(cpio_entry.next_header_p);				
-	}
-	//log_write("cpio_entry:file_name=%s next_header:%p is_trailer:%d length:%d\n",cpio_entry.file_name,cpio_entry.next_header_p,cpio_entry.is_trailer,strlen(cpio_entry.file_name));	
-	return -1;
-
-}	
+	
 
 int process_uncompressed_ramdisk(const byte_p cpio_raw_data ,unsigned cpio_raw_data_size, char  *ramdisk_dirname)
 {

@@ -10,7 +10,7 @@
 const byte magic_gzip[4]={ 0x1F,0x8B,0x08,0x08 }; //2067208
 
 const byte magic_gzip_no_name[4] =  { 0x1F,0x8B,0x08,0x00 };//529205256
-const byte magic_cpio_ascii[6] = { 0x30,0x37,0x30,0x37,0x30,0x31 } ;////0x303137303730
+
 
 static file_info_enum dirty_magic_compare_offset(const char *filepath, const byte_p magic,size_t read_length,off_t offset){
 	byte_p buff =load_file_from_offset(filepath,offset,&read_length);
@@ -245,6 +245,17 @@ oops:
 byte_p load_file(const char *filename, size_t *file_size)
 {
 	return load_file_from_offset(filename , (off_t)0 , file_size) ;
+}
+byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const char * needle){
+	
+	int begin=0;size_t len = strlen(needle);
+	fprintf(stderr,"HS:%p HL:%ud N:%s\n",haystack,	haystack_len,needle);
+	for(begin=0 ; begin<  haystack_len; begin++){
+		if(haystack[begin]==needle[0]){
+			 if(!strncmp(needle,(char const*)haystack+begin,len)) return (byte_p)haystack+begin;
+		}
+	}
+	return NULL;
 }
 byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void * needle,  size_t needle_len)
 {
