@@ -70,7 +70,7 @@ typedef struct {
 	char *board_filename;
 	char *target_filename;
 	char *source_filename;
-	char *file_list;
+	char **file_list;
 	int file_list_count;
 	char *log_filename;
 	char *cmdline_text;
@@ -80,6 +80,7 @@ typedef struct {
 	int list_ramdisk;
 	int list_extended;
 	int log_stdout;
+	int argument_count;
 	program_actions_emum action;
 } optionvalues_t ;
 optionvalues_t option_values;
@@ -89,79 +90,92 @@ optionvalues_t option_values;
 typedef enum  _argument_type_enum { 
 		NULL_ARG, NO_ARG=1, REQ_INT_ARG, DEF_INT_ARG, OPT_INT_ARG, 
 		REQ_STR_ARG, OPT_STR_ARG, DEF_STR_ARG } argument_type_enum ;
+typedef enum  _switch_type_enum { 
+		NOT_A_SWITCH, LONG_SWITCH=1, SHORT_SWITCH=2 }  switch_type_enum ;
 
-typedef struct _opt {
-		argument_type_enum argument_type;
+typedef struct {
 		const char* long_name;
 		const char* short_char;
 		char* default_string;
 		int default_value;
 		void * dest_ptr;
-		int (*parser_function_p)();
+		int (*parser_function_p)(char ***argv, void* command_line_switch_p) ;
 } command_line_switch_t ;
-
 typedef command_line_switch_t* command_line_switches_p ;
 
-static command_line_switch_t extract_switches[]={ 
-	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename,0},
-	 { DEF_STR_ARG, "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,0},
-	 { DEF_STR_ARG, "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,0},
-	 { DEF_STR_ARG, "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,0},
-	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,0},
-	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,0},
-	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_filename,0},
-	 { DEF_STR_ARG, "header","h",DEFAULT_HEADER_NAME,0,&option_values.header_filename,0},
-	 { DEF_STR_ARG, "second","S",DEFAULT_SECOND_NAME,0,&option_values.second_filename,0},
-	 { DEF_STR_ARG, "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename,0},
-	 { DEF_STR_ARG, "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name,0},
-	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename,0},
-	 { REQ_STR_ARG, "files","f",NULL,0,&option_values.file_list,0},
-	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename,0},
-	 { NULL_ARG, 0, 0, 0, 0,0,0}
-};
-static command_line_switch_t create_switches[]={ 
-	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename,0},
-	 { DEF_STR_ARG, "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,0},
-	 { DEF_STR_ARG, "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,0},
-	 { DEF_STR_ARG, "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,0},
-	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,0},
-	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,0},
-	 { REQ_STR_ARG, "name","n",NULL,0,&option_values.board_name,0},
-	 { DEF_STR_ARG, "board-filename","B",DEFAULT_BOARD_NAME,0,&option_values.board_filename,0},
-	 { DEF_STR_ARG, "header","h",DEFAULT_HEADER_NAME,0,&option_values.header_filename,0},
-	 { DEF_STR_ARG, "second","S",DEFAULT_SECOND_NAME,0,&option_values.second_filename,0},
-	 { DEF_STR_ARG, "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename,0},
-	 { DEF_STR_ARG, "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name,0},
-	 { DEF_INT_ARG, "base-address","b",NULL,DEFAULT_BASE_ADDRESS,&option_values.base_address,0},
-	 { NULL_ARG, 0, 0, 0, 0,0,0}
-};
-static command_line_switch_t list_switches[]={ 
-	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename,0},
-	 { REQ_INT_ARG, "ramdisk","l",NULL,0,NULL,&option_values.list_ramdisk},
-	 { NULL_ARG, 0, 0, 0, 0,0,0}
-};
-static command_line_switch_t update_switches[]={ 
-	 { REQ_STR_ARG, "boot-image","i",NULL,0,&option_values.image_filename,0},
-	 { REQ_STR_ARG, "source","s",NULL,0,&option_values.source_filename,0},
-	 { REQ_STR_ARG, "target","t",NULL,0,&option_values.target_filename,0},
-	 { DEF_STR_ARG, "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,0},
-	 { DEF_STR_ARG, "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,0},
-	 { DEF_STR_ARG, "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,0},
-	 { DEF_STR_ARG, "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,0},
-	 { DEF_STR_ARG, "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_filename,0},
-	 { DEF_STR_ARG, "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,0},
-	 { REQ_STR_ARG, "files","f",NULL,0,&option_values.file_list,0},
-	 { NULL_ARG, 0, 0, 0, 0,0,0}
-};
-
-
-
+// program options logical group switches with program actions
+// and function pointers to the help and action functions
+// the action function pointer performs the work
+// the help function pointer prints the help main text for the option
+// other help is provided by the command line switch type
 typedef struct _program_options_t  {
 	command_line_switches_p command_line_switches;
 	program_actions_emum action ;
 	int (*action_function_p)();
 	int (*help_function_p)();
 } program_options_t; 
+
+
+int parse_file_list(char ***argv, void* command_line_switch_p) ;
+int parse_file_or_string(char ***argv, void* command_line_switch_p) ;
+int parse_value_or_default(char ***argv,void* command_line_switch_p;);
+int parse_value_or_default_exists(char ***argv,void* command_line_switch_p);
+int parse_value_or_error(char ***argv,void* command_line_switch_p);
+int parse_value_or_error_exists(char ***argv,void* command_line_switch_p);
+
+static command_line_switch_t extract_switches[]={ 
+	 {  "boot-image","i",NULL,0,&option_values.image_filename,NULL},
+	 {  "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,parse_value_or_default},
+	 {  "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,parse_value_or_default},
+	 {  "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,parse_value_or_default},
+	 {  "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,parse_value_or_default},
+	 {  "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,parse_value_or_default},
+	 {  "name","n",DEFAULT_BOARD_NAME,0,&option_values.board_filename,parse_value_or_default},
+	 {  "header","h",DEFAULT_HEADER_NAME,0,&option_values.header_filename,parse_value_or_default},
+	 {  "second","S",DEFAULT_SECOND_NAME,0,&option_values.second_filename,parse_value_or_default},
+	 {  "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename,parse_value_or_default},
+	 {  "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name,parse_value_or_default},
+	 {  "source","s",NULL,0,&option_values.source_filename,NULL},
+	 {  "files","f",NULL,0,NULL,parse_file_list},
+	 {  "target","t",NULL,0,&option_values.target_filename,NULL},
+	 {  0, 0, 0, 0,0,0}
+};
+static command_line_switch_t create_switches[]={ 
+	 {  "boot-image","i",NULL,0,&option_values.image_filename,NULL},
+	 {  "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,NULL},
+	 {  "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,NULL},
+	 {  "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,NULL},
+	 {  "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,NULL},
+	 {  "cmdline","c",DEFAULT_CMDLINE_NAME,0,&option_values.cmdline_filename,NULL},
+	 {  "name","n",NULL,0,&option_values.board_name,NULL},
+	 {  "board-filename","B",DEFAULT_BOARD_NAME,0,&option_values.board_filename,NULL},
+	 {  "header","h",DEFAULT_HEADER_NAME,0,&option_values.header_filename,NULL},
+	 {  "second","S",DEFAULT_SECOND_NAME,0,&option_values.second_filename,NULL},
+	 {  "pagesize","p",DEFAULT_PAGESIZE_NAME,0,&option_values.page_size_filename,NULL},
+	 {  "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name,NULL},
+	 {  "base-address","b",NULL,DEFAULT_BASE_ADDRESS,&option_values.base_address,NULL},
+	 {  0, 0, 0, 0,0,0}
+};
+static command_line_switch_t list_switches[]={ 
+	 {  "boot-image","i",NULL,0,&option_values.image_filename,NULL},
+	 {  "ramdisk","l",NULL,0,&option_values.list_ramdisk,NULL},
+	 { 0, 0, 0, 0,0,0}
+};
+static command_line_switch_t update_switches[]={ 
+	 {  "boot-image","i",NULL,0,&option_values.image_filename,parse_value_or_default_exists},
+	 {  "source","s",NULL,0,&option_values.source_filename,parse_value_or_default_exists},
+	 {  "target","t",NULL,0,&option_values.target_filename,parse_value_or_default_exists},
+	 {  "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,parse_value_or_default_exists},
+	 {  "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,parse_value_or_default_exists},
+	 {  "ramdisk-archive","x",DEFAULT_RAMDISK_CPIO_GZIP_NAME,0,&option_values.ramdisk_archive_filename,parse_value_or_default_exists},
+	 {  "ramdisk-directory","d",DEFAULT_RAMDISK_DIRECTORY_NAME,0,&option_values.ramdisk_directory_name,parse_value_or_default_exists},
+	 {  "cmdline","c",DEFAULT_CMDLINE_NAME,BOOT_ARGS_SIZE,&option_values.cmdline_filename,parse_file_or_string},
+	 {  "name","n",DEFAULT_BOARD_NAME,BOOT_NAME_SIZE,&option_values.board_filename,parse_file_or_string},
+	 {  "files","f",NULL,0,NULL,parse_file_list},
+	 {  0, 0, 0, 0,0,0}
+};
+
+
 	
 		
 static program_options_t program_options[] ={

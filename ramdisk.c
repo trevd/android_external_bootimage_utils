@@ -95,7 +95,8 @@ size_t uncompress_gzip_ramdisk_memory(const byte_p compressed_data ,const size_t
         err= inflate( &zInfo, Z_FINISH );     // zlib function
         if ( err == Z_STREAM_END ) {
             return_value= zInfo.total_out;
-        }else{
+        }else{ 
+			       
 			fprintf(stderr,"Err:inflate\n");
 		}
     }else{
