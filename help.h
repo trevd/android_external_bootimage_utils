@@ -12,6 +12,9 @@
 #define PRINT_MAIN_USAGE fprintf(stderr,HELP_MAIN_USAGE);
 #define HELP_MAIN_SUMMARY "bootimg-tools is an highly flexible utility for managing android boot images\n\n"
 
+#define HELP_ERROR_BOOT "\n\
+Error : boot image file not found\n\n"
+
 #define HELP_MAIN_USAGE "\
 Usage:  bootimg-tools [actions] <switches>\n\
 Actions:\n\
@@ -73,6 +76,8 @@ Notes: <boot image file>  is required and must be a valid android boot image\n\
 
 enum HELP_ME { HELP_NONE,HELP_MAIN, HELP_UNPACK , HELP_PACK, HELP_EXTRACT, HELP_UPDATE } ;	
 
+	
+
 static int print_usage(){
 	
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
@@ -120,6 +125,14 @@ static int help_main(){
 	PRINT_MAIN_USAGE
 	exit(0);
 }
+static int help_main_boot(){
+	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
+	fprintf(stderr,HELP_ERROR_BOOT);
+	PRINT_MAIN_USAGE
+	exit(0);
+	
+}
+
 static int help_create(){exit(0);}
 static int help_extract(){ 
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE

@@ -248,10 +248,10 @@ byte_p load_file(const char *filename, size_t *file_size)
 }
 byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const char * needle){
 	
-	int begin=0;size_t len = strlen(needle);
+	size_t begin=0;size_t len = strlen(needle);
 	fprintf(stderr,"HS:%p HL:%ud N:%s\n",haystack,	haystack_len,needle);
-	for(begin=0 ; begin<  haystack_len; begin++){
-		if(haystack[begin]==needle[0]){
+	for(begin=0 ; begin< haystack_len; begin++){
+		if(haystack[begin]==(byte)needle[0]){
 			 if(!strncmp(needle,(char const*)haystack+begin,len+1)) return (byte_p)haystack+begin;
 		}
 	}
@@ -260,8 +260,7 @@ byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const c
 byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void * needle,  size_t needle_len)
 {
   const char *begin;
-  const char *const last_possible
-    = (const char *) haystack + haystack_len - needle_len;
+  const char *const last_possible = (const char *) haystack + haystack_len - needle_len;
 
   if (needle_len == 0)
     /* The first occurrence of the empty string is deemed to occur at the beginning of the string.  */

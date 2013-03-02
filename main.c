@@ -109,7 +109,7 @@ int check_for_lazy_image(char * test_string,const program_actions_emum action){
 		//log_write("check_for_lazy_image:found:%s\n",test_string);	
 		return 1;
 	}
-	help_main();
+	help_main_boot();
 	return 0;	
 }
 char* is_switch(char* test){
@@ -272,7 +272,7 @@ int try_implicit_mode(char ***argv,program_options_p program_options){
 			}
 		case EXTRACT: { // Extract implied order is Image,Source,Target
 			 (*argv)++ ;
-			 
+			 fprintf(stderr,"no more args\n");
 			 if((*argv)){
 				
 				if((*argv)[0][0]!='-'){ 
@@ -326,13 +326,13 @@ int main(int argc, char **argv){
 	option_values.argument_count=argc;
 	program_options_t program_options=get_program_options(argv[1]);
 	argc-- ; argv++ ;
-	 fprintf(stderr,"%d %s\n",argc,argv[1]);
+	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	if(argc==1){(*program_options.help_function_p)();}	
-		fprintf(stderr,"%d %s\n",argc,argv[1]);
+	fprintf(stderr,"%d %s\n",argc,argv[1]);
 	argv++ ;
-	
+	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	try_implicit_mode(&argv,&program_options);
-	
+	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	parse_command_line_switches(&argv,program_options);
 	int ret =(*program_options.action_function_p)();
 	
