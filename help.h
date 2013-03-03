@@ -10,10 +10,27 @@
 #define PRINT_DOUBLE_TAB fprintf(stderr,"\t");
 #define PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE fprintf(stderr,BOOT_IMAGE_UTILITIES_FULL_TITLE);
 #define PRINT_MAIN_USAGE fprintf(stderr,HELP_MAIN_USAGE);
+#define PRINT_ERROR_PREFIX fprintf(stderr,"Error : "); 
 #define HELP_MAIN_SUMMARY "bootimg-tools is an highly flexible utility for managing android boot images\n\n"
 
-#define HELP_ERROR_BOOT "\n\
-Error : boot image file not found\n\n"
+
+#define HELP_ERROR_NO_BOOT "boot image \"%s\" file not found"
+#define HELP_ERROR_NO_KERNEL "kernel file \"%s\" file not found"
+#define HELP_ERROR_FILE_SIZE "unexpected file size"
+#define HELP_ERROR_BOOT_MAGIC "cannot find android boot magic in file \"%s\""
+#define HELP_ERROR_FILE_SHORT_READ "cannot read full file contents"
+#define HELP_ERROR_ARG_FILE_LIST_EMPTY "no files specified in filelist switch"
+#define HELP_ERROR_ARG_FILE_LIST_FILE_NOT_FOUND_DISK "filelist entry %s not found"
+#define HELP_ERROR_ARG_INVALID_LONG "invalid argument value \"%s\" for switch \"%s\""
+#define HELP_ERROR_ARG_INVALID_SHORT "invalid argument value \"%s\" for switch \'%c\'"
+#define HELP_ERROR_ARG_FILE_NOT_FOUND_LONG "file \"%s\" not found for switch \'%s\'"
+#define HELP_ERROR_ARG_FILE_NOT_FOUND_SHORT "file \"%s\" not found for switch \'%c\'"
+#define HELP_ERROR_ARG_FILE_NOT_FOUND_RAMDISK "file \"%s\" not found in ramdisk"
+
+#define HELP_ERROR_IMAGE_RAMDISK_SIZE_ZERO "\
+the boot image header reports the ramdisk size as zero\n\n"
+
+
 
 #define HELP_MAIN_USAGE "\
 Usage:  bootimg-tools [actions] <switches>\n\
@@ -125,13 +142,7 @@ static int help_main(){
 	PRINT_MAIN_USAGE
 	exit(0);
 }
-static int help_main_boot(){
-	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
-	fprintf(stderr,HELP_ERROR_BOOT);
-	PRINT_MAIN_USAGE
-	exit(0);
-	
-}
+
 
 static int help_create(){exit(0);}
 static int help_extract(){ 
@@ -143,4 +154,76 @@ static int help_remove(){exit(0);}
 static int help_add(){exit(0);}
 static int help_list(){exit(0);}
 static int help_update(){exit(0);}
+
+static void help_error_header()
+{
+	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
+	PRINT_SINGLE_LINE
+	PRINT_ERROR_PREFIX
+	
+}
+static int help_error_file_size(){
+	help_error_header();
+	fprintf(stderr,HELP_ERROR_FILE_SIZE);
+	PRINT_DOUBLE_LINE
+	exit(0);
+}
+static int help_error_no_boot(char*filename){
+	help_error_header();
+	fprintf(stderr,HELP_ERROR_NO_BOOT,filename);
+	PRINT_DOUBLE_LINE
+	exit(0);
+}
+static int help_error_boot_magic(char*filename){
+	help_error_header();
+	fprintf(stderr,HELP_ERROR_BOOT_MAGIC,filename);
+	PRINT_DOUBLE_LINE
+	exit(0);
+}
+static int help_error_arg_file_list(char **filelist){
+	free(filelist);
+	help_error_header();
+	fprintf(stderr,HELP_ERROR_ARG_FILE_LIST_EMPTY);
+	PRINT_DOUBLE_LINE
+	exit(0);
+}
+static int help_error_arg_invalid(char **switch_args,const char* long_name){
+	help_error_header();
+	if(switch_args[0][0]=='-'){
+		if(switch_args[0][1]=='-')
+			fprintf(stderr,HELP_ERROR_ARG_INVALID_LONG,switch_args[1],long_name);
+		else 
+			fprintf(stderr,HELP_ERROR_ARG_INVALID_SHORT,switch_args[1],switch_args[0][1]);
+	}
+	PRINT_DOUBLE_LINE
+	exit(0);
+}
+static int help_error_arg_file(char **switch_args,const char* long_name){
+	help_error_header();
+	if(switch_args[0][0]=='-'){
+		if(switch_args[0][1]=='-')
+			fprintf(stderr,HELP_ERROR_ARG_FILE_NOT_FOUND_LONG,switch_args[1],long_name);
+		else 
+			fprintf(stderr,HELP_ERROR_ARG_FILE_NOT_FOUND_SHORT,switch_args[1],switch_args[0][1]);
+	}
+	PRINT_DOUBLE_LINE
+	exit(0);
+}
+static int help_error_ramdisk_file(char** filelist){
+	
+	help_error_header();
+	fprintf(stderr,HELP_ERROR_ARG_FILE_NOT_FOUND_RAMDISK,filelist[0]);
+	PRINT_DOUBLE_LINE
+	free(filelist);
+	exit(0);
+
+}
+static int help_error_image_ramdisk_zero(){
+	
+	help_error_header();
+	fprintf(stderr,HELP_ERROR_IMAGE_RAMDISK_SIZE_ZERO);
+	PRINT_DOUBLE_LINE
+	exit(0);
+	
+}
 #endif 

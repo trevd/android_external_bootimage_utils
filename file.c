@@ -7,26 +7,7 @@
 #include <stdlib.h>
 #include "program.h"
 #include "file.h"
-const byte magic_gzip[4]={ 0x1F,0x8B,0x08,0x08 }; //2067208
 
-const byte magic_gzip_no_name[4] =  { 0x1F,0x8B,0x08,0x00 };//529205256
-
-
-static file_info_enum dirty_magic_compare_offset(const char *filepath, const byte_p magic,size_t read_length,off_t offset){
-	byte_p buff =load_file_from_offset(filepath,offset,&read_length);
-	if(buff){
-		int res =  !memcmp(magic,buff,read_length	);
-		free(buff);
-		return res;	
-	}else return FILE_NO;
-}
-
-
-static file_info_enum dirty_magic_compare(const char *filepath, const byte_p magic,size_t read_length){
-	off_t fpt = 0;
-
-	return dirty_magic_compare_offset(filepath ,magic, read_length, fpt);
-}
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
 int symlink(char *symlink_src,char *filename){ 
 	FILE *output_file_fp = fopen(filename, "wb");
@@ -118,33 +99,27 @@ file_info_enum check_directory_exists(char *fname){
 	}else
 		return FILE_YES ;	//S_ISDIR(sb.st_mode);
 }
-file_info_enum is_cpio_file(const char *filepath)
-{
-	return dirty_magic_compare(filepath,(const byte_p)magic_cpio_ascii,sizeof(magic_cpio_ascii));		
-}
-file_info_enum is_android_boot_image_file(const char *filepath){
-	unsigned int filesize=0;	file_info_enum res = FILE_NO;
-	byte_p data = load_file(filepath,&filesize);
-	if(data){
-		if(find_in_memory(data,filesize,BOOT_MAGIC,BOOT_MAGIC_SIZE))
-			res=FILE_YES;
-		free(data);
-	}
-	return res;
-	
-}
-file_info_enum is_gzip_file(const char *filepath)
-{
-	file_info_enum res = dirty_magic_compare(filepath,(const byte_p)magic_gzip,4);
-	if(!res) res = dirty_magic_compare(filepath,(const byte_p)magic_gzip_no_name,4);
-	return res;			
-}
+
 // Crude ascii checker
 file_info_enum is_windows_text(const byte_p stream, const size_t size){
 	if(is_ascii_text(stream,size))
 		if(strstr((const char*)stream,WINDOWS_EOL))
 			return FILE_YES;
 	return FILE_NO;
+}
+byte_p load_file_easy(char *filename,size_t size,byte_pp output){
+	 
+	 //fprintf(stderr,"file:%p %s\n",(*output),(*output));
+	 FILE *fp = fopen(filename, "rb");
+	 if(!fp){
+	  fprintf(stderr,"file open fail:%s %d\n",filename,size);
+	  return output;
+	 }
+	 (*output)+=fread((*output),1,size,fp);
+	// fprintf(stderr,"file:%p %s\n", (*output),(*output)-size);
+	 fclose(fp); 
+	 return  (*output);
+	 
 }
 file_info_enum is_ascii_text(const byte_p stream, const size_t size){
 	return (file_info_enum)!memchr(stream,(int)NULL,size);
@@ -249,7 +224,7 @@ byte_p load_file(const char *filename, size_t *file_size)
 byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const char * needle){
 	
 	size_t begin=0;size_t len = strlen(needle);
-	fprintf(stderr,"HS:%p HL:%ud N:%s\n",haystack,	haystack_len,needle);
+	//fprintf(stderr,"HS:%p HL:%ud N:%s\n",haystack,	haystack_len,needle);
 	for(begin=0 ; begin< haystack_len; begin++){
 		if(haystack[begin]==(byte)needle[0]){
 			 if(!strncmp(needle,(char const*)haystack+begin,len+1)) return (byte_p)haystack+begin;
@@ -257,28 +232,19 @@ byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const c
 	}
 	return NULL;
 }
-byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const void * needle,  size_t needle_len)
-{
-  const char *begin;
-  const char *const last_possible = (const char *) haystack + haystack_len - needle_len;
-
-  if (needle_len == 0)
-    /* The first occurrence of the empty string is deemed to occur at the beginning of the string.  */
-    return (byte_p) haystack;
-
-  /* Sanity check, otherwise the loop might search through the whole memory.  */
-  if (__builtin_expect (haystack_len < needle_len, 0))
-    return NULL;
-
-  for (begin = (const char *) haystack; begin <= last_possible; ++begin)
-    if (begin[0] == ((const char *) needle)[0] &&
-	!memcmp ((const void *) &begin[1],
-		 (const void *) ((const char *) needle + 1),
-		 needle_len - 1))
-      return (void *) begin;
-
-  return NULL;
+byte_p find_in_memory(const byte_p haystack, size_t haystack_len,const char* needle, size_t needle_len){
+	
+	size_t begin=0;
+	//fprintf(stderr,"Memory HS:%p HL:%u\n",haystack,	haystack_len);
+	for(begin=0 ; begin< haystack_len; begin++){
+		if(haystack[begin]==(byte)needle[0]){
+			 if(!memcmp(needle,haystack+begin,needle_len)) return (byte_p)haystack+begin;
+		}
+	}
+	//fprintf(stderr,"Memory Not Found\n");
+	return NULL;
 }
+
 
 size_t dos_to_unix(byte_p output_buffer, const byte_p input_buffer)
 {
