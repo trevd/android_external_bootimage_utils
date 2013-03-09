@@ -46,6 +46,7 @@ cpio_entry_list_t**  get_cpio_entries(byte_p ramdisk_cpio_data,size_t size,int* 
 cpio_entry_list_t** get_cpio_entries_from_archive(byte_p ramdisk_data,size_t ramdisk_size,size_t* uncompressed_ramdisk_size ,int* cpio_entry_count );
 cpio_entry_list_t**  get_cpio_entries_from_file(FILE*boot_image_file,size_t ramdisk_size,size_t* uncompressed_ramdisk_size,int* cpio_entry_count);
 int free_cpio_entry_memory(cpio_entry_list_t** cpio_entries,int cpio_entries_total) ;
+int free_default_properties_memory(default_property_list_t** properties,int properties_total) ;
 int process_uncompressed_ramdisk(const byte_p ramdisk_cpio_data ,unsigned size, char  *ramdisk_dirname);
 size_t uncompress_gzip_ramdisk_memory(const byte_p compressed_data ,const size_t compressed_data_size,byte_p uncompressed_data,size_t uncompressed_max_size);
 size_t compress_gzip_ramdisk_memory(const byte_p uncompressed_data , size_t uncompressed_data_size,byte_p compressed_data,size_t compressed_max_size);

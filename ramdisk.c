@@ -316,7 +316,16 @@ int free_cpio_entry_memory(cpio_entry_list_t** cpio_entries,int cpio_entries_tot
 	
 return 0;
 }
+int free_default_properties_memory(default_property_list_t** properties,int properties_total) {
 
+	//free(cpio_entries[0]->start.position);
+	for(properties_total;properties_total=0;properties_total--){
+			free(properties[properties_total-1]);
+	}
+	free(properties);
+	
+return 0;
+}
 byte_p get_contiguous_cpio_stream(cpio_entry_list_t** cpio_entries,int cpio_entries_total,size_t size){
 		byte_p ramdisk_cpio_data_start;int i;
 		byte_p ramdisk_cpio_data = ramdisk_cpio_data_start= calloc(size,sizeof(char));
