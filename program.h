@@ -27,7 +27,7 @@ int update_boot_image_file_direct();
 int list_boot_image_info();
 int extract_boot_image_file();
 int update_boot_image_file();
-
+int setup_required_defaults();
 int log_write(const char *format, ...);
 int strlcmp(const char *s1, const char *s2);
 int strstrlcmp(const char *s1,size_t s1_len, const char *s2,size_t s2_len );
@@ -35,17 +35,16 @@ int strstrlcmp(const char *s1,size_t s1_len, const char *s2,size_t s2_len );
 
 typedef enum  _program_actions_enum {  NOT_SET,	 CREATE , LIST , EXTRACT,ADD , REMOVE , UPDATE } program_actions_emum ;
 
-#define DEFAULT_PAGE_SIZE 2048
+#define DEFAULT_KERNEL_OFFSET  0x00008000;
+#define DEFAULT_RAMDISK_OFFSET 0x01000000;
+#define DEFAULT_SECOND_OFFSET  0x00f00000;
+#define DEFAULT_TAGS_OFFSET    0x00000100;
 #define DEFAULT_PAGE_SIZE_NAME "pagesize"
+#define DEFAULT_PAGE_SIZE 2048 
 #define DEFAULT_BASE_ADDRESS 0x10000000
-#define DEFAULT_RAMDISK_ADDRESS 0x01000000+DEFAULT_BASE_ADDRESS
-#define DEFAULT_KERNEL_ADDRESS 0x00008000+DEFAULT_BASE_ADDRESS
-#define DEFAULT_SECOND_ADDRESS 0x00f00000+DEFAULT_BASE_ADDRESS
-#define DEFAULT_TAGS_ADDRESS 0x00000100+DEFAULT_BASE_ADDRESS
 #define DEFAULT_RAMDISK_NAME "ramdisk"
 #define DEFAULT_RAMDISK_NAME_LENGTH 7
 #define DEFAULT_RAMDISK_DIRECTORY_NAME "root"
-#define DEFAULT_RAMDISK_DIRECTORY_NAME_LENGTH 4
 #define DEFAULT_RAMDISK_CPIO_NAME "initramfs.cpio"
 #define DEFAULT_RAMDISK_CPIO_GZIP_NAME "initramfs.cpio.gz"
 #define DEFAULT_RAMDISK_CPIO_LZOP_NAME "initramfs.cpio.lzo"
@@ -71,12 +70,12 @@ typedef struct {
 	char *target_filename;
 	char *source_filename;
 	char **file_list;
-	int file_list_count;
+	char **property_list;
+	//int file_list_count;
 	char *log_filename;
 	char *cmdline_text;
 	char *board_name;
 	int page_size;
-	int base_address;
 	int list_ramdisk;
 	int list_kernel;
 	int list_kernel_version;
@@ -84,6 +83,11 @@ typedef struct {
 	int list_header;
 	int log_stdout;
 	int argument_count;
+	unsigned base_address;
+	unsigned kernel_offset;
+	unsigned ramdisk_offset ;
+	unsigned second_offset  ;
+	unsigned tags_offset ;
 	program_actions_emum action;
 } optionvalues_t ;
 optionvalues_t option_values;
@@ -114,6 +118,7 @@ typedef command_line_switch_t* command_line_switches_p ;
 typedef struct _program_options_t  {
 	command_line_switches_p command_line_switches;
 	program_actions_emum action ;
+	int (*setup_function_p)();
 	int (*action_function_p)();
 	int (*help_function_p)();
 } program_options_t; 
@@ -128,6 +133,8 @@ int parse_value_or_error(char ***argv,void* command_line_switch_p);
 int parse_value_or_error_exists(char ***argv,void* command_line_switch_p);
 int parse_value_or_default_directory_exists(char ***argv,void* command_line_switch_p);
 int parse_no_value_arg(char ***argv,void* command_line_switch_p);
+int parse_value_int_or_default(char ***argv,void* command_line_switch_p);
+int parse_property_list(char ***argv,void* command_line_switch_p);
 static command_line_switch_t extract_switches[]={ 
 	 {  "boot-image","i",NULL,0,&option_values.image_filename,NULL},
 	 {  "ramdisk-cpio","C",DEFAULT_RAMDISK_CPIO_NAME,0,&option_values.ramdisk_cpio_filename,parse_value_or_default},
@@ -158,7 +165,8 @@ static command_line_switch_t create_switches[]={
 	 {  "second","S",DEFAULT_SECOND_NAME,0,&option_values.second_filename,parse_value_or_default_exists},
 	 {  "pagesize","p",DEFAULT_PAGESIZE_NAME,DEFAULT_PAGE_SIZE,&option_values.page_size,parse_file_or_int},
 	 {  "output-directory","o",DEFAULT_OUTPUT_DIRECTORY_NAME,0,&option_values.output_directory_name,NULL},
-	 {  "base-address","b",NULL,DEFAULT_BASE_ADDRESS,&option_values.base_address,NULL},
+	 {  "base-address","b",NULL,DEFAULT_BASE_ADDRESS,&option_values.base_address,parse_value_int_or_default},
+	 {  "kernel-offset","K",NULL,DEFAULT_BASE_ADDRESS,&option_values.kernel_offset,parse_value_int_or_default},
 	 {  0, 0, 0, 0,0,0}
 };
 static command_line_switch_t list_switches[]={ 
@@ -167,7 +175,10 @@ static command_line_switch_t list_switches[]={
 	 {  "kernel-version","K",NULL,0,&option_values.list_kernel_version,parse_no_value_arg},
 	 {  "header","h",NULL,0,&option_values.list_header,parse_no_value_arg},
 	 {  "section","s",NULL,0,&option_values.list_section,parse_no_value_arg},
+	 {  "properties","p",NULL,0,&option_values.list_section,parse_no_value_arg},
+	 {  "output","p",NULL,0,&option_values.list_section,parse_value_or_default},
 	 {  "all","a",NULL,0,&option_values.list_ramdisk,parse_no_value_arg},
+	 
 	 { 0, 0, 0, 0,0,0}
 };
 static command_line_switch_t update_switches[]={ 
@@ -181,17 +192,18 @@ static command_line_switch_t update_switches[]={
 	 {  "cmdline","c",DEFAULT_CMDLINE_NAME,BOOT_ARGS_SIZE,&option_values.cmdline_text,parse_file_or_string},
 	 {  "name","n",DEFAULT_BOARD_NAME,BOOT_NAME_SIZE,&option_values.board_name,parse_file_or_string},
 	 {  "files","f",NULL,0,NULL,parse_file_list_exists},
+	 {  "property","p",NULL,0,NULL,parse_property_list},
 	 {  0, 0, 0, 0,0,0}
 };
 
 static program_options_t program_options[] ={
-		{NULL,NOT_SET,NULL,NULL},
-		{create_switches,CREATE ,create_boot_image_file,help_create},		 
-		{list_switches,LIST ,list_boot_image_info,help_list},
-		{extract_switches,EXTRACT,extract_boot_image_file ,help_extract},
-		{NULL,ADD ,NULL,help_add},
-		{NULL,REMOVE ,NULL,help_remove },
-		{update_switches,UPDATE ,update_boot_image_file,help_update}
+		{NULL,NOT_SET,NULL,NULL,NULL},
+		{create_switches,CREATE ,setup_required_defaults,create_boot_image_file,help_create},		 
+		{list_switches,LIST ,setup_required_defaults,list_boot_image_info,help_list},
+		{extract_switches,EXTRACT,setup_required_defaults,extract_boot_image_file ,help_extract},
+		{NULL,ADD ,NULL,NULL,help_add},
+		{NULL,REMOVE ,NULL,NULL,help_remove },
+		{update_switches,UPDATE ,setup_required_defaults,update_boot_image_file,help_update}
 };
 typedef  program_options_t* program_options_p;
 

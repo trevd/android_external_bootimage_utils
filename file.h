@@ -27,7 +27,6 @@ int vasprintf(char **strp, const char *fmt, va_list ap);
 typedef enum _file_info_enum { FILE_NO=0 , FILE_YES=1,FILE_ALL=2, FILE_NOT_FOUND=3,FILE_INVALID_TYPE } file_info_enum ;
 typedef char** byte_pp ;
 typedef char* byte_p ;
-typedef char byte ;
 typedef unsigned long offset_t ;
 static char magic_cpio_ascii[6] = { 0x30,0x37,0x30,0x37,0x30,0x31 };
 static char magic_linux_zimage[4]={ 0x18,0x28,0x6F,0x01 }; 

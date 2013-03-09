@@ -1,5 +1,8 @@
 #ifndef _BOOT_IMAGE_UTILITIES_HELP_H_
 #define _BOOT_IMAGE_UTILITIES_HELP_H_
+
+static int title_printed = 0 ; 
+
 #define BOOT_IMAGE_UTILITIES_TITLE "Android Boot Image Utilities"
 #define BOOT_IMAGE_UTILITIES_VERSION "x.xx Alpha Release"
 #define BOOT_IMAGE_UTILITIES_DESCRIPTION ""
@@ -8,7 +11,7 @@
 #define PRINT_DOUBLE_LINE fprintf(stderr,"\n\n");
 #define PRINT_SINGLE_LINE fprintf(stderr,"\n");
 #define PRINT_DOUBLE_TAB fprintf(stderr,"\t");
-#define PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE fprintf(stderr,BOOT_IMAGE_UTILITIES_FULL_TITLE);
+#define PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE if(!title_printed){fprintf(stderr,BOOT_IMAGE_UTILITIES_FULL_TITLE);title_printed=1; }
 #define PRINT_MAIN_USAGE fprintf(stderr,HELP_MAIN_USAGE);
 #define PRINT_ERROR_PREFIX fprintf(stderr,"Error : "); 
 #define HELP_MAIN_SUMMARY "bootimg-tools is an highly flexible utility for managing android boot images\n\n"
@@ -27,6 +30,8 @@
 #define HELP_ERROR_ARG_FILE_NOT_FOUND_SHORT "file \"%s\" not found for switch \'%c\'"
 #define HELP_ERROR_ARG_FILE_NOT_FOUND_RAMDISK "file \"%s\" not found in ramdisk"
 
+#define PRINT_EXTRACT_MESSAGE(type,file) { PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE fprintf(stderr,"Extracting %s to \"%s\"\n",type,file);}
+
 #define HELP_ERROR_IMAGE_RAMDISK_SIZE_ZERO "\
 the boot image header reports the ramdisk size as zero\n\n"
 
@@ -35,10 +40,9 @@ the boot image header reports the ramdisk size as zero\n\n"
 #define HELP_MAIN_USAGE "\
 Usage:  bootimg-tools [actions] <switches>\n\
 Actions:\n\
-unpack		unpack a boot image into it's constituent parts\n\
+extract		extract a boot image into it's constituent parts\n\
 pack		pack seperate files into a boot image\n\
 list		print boot image header details or ramdisk fileinfo\n\
-extract   	extract a single file from a boot image ramdisk\n\
 update    	update the boot image ramdisk and header property\n\
 help		print the help information for the specificed action\n\n\
 See bootimg-tools help <action> for detailed information\n"

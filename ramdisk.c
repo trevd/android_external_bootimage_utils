@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <limits.h>
@@ -14,46 +15,50 @@
 	
 
 #define CPIO_TRAILER_MAGIC "TRAILER!!!"
-
+#define DEFAULT_PROPERTIES_HEADER "#\x0A# ADDITIONAL_DEFAULT_PROPERTIES\x0A#\x0A"
+#define DEFAULT_PROPERTIES_HEADER_LENGTH 45
+static default_property_list_t** load_properties(char *data, int* property_count)
+{  
+    int i=0; char *key, *value, *eol, *tmp, *equals , *sol;
+    (*property_count)=0; equals=data;
+    while((equals = strchr(++equals, '='))) (*property_count)++;
+	
+	default_property_list_t** properties=calloc((*property_count),sizeof(properties));	
+	
+	for(i = 0; i < (*property_count); i++) properties[i] =  calloc(1,sizeof(default_property_list_t));
+	
+	sol = data ; i=0 ;
+	while((eol = strchr(sol, '\n'))) {
+			key = sol;
+			*eol++ = 0;
+			sol = eol;
+			value = strchr(key, '=');
+			if(value == 0) continue;
+			*value++ = 0;
+			while(isspace(*key)) key++;
+			if(*key == '#') continue;
+			tmp = value - 2;
+			while((tmp > key) && isspace(*tmp)) *tmp-- = 0;
+			while(isspace(*value)) value++;
+			tmp = eol - 2;
+			while((tmp > value) && isspace(*tmp)) *tmp-- = 0;
+			properties[i]->key = key;
+			properties[i]->value = value;
+			i++;
+	}
+	(*property_count)=i;
+	return properties;
+}
 
 
 static int qsort_comparer(const void* a, const void* b) {
   return strlcmp(*(const char**)a, *(const char**)b);
 }
-
 static unsigned long  get_long_from_hex_field(char * header_field_value){
 	char buffer[9];
 	strncpy(buffer, header_field_value,8 );
 	buffer[8]='\0';
 	return strtol(buffer,NULL,16);
-}
-
-cpio_entry_t populate_cpio_entry(const byte_p data ) { //cpio_newc_header_t *cpio_header) {
-
-	cpio_entry_t *cpio_entry_p=(cpio_entry_t *)data;
-	cpio_entry_t cpio_entry = (*cpio_entry_p);
-	
-	//	fprintf(stderr,"populate_cpio_entry\n");
-	//cpio_entry.cpio_header=(cpio_newc_header_t)data;
-	cpio_entry.entry_start_p=data;
-	cpio_entry.file_size = get_long_from_hex_field(cpio_entry.cpio_header.c_filesize);
-	cpio_entry.name_size = get_long_from_hex_field(cpio_entry.cpio_header.c_namesize);
-	cpio_entry.mode = get_long_from_hex_field(cpio_entry.cpio_header.c_mode);
-	unsigned long   name_align = ((4 - ((CPIO_HEADER_SIZE+cpio_entry.name_size) % 4)) % 4);
-	unsigned long   header_align = (4 - ((CPIO_HEADER_SIZE+cpio_entry.name_size+name_align+cpio_entry.file_size) % 4)) % 4;
-	cpio_entry.file_start_p=cpio_entry.entry_start_p+(CPIO_HEADER_SIZE+cpio_entry.name_size+name_align);
-	cpio_entry.next_header_p= cpio_entry.entry_start_p+(CPIO_HEADER_SIZE+cpio_entry.name_size+name_align+cpio_entry.file_size+header_align);
-	cpio_entry.file_name = (char *)data+CPIO_HEADER_SIZE;
-	cpio_entry.is_directory=S_ISDIR(cpio_entry.mode);
-	cpio_entry.is_file=S_ISREG(cpio_entry.mode);
-	cpio_entry.is_link=S_ISLNK(cpio_entry.mode);
-	char *strslash = strrchr(cpio_entry.file_name,'/');
-	if(strslash){
-		cpio_entry.parent_directory_length= strslash-cpio_entry.file_name;
-	}else
-		cpio_entry.parent_directory_length=-1;
-	cpio_entry.is_trailer = !strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC);
-	return cpio_entry;
 }
 
 static void* append_cpio_header_to_stream(struct stat s,char *filename, byte_p output_header){
@@ -139,189 +144,9 @@ size_t compress_gzip_ramdisk_memory(const byte_p uncompressed_data , size_t unco
     return( return_value );
 }
 
-byte_p modify_ramdisk_entry(const byte_p cpio_data,size_t *new_cpio_size,cpio_entry_t cpio_entry){
-	
-	const byte_p cpio_end  = cpio_data+(*new_cpio_size);
-		fprintf(stderr,"cpio_end %p %u\n",cpio_end,(*new_cpio_size));
-			struct stat sb;
-			if(lstat(option_values.file_list[0], &sb)< 0){
-				fprintf(stderr,"cannot stat %s %u\n",cpio_end,(*new_cpio_size));
-				return NULL;
-			}
-				
-			
-			size_t new_file_size = 0 ;
-			byte_p new_file_data = load_file(cpio_entry.file_name,&new_file_size);
-			
-			if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(new_file_data,new_file_size))){
-				byte_p output_buffer=malloc(new_file_size);
-				size_t times = dos_to_unix(output_buffer , new_file_data) ; 
-				new_file_size-= times ;
-				free(new_file_data);
-				new_file_data=output_buffer;
-			}
-			
-			
-			long aligned_file_size=new_file_size + ((4 - ((new_file_size) % 4)) % 4);
-			unsigned long internal_new_cpio_size = (*new_cpio_size) +(aligned_file_size - cpio_entry.file_size) ;
-			(*new_cpio_size)=internal_new_cpio_size;
-			//fprintf(stderr,"new_cpio_size %p %ld\n",(*new_cpio_size));
-			byte_p new_cpio_data = malloc(internal_new_cpio_size);
-			// copy all data upto current entry
-	
-			memcpy(new_cpio_data,cpio_data,cpio_entry.entry_start_p-cpio_data);
-			byte_p next_p = new_cpio_data+(cpio_entry.entry_start_p-cpio_data);
-			
-			sb.st_size=new_file_size;
-			// write a new header block.
-			append_cpio_header_to_stream(sb,cpio_entry.file_name,next_p); 
-			next_p += cpio_entry.file_start_p-cpio_entry.entry_start_p;
-			
-			// 
-			memcpy(next_p,new_file_data,aligned_file_size); 
-			next_p += aligned_file_size;
-			memcpy(next_p, cpio_entry.next_header_p, cpio_end-cpio_entry.next_header_p );
-			
-			free(new_file_data);
-			return new_cpio_data;
-}
-byte_p extract_cpio_entry(cpio_entry_t cpio_entry,char * target_filename)
-{
 
-	if(!strlcmp(cpio_entry.file_name,CPIO_TRAILER_MAGIC)){	
-		return NULL;
-	}
-	if(cpio_entry.is_directory){
-		mkdir_and_parents(target_filename,cpio_entry.mode);
-	}else if(cpio_entry.is_file){
-		if(cpio_entry.parent_directory_length){
-			char ch = cpio_entry.file_name[cpio_entry.parent_directory_length+1];
-			cpio_entry.file_name[cpio_entry.parent_directory_length+1]='\0';
-			mkdir_and_parents(cpio_entry.file_name,0755);
-			cpio_entry.file_name[cpio_entry.parent_directory_length+1]=ch;
-			
-		}
-		if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry.file_start_p, cpio_entry.file_size ))){
-				byte output_buffer[cpio_entry.file_size*2];
-				cpio_entry.file_size += unix_to_dos((byte_p)&output_buffer,cpio_entry.file_start_p);
-				//log_write("converting line endings\n");
-				write_to_file_mode(output_buffer, cpio_entry.file_size,target_filename,cpio_entry.mode);
-		}else{
-			write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,target_filename,cpio_entry.mode);
-		}
-			//write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,cpio_entry.file_name,cpio_entry.mode);
-		
-	}
-	else if(cpio_entry.is_link){
-		char symlink_src[cpio_entry.file_size+1];
-		memcpy(symlink_src,(const char*)cpio_entry.file_start_p,cpio_entry.file_size);
-		symlink_src[cpio_entry.file_size] ='\0';
-		symlink(symlink_src,target_filename);	
-	}	
-	return cpio_entry.next_header_p;
-}
-	
 
-int process_uncompressed_ramdisk(const byte_p cpio_raw_data ,unsigned cpio_raw_data_size, char  *ramdisk_dirname)
-{
-	long current_cpio_entry_offset  = 0;
-	mkdir(ramdisk_dirname,0777);
-	char cwd[PATH_MAX];
-	getcwd(cwd,PATH_MAX);
-	chdir(ramdisk_dirname);
-	//fprintf(stderr,"process_uncompressed_ramdisk\n");
-	byte_p entry = cpio_raw_data;
-	while(entry){
-		cpio_entry_t cpio_entry = populate_cpio_entry(entry);	
-		entry = extract_cpio_entry(cpio_entry,cpio_entry.file_name);
-											
-	}
-	chdir(cwd);
-	return 0;
-}	
-static unsigned long pack_ramdisk_entries(char *dir,char *path,byte_p output_buffer)
-{
-	log_write("pack_ramdisk_entries:%s\n",path);
-	
-	DIR *dp;
-	char cwd[PATH_MAX];
-	getcwd(cwd,PATH_MAX);
-	struct dirent *entry;
-	//fprintf(stderr,"cwd: %s\n", cwd);
-	static unsigned long offset  =0;
-	struct stat statbuf;
-	unsigned long name_size =0;
-	unsigned long  bytes_to_file_start =0;
-	unsigned long  file_start =0;
-	unsigned long  bytes_to_next_header_start = 0;
-	unsigned long  next_header = 0;
-	//if((dp = opendir(dir)) == NULL) 
-		//log_write("cannot open directory: %s\n", dir);
-		
-	chdir(dir);
-	getcwd(cwd,PATH_MAX);
-	//fprintf(stderr,"cwd: %s\n", cwd);
-	while((entry = readdir(dp)) != NULL) {
-		lstat(entry->d_name,&statbuf);
-		char full_name[PATH_MAX];
-		full_name[0] = '\0';
-		strncpy(full_name,path,PATH_MAX); 
-		strcat(full_name,entry->d_name);
-		name_size = strlen(full_name)+1;
-		bytes_to_file_start = (4 - ((CPIO_HEADER_SIZE+name_size) % 4)) % 4;
-		file_start = bytes_to_file_start + CPIO_HEADER_SIZE+name_size;
-	
-		printf("offset:%ld:%s %08x\n",offset,entry->d_name,statbuf.st_mode);
-		if(S_ISDIR(statbuf.st_mode)) {
-			/* Found a directory, but ignore . and .. */
-			if(strcmp(".",entry->d_name) == 0 || strcmp("..",entry->d_name) == 0)
-					continue;
-			bytes_to_next_header_start =(4 - ((file_start+0) % 4)) % 4;
-		//	append_cpio_header_to_stream(statbuf,full_name,name_size,output_buffer+offset);
-			strncat(full_name,"/",PATH_MAX );
-			next_header = file_start+0+bytes_to_next_header_start;
-			offset +=next_header;
-			pack_ramdisk_entries(entry->d_name,full_name,output_buffer);
-		}
-		else if(S_ISREG(statbuf.st_mode)){
-			printf("Reg:%s %d\n",entry->d_name,statbuf.st_mode);
-			size_t file_size =0 ;
-			byte_p data = load_file(entry->d_name,&file_size);
-			if(!strncmp((char*)data,"LNK:",4)){	
-				free(data);
-				file_size =0 ;
-				data = load_file_from_offset(entry->d_name,4,&file_size);
-				statbuf.st_mode = statbuf.st_mode | S_IFLNK ;
-				statbuf.st_size = file_size ;
-				
-			}			
-			bytes_to_next_header_start =(4 - ((file_start+file_size) % 4)) % 4;
-			next_header = file_start+file_size+bytes_to_next_header_start;
-		//	append_cpio_header_to_stream(statbuf,full_name,name_size,output_buffer+offset);
-			memmove(output_buffer+offset+file_start,data,file_size);
-			offset +=next_header;
-			free(data);
 
-		} 
-		else if(S_ISLNK(statbuf.st_mode)){
-			//printf("link:%s %d\n",entry->d_name,statbuf.st_mode);
-			unsigned char* data=calloc(MEMORY_BUFFER_SIZE, sizeof(unsigned char));
-			readlink(entry->d_name,(char*)data,PATH_MAX);
-			unsigned file_size =strlen((char*)data);
-			//printf("link:%s %s %d %d\n",entry->d_name,data,statbuf.st_mode,file_size);
-			bytes_to_next_header_start =(4 - ((file_start+file_size) % 4)) % 4;
-			next_header = file_start+file_size+bytes_to_next_header_start;
-			//append_cpio_header_to_stream(statbuf,full_name,name_size,output_buffer+offset);
-			memmove(output_buffer+offset+file_start,data,file_size);
-			offset +=next_header;
-
-		}
-		
-	}
-	chdir("..");
-	closedir(dp);
-	return offset;
-}
 char **names;
 int total;
 
@@ -357,8 +182,222 @@ void listdir(const char *name, int level)
     closedir(dir);
    return  ;
 }
-unsigned long pack_ramdisk_directory(byte_p ramdisk_cpio_data){
+
+static int get_cpio_entries_internal(byte_p ramdisk_cpio_data,size_t ramdisk_size,cpio_entry_list_t*** entriesp){
 	
+	
+	cpio_entry_list_t** entries=(*entriesp); int count=0;
+	byte_p next_value,start =ramdisk_cpio_data;
+	if((next_value = (start=find_in_memory(start,ramdisk_size,magic_cpio_ascii,6)))){
+		while(next_value){
+			entries[count]->start.position=next_value;
+			next_value+=CPIO_HEADER_SIZE;
+			entries[count]->name=next_value;
+			int name_size =strlen(entries[count]->name);
+			entries[count]->name_padding=(((4 - (CPIO_HEADER_SIZE+name_size) % 4)) % 4);
+			next_value+=entries[count]->name_padding+name_size;
+			entries[count]->data=next_value;
+			next_value=find_in_memory(next_value,ramdisk_size-(next_value-start),magic_cpio_ascii,6);
+			if(!next_value){
+				// No Values after this get the remaining padding.. This should be the trailer if not we have a problem
+				entries[count]->data_size=ramdisk_size-(entries[count]->data-start); //ramend; //entries[count]->data-test;
+			}else{
+				entries[count]->data_size=next_value-entries[count]->data;
+				entries[count]->next=next_value;
+			}
+			count++;
+		}
+	}
+	return count;
+}
+// count the number of cpio entries. find the amount of times the cpio_magic occurs in ramdisk_data.
+int count_cpio_entries(byte_p uncompressed_ramdisk_data,size_t uncompressed_ramdisk_size){
+	byte_p next_value ; int cpio_entry_count=0;
+	if((next_value = (find_in_memory(uncompressed_ramdisk_data,uncompressed_ramdisk_size,magic_cpio_ascii,6)))){
+		while(next_value){
+			cpio_entry_count++;
+			next_value=find_in_memory(next_value+1,uncompressed_ramdisk_size-(next_value-uncompressed_ramdisk_data),magic_cpio_ascii,6);
+		}
+	}
+	return cpio_entry_count;
+}
+// get_cpio_entries. return a list of cpio_entries. The outside calling function is responsible for freeing the memory allocated by
+// this function. 
+cpio_entry_list_t** get_cpio_entries(byte_p uncompressed_ramdisk_data,size_t uncompressed_ramdisk_size,int* cpio_entry_count ){
+		
+		(*cpio_entry_count) = count_cpio_entries(uncompressed_ramdisk_data,uncompressed_ramdisk_size);
+		int i ; cpio_entry_list_t** cpio_entries=calloc((*cpio_entry_count),sizeof(cpio_entry_list_t**));		
+		for(i = 0; i < (*cpio_entry_count); i++) {
+			cpio_entries[i] =  calloc(1,sizeof(cpio_entry_list_t));;
+			if (cpio_entries[i] == NULL) {
+				perror("Memory cannot be allocated to arr[]");
+			}
+		}
+		//fprintf(stderr,"Cpio_entry_count: %d\n",(*cpio_entry_count));
+		(*cpio_entry_count) = get_cpio_entries_internal(uncompressed_ramdisk_data ,uncompressed_ramdisk_size,&cpio_entries);
+		//fprintf(stderr,"Cpio_entry_count: %d\n",(*cpio_entry_count));
+		return cpio_entries;
+}
+cpio_entry_list_t** get_cpio_entries_from_archive(byte_p ramdisk_data,size_t ramdisk_size,size_t* uncompressed_ramdisk_size ,int* cpio_entry_count ){
+	byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
+	(*uncompressed_ramdisk_size) =	uncompress_gzip_ramdisk_memory(ramdisk_data,ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
+	cpio_entry_list_t** cpio_entries = get_cpio_entries(uncompressed_ramdisk_data,(*uncompressed_ramdisk_size),cpio_entry_count);
+	//fprintf(stderr,"from archive\n");
+	return cpio_entries;
+}	
+cpio_entry_list_t**  get_cpio_entries_from_file(FILE*boot_image_file,size_t ramdisk_size,size_t* uncompressed_ramdisk_size, int* cpio_entry_count){
+	byte_p ramdisk_data=malloc(ramdisk_size);
+	fread(ramdisk_data,1,ramdisk_size,boot_image_file);
+	cpio_entry_list_t** cpio_entries=get_cpio_entries_from_archive(ramdisk_data,ramdisk_size,uncompressed_ramdisk_size,cpio_entry_count);
+	//fprintf(stderr,"from file %d %p\n",(*cpio_entry_count),cpio_entries);
+	//fprintf(stderr,"from file\n");
+	free(ramdisk_data);
+	return cpio_entries;
+}
+default_property_list_t** get_default_properties_from_file(FILE*boot_image_file,size_t ramdisk_size,int* default_property_count){
+	size_t uncompressed_ramdisk_size; int cpio_entries_total; int i ; 
+	cpio_entry_list_t** cpio_entries = get_cpio_entries_from_file(boot_image_file,ramdisk_size ,&uncompressed_ramdisk_size,&cpio_entries_total);
+	default_property_list_t** default_properties; 
+	for(i=0;i<cpio_entries_total;i++){
+		if(!strlcmp("default.prop", cpio_entries[i]->name)){
+			 default_properties=load_properties(cpio_entries[i]->data,default_property_count);
+			break; 
+		}
+	}
+	free_cpio_entry_memory(cpio_entries,cpio_entries_total);
+	return default_properties;
+}
+
+void extract_cpio_list_entry(cpio_entry_list_t* cpio_entry){
+	
+	long mode = get_long_from_hex_field(cpio_entry->start.cpio_header->c_mode);
+	long filesize = get_long_from_hex_field(cpio_entry->start.cpio_header->c_filesize);
+	if(!strncmp(cpio_entry->name,CPIO_TRAILER_MAGIC,11)){	
+		return ;
+	}
+	if(S_ISDIR(mode)){
+		mkdir_and_parents(cpio_entry->name,mode);
+	}else if(S_ISREG(mode)){
+		char *strslash = strrchr(cpio_entry->name,'/');
+		
+		if(strslash){
+			char ch = strslash[0];
+			strslash[0]='\0';
+			mkdir_and_parents(cpio_entry->name,0755);
+			strslash[0]=ch;
+			
+		}
+		if( (CONVERT_LINE_ENDINGS) && (is_ascii_text(cpio_entry->data, filesize))){
+				char output_buffer[filesize*2];
+				filesize += unix_to_dos((byte_p)&output_buffer,cpio_entry->data);
+				//log_write("converting line endings\n");
+				write_to_file_mode(output_buffer,filesize,cpio_entry->name,mode);
+		}else{
+			write_to_file_mode(cpio_entry->data,filesize,cpio_entry->name,mode);
+		}
+			//write_to_file_mode(cpio_entry.file_start_p,cpio_entry.file_size,cpio_entry.file_name,cpio_entry.mode);
+		
+	}
+	else if(S_ISLNK(mode)){
+		char symlink_src[filesize+1];
+		memcpy(symlink_src,(const char*)cpio_entry->data,filesize);
+		symlink_src[filesize] ='\0';
+		symlink(symlink_src,cpio_entry->name );	
+	}	
+		
+}
+int free_cpio_entry_memory(cpio_entry_list_t** cpio_entries,int cpio_entries_total) {
+
+	//free(cpio_entries[0]->start.position);
+	for(cpio_entries_total;cpio_entries_total=0;cpio_entries_total--){
+			free(cpio_entries[cpio_entries_total-1]);
+	}
+	free(cpio_entries);	
+	
+return 0;
+}
+
+byte_p get_contiguous_cpio_stream(cpio_entry_list_t** cpio_entries,int cpio_entries_total,size_t size){
+		byte_p ramdisk_cpio_data_start;int i;
+		byte_p ramdisk_cpio_data = ramdisk_cpio_data_start= calloc(size,sizeof(char));
+		for(i=0;i<cpio_entries_total;i++){
+			memcpy(ramdisk_cpio_data,cpio_entries[i]->start.position,CPIO_HEADER_SIZE);
+			ramdisk_cpio_data+=CPIO_HEADER_SIZE;
+			int name_length = strlen(cpio_entries[i]->name)+cpio_entries[i]->name_padding;
+			memcpy(ramdisk_cpio_data,cpio_entries[i]->name,name_length);
+			ramdisk_cpio_data+=name_length;
+			memcpy(ramdisk_cpio_data,cpio_entries[i]->data,cpio_entries[i]->data_size);
+			ramdisk_cpio_data+=cpio_entries[i]->data_size;
+		}
+		return ramdisk_cpio_data_start;
+}
+byte_p update_default_properties_in_gzip(FILE* boot_image_file,size_t ramdisk_size ,default_property_list_t** default_properties,int default_properties_total,size_t*gzipped_ramdisk_size){
+
+	int i ; int default_prop_size=0;
+	default_prop_size+=DEFAULT_PROPERTIES_HEADER_LENGTH;
+	for(i=0;i<default_properties_total;i++){
+		default_prop_size+=strlen(default_properties[i]->key);
+		default_prop_size+=strlen("=");
+		default_prop_size+=strlen(default_properties[i]->value);
+		//default_prop_size+=strlen("\n");
+	}
+	char* default_prop_file = calloc(default_prop_size,sizeof(char));
+	strncpy(default_prop_file,DEFAULT_PROPERTIES_HEADER,DEFAULT_PROPERTIES_HEADER_LENGTH);
+	for(i=0;i<default_properties_total;i++){
+		strncat(default_prop_file,default_properties[i]->key,strlen(default_properties[i]->key));
+		strncat(default_prop_file,"=",1);
+		strncat(default_prop_file,default_properties[i]->value,strlen(default_properties[i]->value));
+		strncat(default_prop_file,"\n",1);
+	}
+	size_t uncompressed_ramdisk_size=0; int cpio_entries_total=0;
+	cpio_entry_list_t** cpio_entries = get_cpio_entries_from_file(boot_image_file,ramdisk_size ,&uncompressed_ramdisk_size,&cpio_entries_total);
+	fprintf(stderr,"Defaultpropsize\n");
+	fprintf(stderr,"Defaultpropsize %d\n%s\n",default_prop_size,default_prop_file);
+	fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
+	for(i=0;i<cpio_entries_total;i++){
+		if(!strlcmp("default.prop", cpio_entries[i]->name)){
+			sprintf(cpio_entries[i]->start.cpio_header->c_filesize,"%08x",default_prop_size);
+			cpio_entries[i]->data=default_prop_file;
+			uncompressed_ramdisk_size-=cpio_entries[i]->data_size;
+			cpio_entries[i]->data_size=default_prop_size+(((4 - (default_prop_size) % 4)) % 4);
+			uncompressed_ramdisk_size+=cpio_entries[i]->data_size; 
+			break; 
+		}
+	}
+	fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
+	byte_p ramdisk_gzip_data = compress_cpio_entries_to_gzip( cpio_entries,cpio_entries_total,uncompressed_ramdisk_size,gzipped_ramdisk_size);
+	fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
+	free(default_prop_file);
+	free_cpio_entry_memory(cpio_entries,cpio_entries_total) ;
+	return ramdisk_gzip_data;
+}
+byte_p compress_cpio_entries_to_gzip(cpio_entry_list_t** cpio_entries,int cpio_entries_total,size_t cpio_size,size_t* ramdisk_size){
+	byte_p ramdisk_cpio_data = get_contiguous_cpio_stream(cpio_entries,cpio_entries_total,cpio_size);
+	byte_p ramdisk_gzip_data = calloc(cpio_size, sizeof(unsigned char));
+	(*ramdisk_size)=compress_gzip_ramdisk_memory(ramdisk_cpio_data,cpio_size,ramdisk_gzip_data,cpio_size);
+	return ramdisk_gzip_data ;
+}
+int process_uncompressed_ramdisk(const byte_p cpio_raw_data ,unsigned cpio_raw_data_size, char  *ramdisk_dirname)
+{
+	int cpio_entries_total = 0;
+	cpio_entry_list_t** cpio_entries = get_cpio_entries(cpio_raw_data ,cpio_raw_data_size,&cpio_entries_total);
+	long current_cpio_entry_offset  = 0;
+	mkdir(ramdisk_dirname,0777);
+	char cwd[PATH_MAX];
+	getcwd(cwd,PATH_MAX);
+	chdir(ramdisk_dirname);
+	int i;
+	for(i = 0; i < cpio_entries_total; i++){
+		extract_cpio_list_entry(cpio_entries[i]);
+	}
+	for(i=0;i<cpio_entries_total;i++)
+		free(cpio_entries[i]);
+	free(cpio_entries);		
+	chdir(cwd);
+	return 0;
+}	
+size_t pack_ramdisk_directory(byte_p ramdisk_cpio_data){
+		
 	int i; names = calloc(256, sizeof(names));
 	for(i = 0; i < 256; i++) {
 		names[i] = (char *)calloc(1024,sizeof(char));	
@@ -369,18 +408,17 @@ unsigned long pack_ramdisk_directory(byte_p ramdisk_cpio_data){
 	getcwd(names[0],1024);total++;
 	listdir(option_values.ramdisk_directory_name, 0);
 	qsort(names, total, sizeof(char*), qsort_comparer);
-	names[total]=CPIO_TRAILER_MAGIC;
-	total++;
 	chdir(option_values.ramdisk_directory_name);
 	byte_p nextbyte = &ramdisk_cpio_data[0];
+	byte_p start_header=nextbyte;
 	for(i = 1; i < total; i++) {
 		
 		//fprintf(stderr,"Out:%p %s\n", nextbyte,nextbyte);
 		struct stat sb ; lstat(names[i],&sb);
-		byte_p start_header=nextbyte;
+		
 		nextbyte = append_cpio_header_to_stream(sb,names[i],start_header);
 		//fprintf(stderr,"names[%d]: %p %s %d\n",i,names[i] ,names[i], strlen(names[i])+4);
-		 unsigned filesize = S_ISDIR(sb.st_mode) ? 0 : sb.st_size;
+		unsigned filesize = S_ISDIR(sb.st_mode) ? 0 : sb.st_size;
 		unsigned long   header_align = (4 - (((nextbyte-start_header)+filesize) % 4)) % 4;
 		fprintf(stderr,"Heade:%d %p %p %d %d\n",nextbyte-start_header, nextbyte,start_header,header_align,sb.st_size);
 		if(S_ISREG(sb.st_mode)){
@@ -390,16 +428,18 @@ unsigned long pack_ramdisk_directory(byte_p ramdisk_cpio_data){
 			nextbyte+=filesize;
 		}
 		nextbyte+=header_align;
+		start_header=nextbyte;
 		fprintf(stderr,"names[%d]: %p %s %d\n",i,names[i] ,names[i], strlen(names[i])+4);
 		
 	}
 	struct stat s ;	 memset(&s, 0, sizeof(s));
-	nextbyte =append_cpio_header_to_stream(s,names[i+1] ,nextbyte);
+	nextbyte =append_cpio_header_to_stream(s,CPIO_TRAILER_MAGIC,start_header);
+	nextbyte+=( (4 - (((nextbyte-start_header)) % 4)) % 4);
 	//fprintf(stderr,"done:%p %s %d\n",ramdisk_cpio_data,ramdisk_cpio_data,nextbyte-ramdisk_cpio_data);
 	//fprintf(stderr,"done:%p %s %d\n",nextbyte-100,nextbyte-100,nextbyte-ramdisk_cpio_data);
 	//free(outputstream);
 	chdir(names[0]);
-	write_to_file(ramdisk_cpio_data,nextbyte-ramdisk_cpio_data,"test.cpio");
+	write_to_file(ramdisk_cpio_data,nextbyte-&ramdisk_cpio_data[0],"test2.cpio");
 	free(names);
     return nextbyte-ramdisk_cpio_data ;
 }

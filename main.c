@@ -76,6 +76,19 @@ int strstrlcmp(const char *s1,size_t s1_len, const char *s2,size_t s2_len ){
 	return ret;
 								
 }
+int setup_required_defaults(){
+	  
+	option_values.base_address =DEFAULT_BASE_ADDRESS;
+	option_values.kernel_offset =  DEFAULT_KERNEL_OFFSET ;
+    option_values.ramdisk_offset = DEFAULT_RAMDISK_OFFSET;
+    option_values.second_offset  = DEFAULT_SECOND_OFFSET ;
+    option_values.tags_offset    = DEFAULT_TAGS_OFFSET   ;
+    option_values.page_size		= DEFAULT_PAGE_SIZE;
+ 
+    return 0;
+    
+}
+
 program_options_t get_program_options(char *program_action){
 	
 	
@@ -147,9 +160,10 @@ int parse_value_or_error(char ***argv,void* command_line_switch_p){
 int parse_no_value_arg(char ***argv,void* command_line_switch_p){
 	
 	command_line_switch_t* command_line_switch = command_line_switch_p;
-	fprintf(stderr,"parse_no_value_arg %s\n",command_line_switch->long_name);
+	
 	int** dest = command_line_switch->dest_ptr;
 	(*dest)=1;
+	fprintf(stderr,"parse_no_value_arg %s\n",command_line_switch->long_name);
 	argv[0]--;
 	return 0;
 }
@@ -191,7 +205,19 @@ int parse_value_or_default_exists(char ***argv,void* command_line_switch_p){
 	}
 	return 0;
 }
-
+int parse_value_int_or_default(char ***argv,void* command_line_switch_p){
+	//fprintf(stderr,"parse_value_or_default %s\n",(*argv)[0]);
+	command_line_switch_t* command_line_switch = command_line_switch_p;
+	int** dest = command_line_switch->dest_ptr;
+	 if((!(*argv)[0]) || ((*argv)[0][0]=='-')){
+		argv[0]--;
+		(*dest)=&command_line_switch->default_value;
+	}else{
+		(*dest)=atoll((*argv)[0]);
+	
+	}
+	return 0;
+}
 int parse_value_or_default(char ***argv,void* command_line_switch_p){
 	//fprintf(stderr,"parse_value_or_default %s\n",(*argv)[0]);
 	command_line_switch_t* command_line_switch = command_line_switch_p;
@@ -239,12 +265,12 @@ int parse_file_or_int(char ***argv, void* command_line_switch_p){
 	if(check_file_exists(test_value)) { 
 		byte_p file_contents = load_file(test_value,&length);		
 		byte_p* dest = command_line_switch->dest_ptr;
-		(*dest)=atoi(file_contents);
+		(**dest)=atoi(file_contents);
 	
 		}else{
 			if(strlcmp(test_value,command_line_switch->default_string)){ 
 				int** dest = command_line_switch->dest_ptr;
-				(*dest)=atoi(test_value);
+				(**dest)=atoi(test_value);
 			}				
 		}
 	
@@ -258,7 +284,7 @@ int parse_file_or_int(char ***argv, void* command_line_switch_p){
 }
 int parse_file_or_string(char ***argv, void* command_line_switch_p){
 	command_line_switch_t* command_line_switch = command_line_switch_p;
-	//fprintf(stderr,"parse_file_or_string %s\n",(*argv)[0]);
+	fprintf(stderr,"parse_file_or_string %s\n",(*argv)[0]);
 
 	char *test_value=(*argv)[0]; 
 	size_t max_size=command_line_switch->default_value;
@@ -296,28 +322,70 @@ int parse_file_or_string(char ***argv, void* command_line_switch_p){
 }
 int parse_file_list(char ***argv, void* command_line_switch_p) {
 	command_line_switch_t* command_line_switch = command_line_switch_p;
-	//fprintf(stderr,"parse file list\n");
+	
+	fprintf(stderr,"parse file list\n");
 	option_values.file_list=malloc(PATH_MAX);
-	option_values.file_list_count=0;
+	int counter=0;
 	while((*argv)[0]){
 		
 		if(is_switch((*argv)[0])){
 			break;
 		}
-		option_values.file_list[option_values.file_list_count]=(*argv)[0];
-		option_values.file_list_count+=1;
-		(*argv)++;
+		option_values.file_list[counter]=(*argv)[0];
+		(*argv)++;counter++;
 	}
-	if(!option_values.file_list_count){
+	if(!counter){
 		help_error_arg_file_list(option_values.file_list);
-
 	}
 	if(!(*argv)[0]) argv--;
-	option_values.file_list[option_values.file_list_count]=NULL;
+	option_values.file_list[counter]=NULL;
 	//fprintf(stderr,"parse file list:option_values.file_list_count %d\n",option_values.file_list_count);
 	return 0 ;	
 }
+int parse_property_list(char ***argv, void* command_line_switch_p) {
+	command_line_switch_t* command_line_switch = command_line_switch_p;
+	fprintf(stderr,"parse property list\n");
+	option_values.property_list=malloc(PATH_MAX);
+	int counter=0;
+	while((*argv)[0]){
+		
+		if(is_switch((*argv)[0])){
+			break;
+		}
+		option_values.property_list[counter]=(*argv)[0];
+		(*argv)++;counter++;
+	}
+	if(!counter){
+		help_error_arg_file_list(option_values.property_list);
+
+	}
+	if(!(*argv)[0]) argv--;
+	option_values.property_list[++counter]=NULL;
+	fprintf(stderr,"parse file list:option_values.property_list_count %d\n",counter);
+	return 0 ;	
+}
+
 int parse_file_list_exists(char ***argv, void* command_line_switch_p) {
+	command_line_switch_t* command_line_switch = command_line_switch_p;
+	fprintf(stderr,"parse file list exists\n");
+	option_values.file_list=malloc(PATH_MAX);
+	int counter=0;
+	while((*argv)[0]){
+		
+		if(is_switch((*argv)[0])){
+			break;
+		}
+		option_values.file_list[counter]=(*argv)[0];
+		fprintf(stderr,"parse file list exists:%s: %s\n",(*argv)[0],option_values.file_list[counter]);
+		(*argv)++;counter++;
+	}
+	if(!counter){
+		help_error_arg_file_list(option_values.file_list);
+	}
+	if(!(*argv)[0]) argv--;
+
+	option_values.file_list[++counter]=NULL;
+	fprintf(stderr,"parse file list:option_values.file_list_count %s %s\n",option_values.file_list[3],option_values.file_list[2]);
 	return 0 ;	
 }
 int parse_command_line_switches(char ***argv,program_options_t program_options){
@@ -433,6 +501,8 @@ int main(int argc, char **argv){
 	argc-- ; argv++ ;
 	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	if(argc==1){(*program_options.help_function_p)();}	
+	(*program_options.setup_function_p)();
+		
 	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	argv++ ;
 	//fprintf(stderr,"%d %s\n",argc,argv[1]);

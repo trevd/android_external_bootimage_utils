@@ -226,7 +226,7 @@ byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const c
 	size_t begin=0;size_t len = strlen(needle);
 	//fprintf(stderr,"HS:%p HL:%ud N:%s\n",haystack,	haystack_len,needle);
 	for(begin=0 ; begin< haystack_len; begin++){
-		if(haystack[begin]==(byte)needle[0]){
+		if(haystack[begin]==needle[0]){
 			 if(!strncmp(needle,(char const*)haystack+begin,len+1)) return (byte_p)haystack+begin;
 		}
 	}
@@ -236,8 +236,8 @@ byte_p find_in_memory(const byte_p haystack, size_t haystack_len,const char* nee
 	
 	size_t begin=0;
 	//fprintf(stderr,"Memory HS:%p HL:%u\n",haystack,	haystack_len);
-	for(begin=0 ; begin< haystack_len; begin++){
-		if(haystack[begin]==(byte)needle[0]){
+	for(begin=0 ; begin < haystack_len; begin++){
+		if(haystack[begin]==needle[0]){
 			 if(!memcmp(needle,haystack+begin,needle_len)) return (byte_p)haystack+begin;
 		}
 	}
