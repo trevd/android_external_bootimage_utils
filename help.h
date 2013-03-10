@@ -1,7 +1,7 @@
 #ifndef _BOOT_IMAGE_UTILITIES_HELP_H_
 #define _BOOT_IMAGE_UTILITIES_HELP_H_
 
-static int title_printed = 0 ; 
+
 
 #define BOOT_IMAGE_UTILITIES_TITLE "Android Boot Image Utilities"
 #define BOOT_IMAGE_UTILITIES_VERSION "x.xx Alpha Release"
@@ -11,7 +11,7 @@ static int title_printed = 0 ;
 #define PRINT_DOUBLE_LINE fprintf(stderr,"\n\n");
 #define PRINT_SINGLE_LINE fprintf(stderr,"\n");
 #define PRINT_DOUBLE_TAB fprintf(stderr,"\t");
-#define PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE if(!title_printed){fprintf(stderr,BOOT_IMAGE_UTILITIES_FULL_TITLE);title_printed=1; }
+#define PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE { static int title_printed; if(!title_printed){fprintf(stderr,BOOT_IMAGE_UTILITIES_FULL_TITLE);title_printed=1; } }
 #define PRINT_MAIN_USAGE fprintf(stderr,HELP_MAIN_USAGE);
 #define PRINT_ERROR_PREFIX fprintf(stderr,"Error : "); 
 #define HELP_MAIN_SUMMARY "bootimg-tools is an highly flexible utility for managing android boot images\n\n"
@@ -29,8 +29,15 @@ static int title_printed = 0 ;
 #define HELP_ERROR_ARG_FILE_NOT_FOUND_LONG "file \"%s\" not found for switch \'%s\'"
 #define HELP_ERROR_ARG_FILE_NOT_FOUND_SHORT "file \"%s\" not found for switch \'%c\'"
 #define HELP_ERROR_ARG_FILE_NOT_FOUND_RAMDISK "file \"%s\" not found in ramdisk"
+#define EXTRACT_TYPE_KERNEL "kernel"
+#define EXTRACT_TYPE_HEADER "header"
+#define EXTRACT_TYPE_CPIO "ramdisk cpio"
+#define EXTRACT_TYPE_ARCHIVE "ramdisk archive"
+#define EXTRACT_TYPE_DIRECTORY "ramdisk directory"
+#define EXTRACT_MESSAGE_FILE_NAMES   "Extracting %s to \"%s\"\n"
+#define EXTRACT_MESSAGE_FILE_NAMES_SIZES  "Extracting %s to \"%s\" size %u\n"
+//#define PRINT_EXTRACT_MESSAGE(const char *format,...)  print_message(format, ...) ;
 
-#define PRINT_EXTRACT_MESSAGE(type,file) { PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE fprintf(stderr,"Extracting %s to \"%s\"\n",type,file);}
 
 #define HELP_ERROR_IMAGE_RAMDISK_SIZE_ZERO "\
 the boot image header reports the ramdisk size as zero\n\n"
@@ -40,15 +47,17 @@ the boot image header reports the ramdisk size as zero\n\n"
 #define HELP_MAIN_USAGE "\
 Usage:  bootimg-tools [actions] <switches>\n\
 Actions:\n\
-extract		extract a boot image into it's constituent parts\n\
-pack		pack seperate files into a boot image\n\
-list		print boot image header details or ramdisk fileinfo\n\
-update    	update the boot image ramdisk and header property\n\
-help		print the help information for the specificed action\n\n\
+x, extract  extract boot image parts\n\
+p, pack		pack files into a boot image\n\
+l, list		print boot image information\n\
+a, add	 	add ramdisk files or boot image parts\n\
+r, remove 	remove ramdisk files or boot image parts\n\
+u, update  	update ramdisk files or boot image\n\
+h, help		print the help information for the specificed action\n\n\
 See bootimg-tools help <action> for detailed information\n"
 
 #define HELP_EXTRACT_MAIN "\
-Unpack: unpacks a boot image into it's constituent parts\n\
+extract: extract boot image parts\n\
 Usage:  bootimg-tools extract <boot image file> <switches>\n\
 Switches:\n\
     -h, --header [filename]           Extract the boot image header information to [filename] leave filename empty to use\n\
@@ -65,8 +74,10 @@ Switches:\n\
                                       empty to use default ( default=initramfs.cpio.<type> ), when\n\
                                       using the defaults the <type> will be determined by the file magic\n\
                                       common type are lzop (.lzo) and gzip (.gz)\n\
-    -f, --files < file1,file2,... >   Extract files specified in the comma seperated from the ramdisk\n\
-                                      if the file cannot be found the entry is ignored processed\n\n\
+    -f, --files <file1> <file2> ...   Extract files specified in the the file list from the ramdisk\n\
+        --no-path                     if the file cannot be found the entry is ignored processed\n\
+									  Add the --no-path switch to extract the file to the current directory\n\
+									  regardless of the ramdisk path\n\n\
 Notes: <boot image file>  is required and must be a valid android boot image\n\
        --kernel, --header, --cmdline and --pagesize are optional --header includes the cmdline and pagesize info\n\
        --ramdisk-archive and --ramdisk-directory are optional\n\
@@ -229,5 +240,24 @@ static int help_error_image_ramdisk_zero(){
 	PRINT_DOUBLE_LINE
 	exit(0);
 	
+}
+static int print_message(const char *format, ...)
+{
+	
+	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
+	int result;
+	char *str = NULL;
+	FILE* file;
+	va_list args;
+	va_start(args, format);
+
+	result = vasprintf(&str, format, args);
+	if(result == -1)
+		return 0;
+	va_end(args);
+	fprintf(stderr,str,NULL);
+	//free(str);
+
+	return 1;
 }
 #endif 

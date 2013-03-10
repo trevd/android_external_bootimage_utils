@@ -185,14 +185,14 @@ static int process_kernel_section(FILE* boot_image_file,boot_img_hdr* header){
 	
 	size_t kernel_padding = get_padding(header->kernel_size,header->page_size );
 	
-	fprintf(stderr,"kernel_padding:%u\n",kernel_padding);
+	
 	if(option_values.kernel_filename){
-		fprintf(stderr,"Extracting Kernel %s size:%d\n",option_values.kernel_filename,header->kernel_size);
+		print_message(EXTRACT_MESSAGE_FILE_NAMES_SIZES,EXTRACT_TYPE_KERNEL,option_values.kernel_filename,header->kernel_size);
 		byte_p buffer=malloc(header->kernel_size);
 		fread(buffer,1,header->kernel_size,boot_image_file);
 		write_to_file(buffer,header->kernel_size,option_values.kernel_filename);
 		free(buffer);
-		fprintf(stderr,"Extracting Kernel Complete\n");
+		
 	}else{
 		fseek(boot_image_file,header->kernel_size,SEEK_CUR); 
 	}
@@ -202,18 +202,23 @@ static int process_kernel_section(FILE* boot_image_file,boot_img_hdr* header){
 } 
 
 static int process_ramdisk_archive(boot_img_hdr* header,byte_p ramdisk_data){
-	if(option_values.ramdisk_archive_filename)	
+	if(option_values.ramdisk_archive_filename){
+		print_message(EXTRACT_MESSAGE_FILE_NAMES_SIZES,EXTRACT_TYPE_ARCHIVE,option_values.ramdisk_archive_filename,header->ramdisk_size);
 		write_to_file(ramdisk_data,header->ramdisk_size,option_values.ramdisk_archive_filename);
+	}
 	
 	if(	option_values.ramdisk_cpio_filename || option_values.ramdisk_directory_name || option_values.file_list ){
 		
 		byte_p uncompressed_ramdisk_data = (byte_p) malloc(MEMORY_BUFFER_SIZE) ;
 		unsigned long uncompressed_ramdisk_size =	uncompress_gzip_ramdisk_memory(ramdisk_data,header->ramdisk_size,uncompressed_ramdisk_data,MEMORY_BUFFER_SIZE);
 		
-		if( option_values.ramdisk_cpio_filename )
+		if( option_values.ramdisk_cpio_filename ){
+			print_message(EXTRACT_MESSAGE_FILE_NAMES_SIZES,EXTRACT_TYPE_CPIO,option_values.ramdisk_cpio_filename,uncompressed_ramdisk_size);
 			write_to_file(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_cpio_filename);
+		}
 		
 		if( option_values.ramdisk_directory_name )	{
+			print_message(EXTRACT_MESSAGE_FILE_NAMES,EXTRACT_TYPE_DIRECTORY,option_values.ramdisk_directory_name);
 			process_uncompressed_ramdisk(uncompressed_ramdisk_data,uncompressed_ramdisk_size,option_values.ramdisk_directory_name);
 		}
 		
@@ -221,9 +226,9 @@ static int process_ramdisk_archive(boot_img_hdr* header,byte_p ramdisk_data){
 			int cpio_entry_count = 0 ; int i ; int ok_to_write=FILE_YES;
 			cpio_entry_list_t** cpio_entries = get_cpio_entries(uncompressed_ramdisk_data,uncompressed_ramdisk_size,&cpio_entry_count);
 			while(option_values.file_list[0]){
-				fprintf(stderr,"option_values.file_list[0]:%s cpio_entry_count:%d\n",option_values.file_list[0],cpio_entry_count);
+				//fprintf(stderr,"option_values.file_list[0]:%s cpio_entry_count:%d\n",option_values.file_list[0],cpio_entry_count);
 				for(i=0; i < cpio_entry_count ; i++ ){
-					fprintf(stderr,"option_values.file_list[0]:%s cpio_entry_count:%d cpio_entries[%d]->name:%s\n",option_values.file_list[0],cpio_entry_count,i,cpio_entries[i]->name);
+					//fprintf(stderr,"option_values.file_list[0]:%s cpio_entry_count:%d cpio_entries[%d]->name:%s\n",option_values.file_list[0],cpio_entry_count,i,cpio_entries[i]->name);
 					if (!strlcmp(cpio_entries[i]->name,option_values.file_list[0])){
 						if(ok_to_write!=FILE_ALL){
 							if(check_file_exists(cpio_entries[i]->name)) {
@@ -240,9 +245,9 @@ static int process_ramdisk_archive(boot_img_hdr* header,byte_p ramdisk_data){
 			}
 			free_cpio_entry_memory(cpio_entries,cpio_entry_count);
 		}
-		free(uncompressed_ramdisk_data);
+		
 	}
-	fprintf(stderr,"ramdisk_processed:\n");
+	//fprintf(stderr,"ramdisk_processed:\n");
 	return 0;
 }
 static int process_ramdisk_section(FILE* boot_image_file,boot_img_hdr* header){
@@ -273,7 +278,7 @@ static int process_ramdisk_section(FILE* boot_image_file,boot_img_hdr* header){
 }
 static int process_header_section(FILE* boot_image_file,boot_img_hdr* header){
 	if(option_values.header_filename){
-		PRINT_EXTRACT_MESSAGE("boot image header",option_values.header_filename);
+		print_message(EXTRACT_MESSAGE_FILE_NAMES,EXTRACT_TYPE_HEADER,option_values.header_filename);
 		
 		FILE * header_file = fopen(option_values.header_filename,"wb");
 		if(header_file){
@@ -401,7 +406,7 @@ int create_boot_image_file(){
 
 int extract_boot_image_file(){
 
-	log_write("Extracting %s\n",option_values.image_filename);
+	
 	FILE* boot_image_file = fopen(option_values.image_filename,"r+b");
 	boot_img_hdr* header = load_boot_image_header(boot_image_file);
 	
@@ -409,8 +414,6 @@ int extract_boot_image_file(){
 	process_kernel_section(boot_image_file,header);
 	process_ramdisk_section(boot_image_file,header);
 	process_second_section(boot_image_file,header);
-	log_write("Extracting %s\n",option_values.image_filename);
-	
 	fclose(boot_image_file);
 	return 0;
 }
@@ -433,6 +436,15 @@ int list_boot_image_kernel_info(FILE* boot_image_file,boot_img_hdr* header,boot_
 	//fprintf(stderr,"\n kernel size %lu\n",uncompressed_kernel_size);
 	
 	byte_p version_string = find_in_memory(uncompressed_kernel_data,uncompressed_kernel_size,magic_linux_version,13);
+	
+	byte_p next_gzip = find_in_memory(uncompressed_kernel_data,uncompressed_kernel_size,magic_gzip_deflate,3);
+	if(next_gzip){
+		byte_p uncompressed_next_gzip_data = (byte_p) malloc(LARGE_MEMORY_BUFFER_SIZE) ;
+		unsigned uncompressed_next_gzip_size=uncompress_gzip_ramdisk_memory(next_gzip,uncompressed_kernel_size,uncompressed_next_gzip_data,LARGE_MEMORY_BUFFER_SIZE);
+		write_to_file(uncompressed_next_gzip_data,uncompressed_next_gzip_size,"next_gzip");
+		free(uncompressed_next_gzip_data);
+	}
+	
 	write_to_file(uncompressed_kernel_data,uncompressed_kernel_size,"image");
 	if(option_values.list_kernel){
 		fprintf(stderr,"\n Kernel Information\n\n");

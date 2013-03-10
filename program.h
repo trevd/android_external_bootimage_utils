@@ -66,6 +66,7 @@ typedef struct {
 	char *second_filename;
 	char *cmdline_filename;
 	char *output_directory_name;
+	char *output_file_name;
 	char *board_filename;
 	char *target_filename;
 	char *source_filename;
@@ -77,10 +78,13 @@ typedef struct {
 	char *board_name;
 	int page_size;
 	int list_ramdisk;
+	int list_properties;
 	int list_kernel;
 	int list_kernel_version;
 	int list_section;
 	int list_header;
+	int list_all;
+	int no_path;
 	int log_stdout;
 	int argument_count;
 	unsigned base_address;
@@ -150,6 +154,7 @@ static command_line_switch_t extract_switches[]={
 	 {  "source","s",NULL,0,&option_values.source_filename,NULL},
 	 {  "files","f",NULL,0,NULL,parse_file_list},
 	 {  "target","t",NULL,0,&option_values.target_filename,NULL},
+	 {  "no-path","N",NULL,0,&option_values.no_path,parse_no_value_arg},
 	 {  0, 0, 0, 0,0,0}
 };
 static command_line_switch_t create_switches[]={ 
@@ -175,10 +180,10 @@ static command_line_switch_t list_switches[]={
 	 {  "kernel-version","K",NULL,0,&option_values.list_kernel_version,parse_no_value_arg},
 	 {  "header","h",NULL,0,&option_values.list_header,parse_no_value_arg},
 	 {  "section","s",NULL,0,&option_values.list_section,parse_no_value_arg},
-	 {  "properties","p",NULL,0,&option_values.list_section,parse_no_value_arg},
-	 {  "output","p",NULL,0,&option_values.list_section,parse_value_or_default},
-	 {  "all","a",NULL,0,&option_values.list_ramdisk,parse_no_value_arg},
-	 
+	 {  "properties","p",NULL,0,&option_values.list_properties,parse_no_value_arg},
+	 {  "output","o",NULL,0,&option_values.output_file_name,parse_value_or_default},
+	 {  "ramdisk","p",NULL,0,&option_values.list_ramdisk,parse_no_value_arg},
+	 {  "all","a",NULL,0,&option_values.list_all,parse_no_value_arg},
 	 { 0, 0, 0, 0,0,0}
 };
 static command_line_switch_t update_switches[]={ 
@@ -195,7 +200,22 @@ static command_line_switch_t update_switches[]={
 	 {  "property","p",NULL,0,NULL,parse_property_list},
 	 {  0, 0, 0, 0,0,0}
 };
-
+static command_line_switch_t add_switches[]={ 
+		{  "boot-image","i",NULL,0,&option_values.image_filename,parse_value_or_default_exists},
+		{  "files","f",NULL,0,NULL,parse_file_list_exists},
+		{  "property","p",NULL,0,NULL,parse_property_list},
+		{  "service","s",NULL,0,NULL,parse_property_list},
+		{  "device","d",NULL,0,NULL,parse_property_list},
+		{  0, 0, 0, 0,0,0}
+};
+static command_line_switch_t remove_switches[]={ 
+		{  "boot-image","i",NULL,0,&option_values.image_filename,parse_value_or_default_exists},
+		{  "files","f",NULL,0,NULL,parse_file_list_exists},
+		{  "property","p",NULL,0,NULL,parse_property_list},
+		{  "service","s",NULL,0,NULL,parse_property_list},
+		{  "device","d",NULL,0,NULL,parse_property_list},
+		{  0, 0, 0, 0,0,0}
+};		
 static program_options_t program_options[] ={
 		{NULL,NOT_SET,NULL,NULL,NULL},
 		{create_switches,CREATE ,setup_required_defaults,create_boot_image_file,help_create},		 
