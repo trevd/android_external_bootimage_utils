@@ -99,7 +99,7 @@ typedef enum  _argument_type_enum {
 		REQ_STR_ARG, OPT_STR_ARG, DEF_STR_ARG } argument_type_enum ;
 typedef enum  _switch_type_enum { 
 		NOT_A_SWITCH, LONG_SWITCH=1, SHORT_SWITCH=2 }  switch_type_enum ;
-
+		
 typedef struct {
 		const char* long_name;
 		const char* short_char;

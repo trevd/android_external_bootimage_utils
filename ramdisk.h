@@ -42,6 +42,7 @@ typedef struct _default_property_list_t{
 //int get_cpio_entries(byte_p ramdisk_cpio_data,size_t size,cpio_entry_list_t*** entriesp);
 byte_p update_default_properties_in_gzip(FILE* boot_image_file,size_t ramdisk_size ,default_property_list_t** default_properties,int default_properties_total,size_t*gzipped_ramdisk_size);
 default_property_list_t** get_default_properties_from_file(FILE*boot_image_file,size_t ramdisk_size,int* default_property_count);
+default_property_list_t** get_default_properties(char *data, int* property_count);
 cpio_entry_list_t**  get_cpio_entries(byte_p ramdisk_cpio_data,size_t size,int* cpio_entry_count);
 cpio_entry_list_t** get_cpio_entries_from_archive(byte_p ramdisk_data,size_t ramdisk_size,size_t* uncompressed_ramdisk_size ,int* cpio_entry_count );
 cpio_entry_list_t**  get_cpio_entries_from_file(FILE*boot_image_file,size_t ramdisk_size,size_t* uncompressed_ramdisk_size,int* cpio_entry_count);

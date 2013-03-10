@@ -25,6 +25,7 @@ ssize_t readlink(const char *path, char *buf, size_t bufsiz);
 int vasprintf(char **strp, const char *fmt, va_list ap);
 
 typedef enum _file_info_enum { FILE_NO=0 , FILE_YES=1,FILE_ALL=2, FILE_NOT_FOUND=3,FILE_INVALID_TYPE } file_info_enum ;
+typedef enum _file_recovery_type_enum { RECOVERY_UNKNOWN=0 , RECOVERY_ANDROID=1, RECOVERY_CLOCKWORK=2,RECOVERY_TWRP=3,RECOVERY_COT=1 } file_recovery_type_enum ;
 typedef char** byte_pp ;
 typedef char* byte_p ;
 typedef unsigned long offset_t ;
@@ -32,7 +33,10 @@ static char magic_cpio_ascii[6] = { 0x30,0x37,0x30,0x37,0x30,0x31 };
 static char magic_linux_zimage[4]={ 0x18,0x28,0x6F,0x01 }; 
 static char magic_linux_version[13]="Linux version"; //#define LINUX_VERSION_STRING "Linux version"
 static char magic_recovery_clockwork[23]="ClockworkMod Recovery v";
-static char magic_recovery_normal_version[28]="Android system recovery <3e>";
+static char magic_recovery_normal[28]="Android system recovery <3e>";
+static char magic_recovery_cot[21]="Cannibal Open Touch v";
+static char magic_recovery_twrp[13]="Starting TWRP";
+static char magic_recovery_twrp_version[29]="Team Win Recovery Project v%s";
 static char magic_lzop[4]="LZO\0";
 static char magic_gzip_deflate[3] =  { 0x1F,0x8B,0x08 };
 static char magic_xz[6] = { 0xFD, '7', 'z', 'X', 'Z', 0x00 };
@@ -65,7 +69,7 @@ byte_p find_in_memory(const byte_p haystack, size_t haystack_len, const char* ne
 byte_p find_string_in_memory(const byte_p haystack, size_t haystack_len, const char * needle);
 byte_p load_file(const char *fn, size_t *file_size);
 byte_p load_file_from_offset(const char *filepath,off_t offset,size_t *file_size);
-
+char *get_recovery_type(const byte_p recovery_data, size_t recovery_data_size);
 
 // Line Ending Conversion Functions
 size_t unix_to_dos(byte_p output_buffer, const byte_p input_buffer);

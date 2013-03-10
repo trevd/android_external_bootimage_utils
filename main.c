@@ -78,12 +78,12 @@ int strstrlcmp(const char *s1,size_t s1_len, const char *s2,size_t s2_len ){
 }
 int setup_required_defaults(){
 	  
-	option_values.base_address =DEFAULT_BASE_ADDRESS;
-	option_values.kernel_offset =  DEFAULT_KERNEL_OFFSET ;
+	option_values.base_address   = DEFAULT_BASE_ADDRESS;
+	option_values.kernel_offset  = DEFAULT_KERNEL_OFFSET ;
     option_values.ramdisk_offset = DEFAULT_RAMDISK_OFFSET;
     option_values.second_offset  = DEFAULT_SECOND_OFFSET ;
     option_values.tags_offset    = DEFAULT_TAGS_OFFSET   ;
-    option_values.page_size		= DEFAULT_PAGE_SIZE;
+    option_values.page_size		 = DEFAULT_PAGE_SIZE;
  
     return 0;
     
@@ -130,8 +130,7 @@ char* is_switch(char* test){
 		return NULL;	
 	if((strlen(test) < 2) || (test[0]!='-'))
 		return NULL;
-	// We've already establish that this is a switch
-	// so just check the type
+	// We've already establish that this is a switch so just check the type
 	if(test[1]=='-')
 		return test+2;
 	else
@@ -393,7 +392,6 @@ int parse_command_line_switches(char ***argv,program_options_t program_options){
 	
 	command_line_switch_t* switches_start = program_options.command_line_switches;
 	while((*argv)[0]){
-			//fprintf(stderr,"arg=%s\n",*argv[0]);
 		char* switch_string = is_switch(*argv[0]);
 	
 		if(!switch_string){
@@ -499,21 +497,15 @@ int main(int argc, char **argv){
 	option_values.argument_count=argc;
 	program_options_t program_options=get_program_options(argv[1]);
 	argc-- ; argv++ ;
-	//fprintf(stderr,"%d %s\n",argc,argv[1]);
+	
 	if(argc==1){(*program_options.help_function_p)();}	
 	(*program_options.setup_function_p)();
-		
-	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	argv++ ;
-	//fprintf(stderr,"%d %s\n",argc,argv[1]);
 	try_implicit_mode(&argv,&program_options);
 	
 	parse_command_line_switches(&argv,program_options);
-	//fprintf(stderr,"page_size:%d\n",option_values.page_size);
 	int ret =(*program_options.action_function_p)();
-	
-	//fprintf(stderr,"Done\n"	);
-	
+		
 	exit(0);
 		
 	return 0;

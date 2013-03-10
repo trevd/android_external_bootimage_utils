@@ -17,7 +17,7 @@
 #define CPIO_TRAILER_MAGIC "TRAILER!!!"
 #define DEFAULT_PROPERTIES_HEADER "#\x0A# ADDITIONAL_DEFAULT_PROPERTIES\x0A#\x0A"
 #define DEFAULT_PROPERTIES_HEADER_LENGTH 45
-static default_property_list_t** load_properties(char *data, int* property_count)
+default_property_list_t** get_default_properties(char *data, int* property_count)
 {  
     int i=0; char *key, *value, *eol, *tmp, *equals , *sol;
     (*property_count)=0; equals=data;
@@ -260,7 +260,7 @@ default_property_list_t** get_default_properties_from_file(FILE*boot_image_file,
 	default_property_list_t** default_properties; 
 	for(i=0;i<cpio_entries_total;i++){
 		if(!strlcmp("default.prop", cpio_entries[i]->name)){
-			 default_properties=load_properties(cpio_entries[i]->data,default_property_count);
+			 default_properties=get_default_properties(cpio_entries[i]->data,default_property_count);
 			break; 
 		}
 	}
@@ -307,8 +307,6 @@ void extract_cpio_list_entry(cpio_entry_list_t* cpio_entry){
 		
 }
 int free_cpio_entry_memory(cpio_entry_list_t** cpio_entries,int cpio_entries_total) {
-
-	//free(cpio_entries[0]->start.position);
 	for(cpio_entries_total;cpio_entries_total=0;cpio_entries_total--){
 			free(cpio_entries[cpio_entries_total-1]);
 	}
@@ -317,8 +315,6 @@ int free_cpio_entry_memory(cpio_entry_list_t** cpio_entries,int cpio_entries_tot
 return 0;
 }
 int free_default_properties_memory(default_property_list_t** properties,int properties_total) {
-
-	//free(cpio_entries[0]->start.position);
 	for(properties_total;properties_total=0;properties_total--){
 			free(properties[properties_total-1]);
 	}
@@ -326,6 +322,10 @@ int free_default_properties_memory(default_property_list_t** properties,int prop
 	
 return 0;
 }
+// get_contiguous_cpio_stream - create a contiguous stream from the cpio_entries list
+// cpio_entries - a pointer to an array of cpio_entry_list_t struct pointers
+// cpio_entries_total - the total size of the cpio_entries array
+// size - the total amount contiguous memory required by the cpio_entries
 byte_p get_contiguous_cpio_stream(cpio_entry_list_t** cpio_entries,int cpio_entries_total,size_t size){
 		byte_p ramdisk_cpio_data_start;int i;
 		byte_p ramdisk_cpio_data = ramdisk_cpio_data_start= calloc(size,sizeof(char));
@@ -340,43 +340,54 @@ byte_p get_contiguous_cpio_stream(cpio_entry_list_t** cpio_entries,int cpio_entr
 		}
 		return ramdisk_cpio_data_start;
 }
+byte_p get_contiguous_default_properties(default_property_list_t** default_properties, int default_properties_total, size_t* default_prop_size){
+
+	int i ;
+	(*default_prop_size)+=DEFAULT_PROPERTIES_HEADER_LENGTH;
+	for(i=0;i<default_properties_total;i++){
+		(*default_prop_size)+=strlen(default_properties[i]->key);
+		(*default_prop_size)+=strlen("=");
+		(*default_prop_size)+=strlen(default_properties[i]->value);
+	}
+	byte_p default_prop_stream = calloc((*default_prop_size),sizeof(char));
+	strncpy(default_prop_stream,DEFAULT_PROPERTIES_HEADER,DEFAULT_PROPERTIES_HEADER_LENGTH);
+	for(i=0;i<default_properties_total;i++){
+		strncat(default_prop_stream,default_properties[i]->key,strlen(default_properties[i]->key));
+		strncat(default_prop_stream,"=",1);
+		strncat(default_prop_stream,default_properties[i]->value,strlen(default_properties[i]->value));
+		strncat(default_prop_stream,"\n",1);
+	}
+	return default_prop_stream;
+}
+
+// update_default_properties_in_gzip - updates the default property file found in <boot_image_file>
+// boot_image_file - A valid android boot image which must contain a valid ramdisk.
+// ramdisk_size - The size of the gzipped ramdisk in boot_image_file
+// default_properties - a list of properties to written into the updated default.prop
+// default_properties_total - the total number of default properties in the <default_properties> list 
+// gzipped_ramdisk_size (out) - the size of the data returned
+// Return - a pointer to the start of a gzip stream containing the updated default.prop
 byte_p update_default_properties_in_gzip(FILE* boot_image_file,size_t ramdisk_size ,default_property_list_t** default_properties,int default_properties_total,size_t*gzipped_ramdisk_size){
 
-	int i ; int default_prop_size=0;
-	default_prop_size+=DEFAULT_PROPERTIES_HEADER_LENGTH;
-	for(i=0;i<default_properties_total;i++){
-		default_prop_size+=strlen(default_properties[i]->key);
-		default_prop_size+=strlen("=");
-		default_prop_size+=strlen(default_properties[i]->value);
-		//default_prop_size+=strlen("\n");
-	}
-	char* default_prop_file = calloc(default_prop_size,sizeof(char));
-	strncpy(default_prop_file,DEFAULT_PROPERTIES_HEADER,DEFAULT_PROPERTIES_HEADER_LENGTH);
-	for(i=0;i<default_properties_total;i++){
-		strncat(default_prop_file,default_properties[i]->key,strlen(default_properties[i]->key));
-		strncat(default_prop_file,"=",1);
-		strncat(default_prop_file,default_properties[i]->value,strlen(default_properties[i]->value));
-		strncat(default_prop_file,"\n",1);
-	}
-	size_t uncompressed_ramdisk_size=0; int cpio_entries_total=0;
+	size_t default_prop_size=0;int i ; size_t uncompressed_ramdisk_size=0; int cpio_entries_total=0;
+	byte_p default_prop_stream = get_contiguous_default_properties(default_properties,default_properties_total,&default_prop_size);
+	
 	cpio_entry_list_t** cpio_entries = get_cpio_entries_from_file(boot_image_file,ramdisk_size ,&uncompressed_ramdisk_size,&cpio_entries_total);
-	fprintf(stderr,"Defaultpropsize\n");
-	fprintf(stderr,"Defaultpropsize %d\n%s\n",default_prop_size,default_prop_file);
-	fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
+	//fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
 	for(i=0;i<cpio_entries_total;i++){
 		if(!strlcmp("default.prop", cpio_entries[i]->name)){
 			sprintf(cpio_entries[i]->start.cpio_header->c_filesize,"%08x",default_prop_size);
-			cpio_entries[i]->data=default_prop_file;
+			cpio_entries[i]->data=default_prop_stream;
 			uncompressed_ramdisk_size-=cpio_entries[i]->data_size;
 			cpio_entries[i]->data_size=default_prop_size+(((4 - (default_prop_size) % 4)) % 4);
 			uncompressed_ramdisk_size+=cpio_entries[i]->data_size; 
 			break; 
 		}
 	}
-	fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
+	//fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
 	byte_p ramdisk_gzip_data = compress_cpio_entries_to_gzip( cpio_entries,cpio_entries_total,uncompressed_ramdisk_size,gzipped_ramdisk_size);
-	fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
-	free(default_prop_file);
+	//fprintf(stderr,"ramdisk size: %u uncompressed_ramdisk_size: %u gzipped_ramdisk_size: %u default_prop_size:%u\n ",ramdisk_size,uncompressed_ramdisk_size,gzipped_ramdisk_size,default_prop_size);
+	free(default_prop_stream);
 	free_cpio_entry_memory(cpio_entries,cpio_entries_total) ;
 	return ramdisk_gzip_data;
 }

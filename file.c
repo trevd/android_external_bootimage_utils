@@ -245,7 +245,26 @@ byte_p find_in_memory(const byte_p haystack, size_t haystack_len,const char* nee
 	return NULL;
 }
 
-
+char *get_recovery_type(const byte_p recovery_data, size_t recovery_data_size){
+	byte_p recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_normal,28);
+	if(!recovery_type)recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_clockwork,23);
+	if(!recovery_type)recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_cot,21);	
+	if(!recovery_type){
+			recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_twrp,13);
+			if(recovery_type){
+				recovery_type=recovery_type+strlen(recovery_type)+1;
+				char str[29+strlen(recovery_type)];
+				sprintf(str,magic_recovery_twrp_version,recovery_type);
+				return str;
+			}
+	}
+	if(!recovery_type) return "Unknown";
+	char* newline = strchr(recovery_type,'\n');
+	if(newline) newline[0] = '\0';
+	return recovery_type;
+	
+	
+}
 size_t dos_to_unix(byte_p output_buffer, const byte_p input_buffer)
 {
     byte_p p = input_buffer;
