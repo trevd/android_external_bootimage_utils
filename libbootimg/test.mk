@@ -110,3 +110,17 @@ LOCAL_STATIC_LIBRARIES = libbootimage libz
 LOCAL_MODULE := bootimage-print-details-test
  
 include $(BUILD_HOST_EXECUTABLE)
+
+###### Print Full Details ###########
+
+include $(CLEAR_VARS)
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)  
+
+LOCAL_SRC_FILES := tests/extract_ramdisk_file.c
+
+LOCAL_STATIC_LIBRARIES = libbootimage libz
+
+LOCAL_MODULE := bootimage-extract-ramdisk-file-test
+ 
+include $(BUILD_HOST_EXECUTABLE)
