@@ -14,6 +14,7 @@ int main(int argc, char** argv){
     if(argc == 1){
         fprintf(stderr,"No filename : using default boot.img\n");
         filename="boot.img";
+        fprintf(stderr,"No radisk_filename : using default init.rc\n");
         ramdisk_filename="init.rc";
     }else{
         fprintf(stderr,"filename %s\n",argv[1]);
@@ -23,6 +24,7 @@ int main(int argc, char** argv){
         fprintf(stderr,"No ramdisk filename : using default.prop\n");
         ramdisk_filename="default.prop";
     }else{
+        if(!ramdisk_filename)
         ramdisk_filename = argv[2];
     }
     

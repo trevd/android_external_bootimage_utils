@@ -10,18 +10,21 @@ int main(int argc, char** argv){
     char* filename; char* ramdisk_filename;
     boot_image image;
    
-    fprintf(stderr,"\nBoot image ramdisk extract and unpack test\n");
+   fprintf(stderr,"\nBoot image ramdisk extract and unpack test\n");
     if(argc == 1){
         fprintf(stderr,"No filename : using default boot.img\n");
         filename="boot.img";
+        fprintf(stderr,"No radisk_filename : using default init.rc\n");
+        ramdisk_filename="init.rc";
     }else{
         fprintf(stderr,"filename %s\n",argv[1]);
         filename=argv[1];
     }
-    if(argc == 2){
+     if(argc == 2){
         fprintf(stderr,"No ramdisk filename : using default.prop\n");
         ramdisk_filename="default.prop";
     }else{
+        if(!ramdisk_filename)
         ramdisk_filename = argv[2];
     }
     
