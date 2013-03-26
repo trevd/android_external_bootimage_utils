@@ -126,20 +126,21 @@ int load_boot_image_header_from_disk(const char *filename, boot_image* image){
 			
 			if(!memcmp("kernel_address:",line,15)){
 				//fprintf(stderr,"%d %s\n",strlen(line+17),line+17);
-				image->kernel_phy_addr = strtol(line+17,(line+17)+(strlen(line+17)-1),16 ); /* write the line */
+				char *value = line+17;
+				image->kernel_phy_addr = strtol(value,NULL,16 ); /* write the line */
 			}
 			if(!memcmp("ramdisk_address:",line,16)){
-				image->ramdisk_phy_addr = strtol(line+16,(line+18)+(strlen(line+18)-1),16 ); /* write the line */
+				image->ramdisk_phy_addr = strtol(line+16,NULL,16 ); /* write the line */
 			}
 			if(!memcmp("tags_address:",line,13)){
-				image->tags_phy_addr = strtol(line+15,(line+15)+(strlen(line+15)-1),16 ); /* write the line */
+				image->tags_phy_addr = strtol(line+15,NULL,16 ); /* write the line */
 			}
 			if(!memcmp("second_address:",line,15)){
-				image->second_phy_addr = strtol(line+17,(line+17)+(strlen(line+17)-1),16 ); /* write the line */
+				image->second_phy_addr = strtol(line+17,NULL,16 ); /* write the line */
 			}
 			if(!memcmp("page_size:",line,10)){
-				fprintf(stderr,"page_size: %s\n",line+10);
-				image->page_size = strtol(line+10,(line+10)+(strlen(line+10)-1),10 ); /* write the line */
+				//fprintf(stderr,"page_size: %s\n",line+10);
+				image->page_size = strtol(line+10,NULL,10 ); /* write the line */
 			}
 			if(!memcmp("name:",line,5)){
 				memcpy(image->name,line+5,strlen(line+5));
