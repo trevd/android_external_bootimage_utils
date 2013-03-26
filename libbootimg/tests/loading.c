@@ -70,6 +70,8 @@ int main(int argc, char** argv){
     fprintf(stderr,"  second_offset    :%08d\n",image.second_offset);
     fprintf(stderr,"  second_padding   :%08d\n",image.second_padding);
     
+    fprintf(stderr,"\nSaving header info to header.txt\n");
+    write_boot_image_header_to_disk("header.txt",&image);
     
     fprintf(stderr,"\nSaving kernel image to kernel\n");
     FILE* fp  = fopen("kernel","w+b");

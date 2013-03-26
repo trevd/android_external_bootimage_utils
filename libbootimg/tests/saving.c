@@ -52,7 +52,7 @@ int main(int argc, char** argv){
     }
    
     set_boot_image_defaults(&image);
-    
+    load_boot_image_header_from_disk("header.txt",&image);
     // Stat the file for the size
     struct stat ksb;
 	if (stat(kernel_filename, &ksb) == -1) {
@@ -77,7 +77,7 @@ int main(int argc, char** argv){
     char rmem[ramdisk_size];
     FILE* ramdisk_fp = fopen(ramdisk_filename,"r+b");
     if(ramdisk_fp) fread(rmem,ramdisk_size,1,ramdisk_fp);
-    fprintf(stderr,"Kernel Size: %u\n",ramdisk_size);
+    fprintf(stderr,"Ramdisk Size: %u\n",ramdisk_size);
     image.ramdisk_addr=&rmem;
     image.ramdisk_size=ramdisk_size;
     fclose(ramdisk_fp);

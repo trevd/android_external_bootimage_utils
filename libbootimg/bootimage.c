@@ -105,10 +105,58 @@ int set_boot_image_content_hash(boot_image* image)
 }
 
 
-int save_boot_header_to_disk(const char *filename, boot_image* image){
+int write_boot_image_header_to_disk(const char *filename, boot_image* image){
 	
+	FILE * header_file = fopen(filename,"wb");
+		if(header_file){
+			fprintf(header_file,"kernel_size:%u"EOL"kernel_address:0x%08x"EOL"ramdisk_size:%u"EOL"ramdisk_address:0x%08x"EOL"second_size:%u"EOL"second_address:0x%08x"EOL
+			"tags_address:0x%08x"EOL"page_size:%u"EOL"name:%s"EOL"cmdline:%s"EOL,
+			image->kernel_size,image->kernel_phy_addr,image->ramdisk_size,image->ramdisk_phy_addr,
+			image->second_size,image->second_phy_addr,image->tags_phy_addr,image->page_size,image->name,image->cmdline);
+			fclose(header_file);
+		}
+	return 0;
+}
+int load_boot_image_header_from_disk(const char *filename, boot_image* image){
 	
+	FILE * header_file = fopen(filename,"r");
+	if(header_file){
+		char line[256];
+		while ( fgets ( line, sizeof line, header_file ) ) {
+			
+			if(!memcmp("kernel_address:",line,15)){
+				//fprintf(stderr,"%d %s\n",strlen(line+17),line+17);
+				image->kernel_phy_addr = strtol(line+17,(line+17)+(strlen(line+17)-1),16 ); /* write the line */
+			}
+			if(!memcmp("ramdisk_address:",line,16)){
+				image->ramdisk_phy_addr = strtol(line+16,(line+18)+(strlen(line+18)-1),16 ); /* write the line */
+			}
+			if(!memcmp("tags_address:",line,13)){
+				image->tags_phy_addr = strtol(line+15,(line+15)+(strlen(line+15)-1),16 ); /* write the line */
+			}
+			if(!memcmp("second_address:",line,15)){
+				image->second_phy_addr = strtol(line+17,(line+17)+(strlen(line+17)-1),16 ); /* write the line */
+			}
+			if(!memcmp("page_size:",line,10)){
+				fprintf(stderr,"page_size: %s\n",line+10);
+				image->page_size = strtol(line+10,(line+10)+(strlen(line+10)-1),10 ); /* write the line */
+			}
+			if(!memcmp("name:",line,5)){
+				memcpy(image->name,line+5,strlen(line+5));
+				image->name[strlen(line+5)-1]='\0';
+			}
+			if(!memcmp("cmdline:",line,8)){
+				memcpy(image->cmdline,line+8,strlen(line+8));
+				image->cmdline[strlen(line+8)-1]='\0';
+				//fprintf(stderr,"%d %d %s %s\n",strlen(line+8),strlen(image->cmdline),line+8 , image->cmdline);
+				
+			}
+		
+		}
+		fclose(header_file);
+	}
 	
+	return 0;
 }
 /* load_boot_image - load android boot image into memory 
  * 

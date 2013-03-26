@@ -67,8 +67,11 @@ struct boot_image
 };
 int load_boot_image(const char *filename, boot_image* image);
 int write_boot_image(const char *filename, boot_image* image);
+int write_boot_image_header_to_disk(const char *filename, boot_image* image);
+int load_boot_image_header_from_disk(const char *filename, boot_image* image);
 int set_boot_image_defaults(boot_image* image);
 int set_boot_image_content_hash(boot_image* image);
 int set_boot_image_padding(boot_image* image);
 int set_boot_image_offsets(boot_image* image);
+
 #endif

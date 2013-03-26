@@ -1,8 +1,12 @@
 #ifndef _cfe5afee_9069_11e2_93f2_5404a601fa9d
 #define _cfe5afee_9069_11e2_93f2_5404a601fa9d
 
+#define WINDOWS_EOL "\r\n"
+
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
     #include <utils_windows.h>
+#else
+    #include <utils_linux.h>
 #endif
 
     unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len); 
