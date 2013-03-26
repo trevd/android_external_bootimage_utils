@@ -64,6 +64,7 @@ int main(int argc, char** argv){
             fprintf(stderr,"  rimage.entries[%02u].data_size    :%u\n",counter,rimage.entries[counter]->data_size);
             fprintf(stderr,"  rimage.entries[%02u].data_padding :%u\n",counter,rimage.entries[counter]->data_padding);
             fprintf(stderr,"\ncontents of %s:\n\n",rimage.entries[counter]->name_addr);
+           
             char file_contents[rimage.entries[counter]->data_size+1];
             memcpy(file_contents,rimage.entries[counter]->data_addr,rimage.entries[counter]->data_size);
             file_contents[rimage.entries[counter]->data_size] = '\0';

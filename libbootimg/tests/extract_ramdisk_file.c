@@ -14,12 +14,17 @@ int main(int argc, char** argv){
     if(argc == 1){
         fprintf(stderr,"No filename : using default boot.img\n");
         filename="boot.img";
+        ramdisk_filename="init.rc";
     }else{
         fprintf(stderr,"filename %s\n",argv[1]);
         filename=argv[1];
     }
-    
+     if(argc == 2){
+        fprintf(stderr,"No ramdisk filename : using default.prop\n");
+        ramdisk_filename="default.prop";
+    }else{
         ramdisk_filename = argv[2];
+    }
     
     
     int return_value = load_boot_image(filename,&image);
