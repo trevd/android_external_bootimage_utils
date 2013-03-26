@@ -153,12 +153,13 @@ static void check_for_help_call(int argc,char ** argv){
 	
 }
 static int help_main(){
+	fprintf(stderr,"Help Main\n");
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE
 	PRINT_MAIN_USAGE
 	exit(0);
 }
 
-
+static int help_identify(){exit(0);}
 static int help_create(){exit(0);}
 static int help_extract(){ 
 	PRINT_BOOT_IMAGE_UTILITIES_FULL_TITLE

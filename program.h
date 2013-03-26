@@ -28,12 +28,13 @@ int list_boot_image_info();
 int extract_boot_image_file();
 int update_boot_image_file();
 int setup_required_defaults();
+int identify_file();
 int log_write(const char *format, ...);
 int strlcmp(const char *s1, const char *s2);
 int strstrlcmp(const char *s1,size_t s1_len, const char *s2,size_t s2_len );
 #define ARRAYSIZE(a) (sizeof(a)/sizeof(*a))
 
-typedef enum  _program_actions_enum {  NOT_SET,	 CREATE , LIST , EXTRACT,ADD , REMOVE , UPDATE } program_actions_emum ;
+typedef enum  _program_actions_enum {  NOT_SET,	 CREATE , LIST , EXTRACT,ADD , REMOVE , UPDATE , IDENTIFY } program_actions_emum ;
 
 #define DEFAULT_KERNEL_OFFSET  0x00008000;
 #define DEFAULT_RAMDISK_OFFSET 0x01000000;
@@ -182,7 +183,7 @@ static command_line_switch_t list_switches[]={
 	 {  "section","s",NULL,0,&option_values.list_section,parse_no_value_arg},
 	 {  "properties","p",NULL,0,&option_values.list_properties,parse_no_value_arg},
 	 {  "output","o",NULL,0,&option_values.output_file_name,parse_value_or_default},
-	 {  "ramdisk","p",NULL,0,&option_values.list_ramdisk,parse_no_value_arg},
+	 {  "ramdisk","r",NULL,0,&option_values.list_ramdisk,parse_no_value_arg},
 	 {  "all","a",NULL,0,&option_values.list_all,parse_no_value_arg},
 	 { 0, 0, 0, 0,0,0}
 };
@@ -215,6 +216,15 @@ static command_line_switch_t remove_switches[]={
 		{  "service","s",NULL,0,NULL,parse_property_list},
 		{  "device","d",NULL,0,NULL,parse_property_list},
 		{  0, 0, 0, 0,0,0}
+};
+static command_line_switch_t identify_switches[]={ 
+		{  "kernel","k",DEFAULT_KERNEL_NAME,0,&option_values.kernel_filename,parse_value_or_default_exists},
+		{  "boot-image","i",NULL,0,&option_values.image_filename,parse_value_or_default_exists},
+		{  "files","f",NULL,0,NULL,parse_file_list_exists},
+		{  "property","p",NULL,0,NULL,parse_property_list},
+		{  "service","s",NULL,0,NULL,parse_property_list},
+		{  "device","d",NULL,0,NULL,parse_property_list},
+		{  0, 0, 0, 0,0,0}
 };		
 static program_options_t program_options[] ={
 		{NULL,NOT_SET,NULL,NULL,NULL},
@@ -223,8 +233,11 @@ static program_options_t program_options[] ={
 		{extract_switches,EXTRACT,setup_required_defaults,extract_boot_image_file ,help_extract},
 		{NULL,ADD ,NULL,NULL,help_add},
 		{NULL,REMOVE ,NULL,NULL,help_remove },
-		{update_switches,UPDATE ,setup_required_defaults,update_boot_image_file,help_update}
+		{update_switches,UPDATE ,setup_required_defaults,list_boot_image_info,help_update},
+		{identify_switches,IDENTIFY,NULL,identify_file,help_identify }
+		
 };
+
 typedef  program_options_t* program_options_p;
 
 
@@ -234,7 +247,7 @@ typedef  program_options_t* program_options_p;
 #define ACTION_ADD (option_values.action==ADD )
 #define ACTION_REMOVE (option_values.action==REMOVE )
 #define ACTION_UPDATE (option_values.action==UPDATE )
-	
+#define ACTION_IDENTIFY (option_values.action==IDENTIFY )	
 
 #define MEMORY_BUFFER_SIZE (const size_t)8192*1024
 #define LARGE_MEMORY_BUFFER_SIZE (const size_t)8192*2048

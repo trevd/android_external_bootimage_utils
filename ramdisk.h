@@ -1,5 +1,5 @@
-#ifndef _BOOTIMAGE_RAMDISK_H_
-#define _BOOTIMAGE_RAMDISK_H_
+#ifndef e04b5364_bd1a_45b1_b6e1_2edc462aff4c
+#define e04b5364_bd1a_45b1_b6e1_2edc462aff4c
 #include "file.h"
 #define CPIO_HEADER_SIZE sizeof(cpio_newc_header_t)
 #define PROPERTY_KEY_MAX   32
@@ -40,12 +40,15 @@ typedef struct _default_property_list_t{
 } default_property_list_t;
 
 //int get_cpio_entries(byte_p ramdisk_cpio_data,size_t size,cpio_entry_list_t*** entriesp);
+default_property_list_t** get_default_properties_from_cpio_entries(cpio_entry_list_t** cpio_entries,size_t cpio_entries_total,int* default_property_count,int* cpio_index);
+byte_p get_uncompressed_ramdisk_data_from_file(FILE*boot_image_file, size_t ramdisk_size, size_t* uncompressed_ramdisk_size);
 byte_p update_default_properties_in_gzip(FILE* boot_image_file,size_t ramdisk_size ,default_property_list_t** default_properties,int default_properties_total,size_t*gzipped_ramdisk_size);
 default_property_list_t** get_default_properties_from_file(FILE*boot_image_file,size_t ramdisk_size,int* default_property_count);
 default_property_list_t** get_default_properties(char *data, int* property_count);
-cpio_entry_list_t**  get_cpio_entries(byte_p ramdisk_cpio_data,size_t size,int* cpio_entry_count);
-cpio_entry_list_t** get_cpio_entries_from_archive(byte_p ramdisk_data,size_t ramdisk_size,size_t* uncompressed_ramdisk_size ,int* cpio_entry_count );
+cpio_entry_list_t**  get_cpio_entries_from_uncompressed_ramdisk(byte_p ramdisk_cpio_data,size_t size,int* cpio_entry_count);
 cpio_entry_list_t**  get_cpio_entries_from_file(FILE*boot_image_file,size_t ramdisk_size,size_t* uncompressed_ramdisk_size,int* cpio_entry_count);
+
+
 int free_cpio_entry_memory(cpio_entry_list_t** cpio_entries,int cpio_entries_total) ;
 int free_default_properties_memory(default_property_list_t** properties,int properties_total) ;
 int process_uncompressed_ramdisk(const byte_p ramdisk_cpio_data ,unsigned size, char  *ramdisk_dirname);
@@ -56,7 +59,9 @@ void extract_cpio_list_entry(cpio_entry_list_t* cpio_entry);
 //cpio_entry_t create_cpio_entry_file(const byte_p cpio_data,const size_t cpio_size);
 size_t pack_ramdisk_directory( byte_p ramdisk_cpio_data);
 byte_p get_contiguous_cpio_stream(cpio_entry_list_t** cpio_entries,int cpio_entries_total,size_t size);
+byte_p get_contiguous_default_properties(default_property_list_t** default_properties, int default_properties_total, size_t* default_prop_size);
 byte_p compress_cpio_entries_to_gzip(cpio_entry_list_t** cpio_entries,int cpio_entries_total,size_t cpio_size,size_t* ramdisk_size);
 //byte_p modify_ramdisk_entry(const byte_p cpio_data,size_t *new_cpio_size,cpio_entry_t cpio_entry);
+byte_p compress_data_to_gzip(const byte_p uncompressed_data , size_t uncompressed_data_size,size_t* compressed_data_size);
 #endif
 

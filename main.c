@@ -100,7 +100,12 @@ program_options_t get_program_options(char *program_action){
 	
 	if(!strlcmp(program_action,"pack")  || !strlcmp(program_action,"p")) return program_options[CREATE];
 	
-	if(!strlcmp(program_action,"update")  || !strlcmp(program_action,"u")) return program_options[UPDATE];
+	if(!strlcmp(program_action,"update")  || !strlcmp(program_action,"u")){
+		fprintf(stderr,"Program Option Update\n");
+		 return program_options[UPDATE];
+	}
+	
+	if(!strlcmp(program_action,"identify")  || !strlcmp(program_action,"i")) return program_options[IDENTIFY];
 
 	help_main();
 	exit(0);
@@ -360,7 +365,7 @@ int parse_property_list(char ***argv, void* command_line_switch_p) {
 	}
 	if(!(*argv)[0]) argv--;
 	option_values.property_list[++counter]=NULL;
-	fprintf(stderr,"parse file list:option_values.property_list_count %d\n",counter);
+	fprintf(stderr,"parse property list:option_values.property_list_count %d\n",counter);
 	return 0 ;	
 }
 
@@ -429,7 +434,7 @@ int parse_command_line_switches(char ***argv,program_options_t program_options){
 }
 int try_implicit_mode(char ***argv,program_options_p program_options){
 
-	//fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+	fprintf(stderr,"argv[0]=%s %d %d\n",(*argv)[0],program_options->action,UPDATE);
 	if(check_for_lazy_image((*argv)[0],program_options->action)){	
 		switch(program_options->action){
 		 case LIST:{
@@ -457,8 +462,9 @@ int try_implicit_mode(char ***argv,program_options_p program_options){
 			break;}
 		case UPDATE: {
 			(*argv)++ ;
-			if((*argv)){
-				//fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+			fprintf(stderr,"argv[0]=%s\n",(*argv)[0]);
+			 if((*argv)[0]){
+				
 				if((*argv)[0][0]!='-'){ 
 					option_values.source_filename=(*argv)[0];
 				}else{ 
@@ -496,16 +502,19 @@ int main(int argc, char **argv){
 	option_values.log_stdout=1;
 	option_values.argument_count=argc;
 	program_options_t program_options=get_program_options(argv[1]);
+	fprintf(stderr,"Running Action %d\n",program_options.action);
 	argc-- ; argv++ ;
 	
 	if(argc==1){(*program_options.help_function_p)();}	
-	(*program_options.setup_function_p)();
+	
+	if(*program_options.setup_function_p)(*program_options.setup_function_p)();
 	argv++ ;
 	try_implicit_mode(&argv,&program_options);
 	
 	parse_command_line_switches(&argv,program_options);
+	
 	int ret =(*program_options.action_function_p)();
-		
+	fprintf(stderr,"Done\n");	
 	exit(0);
 		
 	return 0;

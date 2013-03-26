@@ -248,6 +248,7 @@ byte_p find_in_memory(const byte_p haystack, size_t haystack_len,const char* nee
 char *get_recovery_type(const byte_p recovery_data, size_t recovery_data_size){
 	byte_p recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_normal,28);
 	if(!recovery_type)recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_clockwork,23);
+	if(!recovery_type)recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_cwm,20);
 	if(!recovery_type)recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_cot,21);	
 	if(!recovery_type){
 			recovery_type=find_in_memory(recovery_data,recovery_data_size,magic_recovery_twrp,13);

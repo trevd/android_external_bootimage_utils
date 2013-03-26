@@ -36,6 +36,7 @@ static char magic_recovery_clockwork[23]="ClockworkMod Recovery v";
 static char magic_recovery_normal[28]="Android system recovery <3e>";
 static char magic_recovery_cot[21]="Cannibal Open Touch v";
 static char magic_recovery_twrp[13]="Starting TWRP";
+static char magic_recovery_cwm[20]="CWM-based Recovery v";
 static char magic_recovery_twrp_version[29]="Team Win Recovery Project v%s";
 static char magic_lzop[4]="LZO\0";
 static char magic_gzip_deflate[3] =  { 0x1F,0x8B,0x08 };

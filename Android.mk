@@ -33,4 +33,3 @@ ifeq ($(strip $(USE_MINGW)),)
 	include $(BUILD_EXECUTABLE)
 endif
 
-
