@@ -13,7 +13,7 @@
 #include <bootimage.h>
 
 // internal program headers
-#include <extract.h>
+#include <actions.h>
 
 #define DEFAULT_BOOTIMAGE_NAME "boot"
 
@@ -306,5 +306,3 @@ int process_extract_action(int argc,char ** argv){
        
     return 0;
 }
-
-
