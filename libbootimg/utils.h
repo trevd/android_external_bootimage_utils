@@ -16,4 +16,6 @@
     unsigned strlcmp(const  char *s1, const  char *s2);
     unsigned strulcmp(const unsigned char *s1, const unsigned char *s2);
     int symlink_os(const unsigned char *source, unsigned size,const char *path);
+    unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size);
+    unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,char* name);
 #endif

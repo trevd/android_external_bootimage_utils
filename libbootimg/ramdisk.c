@@ -181,17 +181,9 @@ int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_n
     
     unsigned i = 0;
     for(i = 0 ; i < image->entry_count ; i++){
-	if(S_ISDIR(image->entries[i]->mode)){
-	    mkdir_and_parents(image->entries[i]->name_addr,image->entries[i]->mode);
-	}else if(S_ISREG(image->entries[i]->mode)){
-	    FILE* fp  = fopen((char*)image->entries[i]->name_addr,"w+b");
-	    fwrite(image->entries[i]->data_addr,image->entries[i]->data_size,1,fp);
-	    fclose(fp);
-	    chmod((char*)image->entries[i]->name_addr,image->entries[i]->mode);
-	}else if(S_ISLNK(image->entries[i]->mode)){
-	    
-	    symlink_os(image->entries[i]->data_addr, image->entries[i]->data_size ,(char*)image->entries[i]->name_addr );	
-	}	
+	
+	write_item_to_disk_extended(image->entries[i]->data_addr,image->entries[i]->data_size,image->entries[i]->mode, image->entries[i]->name_addr,image->entries[i]->name_size);
+	
     }
     
     if(directory_name){

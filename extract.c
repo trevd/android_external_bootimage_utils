@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <limits.h>
 #include <errno.h>
+#include <string.h>	
 
 // libbootimage headers
 #include <utils.h>
@@ -14,6 +15,8 @@
 // internal program headers
 #include <extract.h>
 
+#define DEFAULT_BOOTIMAGE_NAME "boot"
+
 typedef struct extract_action extract_action;
 
 struct extract_action{
@@ -21,13 +24,14 @@ struct extract_action{
 	char *		bootimage_filename	;
 	char *  	header_filename 	;
 	char *  	kernel_filename 	;
-	
 	char ** 	ramdisk_filenames 	;
 	char *  	ramdisk_cpioname 	;
 	char *  	ramdisk_imagename 	;
-	unsigned char *  	ramdisk_directory 	;
+	unsigned char * ramdisk_directory 	;
 	char *		second_filename		;
-	unsigned char *  	output_directory 	;
+	unsigned char * output_directory 	;
+	unsigned	ramdisk_filenames_count	;
+
 };
 
 int extract_bootimage(extract_action* action){
@@ -52,25 +56,22 @@ int extract_bootimage(extract_action* action){
 	write_boot_image_header_to_disk(action->header_filename,&bimage);
 	
     if(action->kernel_filename){
-	FILE* kernel_fp = fopen(action->kernel_filename,"w+b");
-	fwrite(bimage.kernel_addr,bimage.kernel_size,1,kernel_fp);
-	fclose(kernel_fp);
+	if(write_item_to_disk(bimage.kernel_addr,bimage.kernel_size,33188,action->kernel_filename))
+	    fprintf(stderr,"error writing %s %d %s\n",action->kernel_filename,errno,strerror(errno));
     }
     
     if(action->second_filename && bimage.second_size > 0){
-	FILE* second_fp = fopen(action->second_filename,"w+b");
-	fwrite(bimage.second_addr,bimage.second_size,1,second_fp);
-	fclose(second_fp);
+	if(write_item_to_disk(bimage.second_addr,bimage.second_size,33188,action->second_filename))
+		fprintf(stderr,"error writing %s %d %s\n",action->second_filename,errno,strerror(errno));
     }
     
     if(action->ramdisk_imagename){
-	FILE* ramdisk_fp = fopen(action->ramdisk_imagename,"w+b");
-	fwrite(bimage.ramdisk_addr,bimage.ramdisk_size,1,ramdisk_fp);
-	fclose(ramdisk_fp);
+	if(write_item_to_disk(bimage.ramdisk_addr,bimage.ramdisk_size,33188,action->ramdisk_imagename))
+	    fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_imagename,errno,strerror(errno));
     }
     
     
-    if(action->ramdisk_cpioname || action->ramdisk_directory){
+    if(action->ramdisk_cpioname || action->ramdisk_directory || action->ramdisk_filenames_count > 0){
 		 
 	ramdisk_image rimage; 
 	return_value = load_ramdisk_image(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage);
@@ -83,13 +84,30 @@ int extract_bootimage(extract_action* action){
 	}
 	
 	if(action->ramdisk_cpioname){
-	    FILE* ramdiskcpio_fp = fopen(action->ramdisk_cpioname,"w+b");
-	    fwrite(rimage.start_addr,rimage.size,1,ramdiskcpio_fp);
-	    fclose(ramdiskcpio_fp);
+	    
+	    if(write_item_to_disk(rimage.start_addr,rimage.size,33188,action->ramdisk_cpioname))
+		fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_cpioname,errno,strerror(errno));
+	    
 	}
 	if(action->ramdisk_directory)
 	    save_ramdisk_entries_to_disk(&rimage,action->ramdisk_directory);
 	
+	// extract a single file from the ramdisk 
+	int entry_index = 0 ; int filename_index = 0 ; 
+	for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
+	    for (entry_index = 0 ; entry_index < rimage.entry_count ; entry_index ++){
+		if(!strlcmp(rimage.entries[entry_index]->name_addr,action->ramdisk_filenames[filename_index])){
+		    fprintf(stderr,"%s\n",rimage.entries[entry_index]->name_addr);
+		    //FILE* ramdiskfile_fp = fopen(action->ramdisk_filenames[filename_index],"w+b");
+		    if(write_item_to_disk_extended(rimage.entries[entry_index]->data_addr,rimage.entries[entry_index]->data_size,
+			rimage.entries[entry_index]->mode,action->ramdisk_filenames[filename_index],rimage.entries[entry_index]->name_size)){
+			
+			fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
+		    }
+		    break;
+		}
+	    }
+	}
 	free(rimage.start_addr);
     }
        
@@ -116,17 +134,18 @@ int process_extract_action(int argc,char ** argv){
     action.ramdisk_directory  	= NULL 	;
     action.second_filename  	= NULL 	;
     action.output_directory  	= NULL 	;
+    action.ramdisk_filenames_count	= 0	;
 
     FILE*file;
       
     while(argc > 0){
 	    
 	// check for a valid file name
-	if((file=fopen(argv[0],"r+b"))){
+	if(!action.bootimage_filename && (file=fopen(argv[0],"r+b"))){
 		
 		fclose(file);
 		action.bootimage_filename = argv[0];
-		
+		fprintf(stderr,"action.bootimage_filename:%s\n",action.bootimage_filename);
 		// set full extract if this is the last token 
 		// or if the next token is NOT a switch. 
 		
@@ -156,6 +175,7 @@ int process_extract_action(int argc,char ** argv){
 			action.header_filename = argv[1];
 			--argc; ++argv;
 		}
+		fprintf(stderr,"action.header_filename:%s\n",action.header_filename);
 		
 	}else if(!strlcmp(argv[0],"--kernel") || !strlcmp(argv[0],"-k")){
 		
@@ -169,6 +189,7 @@ int process_extract_action(int argc,char ** argv){
 			action.kernel_filename = argv[1];
 			--argc; ++argv;
 		}
+		fprintf(stderr,"action.kernel_filename:%s\n",action.kernel_filename);
 		
 	}else if(!strlcmp(argv[0],"--cpio") || !strlcmp(argv[0],"-C")) {
 		
@@ -180,7 +201,8 @@ int process_extract_action(int argc,char ** argv){
 			action.ramdisk_cpioname = argv[1];
 			--argc; ++argv;
 		}
-	
+		fprintf(stderr,"action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
+		
 	}else if(!strlcmp(argv[0],"--directory") || !strlcmp(argv[0],"-d")) {
 		
 		// use the default filename if this is the last token
@@ -191,7 +213,8 @@ int process_extract_action(int argc,char ** argv){
 			action.ramdisk_directory = argv[1];
 			--argc; ++argv;
 		}
-	
+		fprintf(stderr,"action.ramdisk_directory:%s\n",action.ramdisk_directory);
+		
 	}else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i")) {
 		
 		// the ramdisk image as it is in the boot.img
@@ -206,6 +229,7 @@ int process_extract_action(int argc,char ** argv){
 			action.ramdisk_imagename = argv[1];
 			--argc; ++argv;
 		}
+		fprintf(stderr,"action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
 	
 	}else if(!strlcmp(argv[0],"--output") || !strlcmp(argv[0],"-o")) {
 		
@@ -223,6 +247,8 @@ int process_extract_action(int argc,char ** argv){
 			action.output_directory = argv[1];
 			--argc; ++argv;
 		}
+
+	    fprintf(stderr,"action.output_directory:%s\n",action.output_directory);
 		
 	}else if(!strlcmp(argv[0],"--second") || !strlcmp(argv[0],"-s")) {
 		
@@ -237,22 +263,35 @@ int process_extract_action(int argc,char ** argv){
 			action.second_filename = argv[1];
 			--argc; ++argv;
 		}
+		fprintf(stderr,"action.second_filename:%s\n",action.second_filename);
+		
 	}else if(!strlcmp(argv[0],"--files") || !strlcmp(argv[0],"-f")) {
 		
-		// ramdisk files. This is a variable length null terminated 
-		// char array contain a list of file to extract from the ramdisk
-		//
-		
-		// use the default filename if this is the last token
-		// or if the next token is a switch
-		if(argc == 1 || (argv[1][0]=='-')){
-			action.ramdisk_filenames = calloc(1,sizeof(unsigned char*)) ;
-			action.ramdisk_filenames[0] = NULL ;
-		}else{
-			action.ramdisk_directory = argv[1];
-			--argc; ++argv;
+		// ramdisk files. This is a variable length char array
+		// containing a list of file to extract from the ramdisk
+				
+		// if this is the last token or if the next token is a switch
+		// we need to create an array with 1 entry 
+	    
+		// work out how much memory is required
+		int targc = 0 ; 
+		for(targc=0; targc < argc-1 ; targc++ ){
+		    fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
+		    if(argv[targc+1] && argv[targc+1][0]=='-')
+		      break;
+		    else
+			action.ramdisk_filenames_count++;		
+			
 		}
-	
+		fprintf(stderr,"action.ramdisk_filenames_count %d argc %d\n",action.ramdisk_filenames_count,argc);
+		// allocate the memory and assign null to the end of the array
+		action.ramdisk_filenames = calloc(action.ramdisk_filenames_count,sizeof(unsigned char*)) ;
+		// populate the array with the values 
+		for(targc =0 ; targc < action.ramdisk_filenames_count; targc++) {
+		    argc--; argv++;
+		    action.ramdisk_filenames[targc] = argv[0]; 
+		    fprintf(stderr,"action.ramdisk_filenames[%d]:%s\n",targc,action.ramdisk_filenames[targc] );
+		}
 	}
 	argc--; argv++ ;
     }
@@ -263,22 +302,8 @@ int process_extract_action(int argc,char ** argv){
 	    return EINVAL;
     }
     
-    fprintf(stderr,"action.bootimage_filename:%s\n",action.bootimage_filename);
-    
-    fprintf(stderr,"action.header_filename:%s\n",action.header_filename);
-    fprintf(stderr,"action.kernel_filename:%s\n",action.kernel_filename);
-    fprintf(stderr,"action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
-    fprintf(stderr,"action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
-    fprintf(stderr,"action.ramdisk_directory:%s\n",action.ramdisk_directory);
-    
-    fprintf(stderr,"action.second_filename:%s\n",action.second_filename);
-    fprintf(stderr,"action.output_directory:%s\n",action.output_directory);
-    
     extract_bootimage(&action);
-    
-    
-
-    
+       
     return 0;
 }
 
