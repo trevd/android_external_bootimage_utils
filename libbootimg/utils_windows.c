@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utils_windows.h>
-void mkdir_and_parents(const char *path,unsigned mode)
+void mkdir_and_parents(const unsigned char *path,unsigned mode)
 {
         char opath[256];
         char *p;
@@ -26,7 +26,7 @@ void mkdir_and_parents(const char *path,unsigned mode)
         if(access(opath, F_OK))         /* if path is not terminated with / */
                 mkdir(opath);
 }
-int symlink_os(const char *source, unsigned size,const char *path){
+int symlink_os(const unsigned char *source, unsigned size,const char *path){
     
 	FILE *output_file_fp = fopen(path, "wb");
     if (output_file_fp != NULL)

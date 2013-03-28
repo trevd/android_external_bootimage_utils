@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <errno.h>
 #include <utils.h>
 #include <kernel.h>
@@ -16,6 +17,7 @@
 
 #define MAX_KERNEL_SIZE (8192*1024)*4
 
+
 int load_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image ){
     
     // Look for the kernel zImage Magic
@@ -28,9 +30,10 @@ int load_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,kernel_ima
 	goto exit;
     
     }
-
+    fprintf(stderr,"kernel_magic_offset_p : %p\n",kernel_magic_offset_p);
     // look for a gzip entry in the packed kernel image data 
     unsigned char * gzip_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
+    fprintf(stderr,"gzip_magic_offset_p : %p\n",gzip_magic_offset_p);
      if(!gzip_magic_offset_p){
 	return_value = ENOEXEC;
 	goto exit;
@@ -41,12 +44,13 @@ int load_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,kernel_ima
     unsigned char *uncompressed_kernel_data = calloc(MAX_KERNEL_SIZE,sizeof(unsigned char)) ;
     long uncompressed_kernel_size = 0;
     uncompressed_kernel_size = uncompress_gzip_memory(gzip_magic_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
-    if(!uncompressed_kernel_size){
+    if(errno){
+	fprintf(stderr,"errno: %u\n",errno);
 	free(uncompressed_kernel_data);
 	return  uncompressed_kernel_size;
 	
     }
-     
+    fprintf(stderr,"uncompressed_kernel_size : %ld\n",uncompressed_kernel_size);
     // fill in the basic values    
     image->start_addr = uncompressed_kernel_data;
     image->size = uncompressed_kernel_size;

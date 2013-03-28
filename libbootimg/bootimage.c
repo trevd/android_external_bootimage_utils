@@ -14,23 +14,65 @@
 
 static unsigned char padding[MAXIMUM_KNOWN_PAGE_SIZE] = { 0, };
 
-static size_t get_padding(size_t size,unsigned page_size){
+static size_t calculate_padding(size_t size,unsigned page_size){
 	unsigned pagemask = page_size - 1;
 	size_t padding =page_size - (size & pagemask);
 	if(padding==page_size) padding =0 ; 
 	return padding ; 
 }
+// set_boot_image_defaults - when creating a new boot image
+int set_boot_image_defaults(boot_image* image){
+	
+	memcpy(image->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
+	
+	image->kernel_phy_addr = 0x10008000;
+	
+	image->ramdisk_phy_addr = 0x11000000;
+
+	image->second_phy_addr = 0x10f00000;
+	
+	image->tags_phy_addr = 0x10000100;
+	
+	image->page_size = 2048;
+	
+	image->header_offset = 0;
+	image->header_addr = image->magic;
+	
+	image->header_size = sizeof(boot_img_hdr);
+	image->header_padding = calculate_padding(image->header_size,image->page_size);
+	
+	image->second_size = 0;
+	image->second_addr = NULL;
+	image->second_padding = 0;
+	
+	image->ramdisk_size = 0;
+	image->kernel_size = 0;
+	image->kernel_offset = image->page_size;
+	
+	image->name[0] = '\0';
+	image->cmdline[0] = '\0';
+	memset(image->id,0,8*sizeof(unsigned));
+	
+	return 0;	
+	
+} 
+// set_boot_image_padding - work out the padding for each section
+// Padding is required because boot images are page aligned 
 int set_boot_image_padding(boot_image* image){
 	
-	image->ramdisk_padding = get_padding(image->ramdisk_size,image->page_size);
+	image->ramdisk_padding = calculate_padding(image->ramdisk_size,image->page_size);
 	
-	image->header_padding = get_padding(image->header_size,image->page_size);
+	image->header_padding = calculate_padding(image->header_size,image->page_size);
 	
-	image->kernel_padding = get_padding(image->kernel_size,image->page_size);
+	image->kernel_padding = calculate_padding(image->kernel_size,image->page_size);
 	
 	if(image->second_size > 0)
-		image->second_padding = get_padding(image->second_size,image->page_size);	
+		image->second_padding = calculate_padding(image->second_size,image->page_size);	
+		
+	return 0;
 }
+// set_boot_image_offsets - set the offsets in the image when creating a new image
+// Note: kernel size and ramdisk size need to be set prior to calling this function
 int set_boot_image_offsets(boot_image*image)
 {
 	
@@ -41,13 +83,18 @@ int set_boot_image_offsets(boot_image*image)
 	}else{
 		image->second_offset = -1;
 	}
+	
+	return 0;
 }
 
 static int load_boot_image_into_memory(const char *filename, unsigned char** data,size_t *filesize){
 	
+	// reset the error number for sanity 
+	errno = 0 ; 
 	// Stat the file for the size
 	struct stat sb;
 	if (stat(filename, &sb) == -1) {
+		
 		return errno;
     }
 	
@@ -63,16 +110,17 @@ static int load_boot_image_into_memory(const char *filename, unsigned char** dat
 	
 	// Attempt to open the file in filename
 	FILE* file = fopen(filename,"r+b");
-	if(!file)
+	if(!file){
+		
 		return errno;
-	
+	}
 	
 	// Allocate memory for file 
 	(*data) = calloc((*filesize),sizeof(unsigned char));
-		
-	if(!data)
+	
+	if(!data){
 		goto close_file;
-		
+	}
 		
 	// read the boot image into memory
 	size_t read_size =  fread((*data),1,(*filesize),file);
@@ -83,7 +131,7 @@ static int load_boot_image_into_memory(const char *filename, unsigned char** dat
 close_file:	
 	// Close the file stream if we have one.
 	if(file){
-		if(fclose(file)==EOF){
+		if(fclose(file)==EOF){	
 			return errno;
 		}
 	}
@@ -161,7 +209,7 @@ int load_boot_image_header_from_disk(const char *filename, boot_image* image){
 }
 /* load_boot_image - load android boot image into memory 
  * 
- * 
+ * returns zero when successful, return errno on failure
  * */
 int load_boot_image(const char *filename, boot_image* image){
 
@@ -171,6 +219,7 @@ int load_boot_image(const char *filename, boot_image* image){
 	image->start_addr = NULL;
 	// Load the file into memory
 	if((return_value = load_boot_image_into_memory(filename,&data,&filesize))){
+		
 		goto cleanup_and_return;
 	}
 	
@@ -197,78 +246,39 @@ int load_boot_image(const char *filename, boot_image* image){
 	image->header_size = sizeof(boot_img_hdr);
 	image->header_offset = magic_offset_p - data; 
 	image->header_addr = data + image->header_offset;
-	image->header_padding = get_padding(image->header_size,image->page_size);	
+	image->header_padding = calculate_padding(image->header_size,image->page_size);	
 	
 	// Work out the kernel values	
 	image->kernel_offset = image->header_offset + image->page_size;
 	image->kernel_addr =  data + image->kernel_offset ;
-	image->kernel_padding = get_padding(image->kernel_size,image->page_size);
+	image->kernel_padding = calculate_padding(image->kernel_size,image->page_size);
 	
 	// Work out the ramdisk values
 	image->ramdisk_offset = image->kernel_offset + image->kernel_size + image->kernel_padding;
 	image->ramdisk_addr = data + image->ramdisk_offset;
-	image->ramdisk_padding = get_padding(image->ramdisk_size,image->page_size);
+	image->ramdisk_padding = calculate_padding(image->ramdisk_size,image->page_size);
 	
 	// Work out the second values
 	if(image->second_size > 0){
 		image->second_offset = image->ramdisk_offset + image->ramdisk_size + image->ramdisk_padding;
 		image->second_addr = data + image->second_offset ;
-		image->second_padding = get_padding(image->second_size,image->page_size);
+		image->second_padding = calculate_padding(image->second_size,image->page_size);
 	}else{
 		image->second_offset = -1;
 		image->second_addr = NULL ;
 		image->second_padding = -1;
 	}
-	
-	
-	
-	
 	return 0;
 	
 cleanup_and_return:
 	if(data){
-		fprintf(stderr,"Freeing Memory\n");
 		image->start_addr = NULL;
 		free(data);
 	}
 	return return_value;
 }
 
-// check_phy_addr_values - checks the boot image structure to make 
-// sure phy_addr_value have been set. If not we will use the defaults
-int set_boot_image_defaults(boot_image* image){
-	
-	memcpy(image->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
-	
-	image->kernel_phy_addr = 0x10008000;
-	
-	image->ramdisk_phy_addr = 0x11000000;
 
-	image->second_phy_addr = 0x10f00000;
-	
-	image->tags_phy_addr = 0x10000100;
-	
-	image->page_size = 2048;
-	
-	image->header_offset = 0;
-	image->header_addr = image->magic;
-	
-	image->header_size = sizeof(boot_img_hdr);
-	image->header_padding = get_padding(image->header_size,image->page_size);
-	
-	image->second_size = 0;
-	image->second_addr = NULL;
-	image->second_padding = 0;
-	
-	image->ramdisk_size = 0;
-	image->kernel_size = 0;
-	image->kernel_offset = image->page_size;
-	
-	image->name[0] = '\0';
-	image->cmdline[0] = '\0';
-	memset(image->id,0,8*sizeof(unsigned));
-	
-} 
 
 int write_boot_image(const char *filename,boot_image* image){
 	

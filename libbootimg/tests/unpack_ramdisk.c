@@ -31,6 +31,7 @@ int main(int argc, char** argv){
     fprintf(stderr,"unpack_ramdisk_image function returns %d %s\n",return_value,strerror(return_value));
     if(return_value != 0){
         if(rimage.start_addr != NULL  ) free(rimage.start_addr);
+        goto cleanup_bootimage;
         return return_value;
     }
     fprintf(stderr,"\nramdisk_image struct values:\n");
@@ -76,6 +77,8 @@ int main(int argc, char** argv){
     //fclose(fp);
     free(rimage.entries);
     free(rimage.start_addr);
+
+cleanup_bootimage:
     free(image.start_addr);
     return 0;   
         

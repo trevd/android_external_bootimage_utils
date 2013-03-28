@@ -35,6 +35,7 @@ struct cpio_newc_header {
 
 unsigned carve_out_entry_space(ramdisk_image* image){
 
+    errno = 0;
     if(!image){
 	errno = ENOEXEC;
 	return -1;
@@ -58,6 +59,7 @@ unsigned carve_out_entry_space(ramdisk_image* image){
 }
 unsigned populate_ramdisk_entries(ramdisk_image* image){
 
+     errno = 0;
      if(!image){
 	errno = ENOEXEC;
 	return -1;
@@ -100,7 +102,7 @@ unsigned populate_ramdisk_entries(ramdisk_image* image){
     return 0;
 	    
 }
-int qsort_ramdisk_comparer(const void* a, const void* b) {
+/*int qsort_ramdisk_comparer(const void* a, const void* b) {
 
   ramdisk_entry *e1 = (ramdisk_entry *)a;
   ramdisk_entry *e2 = (ramdisk_entry *)b;
@@ -108,7 +110,7 @@ int qsort_ramdisk_comparer(const void* a, const void* b) {
   return strlcmp(e1->name_addr, e2->name_addr);
   
   
-}
+}*/
 
 unsigned count_ramdisk_archive_entries(ramdisk_image* image){
     
@@ -126,7 +128,7 @@ int load_ramdisk_image(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk
 
 
     int return_value = 0 ;
-    
+    errno = 0;
     // look for a gzip magic to make sure the ramdisk is the correct type
     unsigned char * gzip_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
     if(!gzip_magic_offset_p){
@@ -167,13 +169,14 @@ exit:
     return return_value;
     
 }
-int save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name){
+int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_name){
 
     char cwd[PATH_MAX];
+    errno = 0;
     if(directory_name){
 	mkdir_and_parents(directory_name,0777);
 	getcwd(cwd,PATH_MAX);
-	chdir(directory_name);
+	chdir((char *)directory_name);
     }
     
     unsigned i = 0;
@@ -187,7 +190,7 @@ int save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name){
 	    chmod((char*)image->entries[i]->name_addr,image->entries[i]->mode);
 	}else if(S_ISLNK(image->entries[i]->mode)){
 	    
-	    symlink_os(image->entries[i]->data_addr, image->entries[i]->data_size ,image->entries[i]->name_addr );	
+	    symlink_os(image->entries[i]->data_addr, image->entries[i]->data_size ,(char*)image->entries[i]->name_addr );	
 	}	
     }
     

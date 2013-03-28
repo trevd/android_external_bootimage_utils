@@ -60,7 +60,7 @@ struct ramdisk_image {
 
 int load_ramdisk_image(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
-int save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name);
+int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_name);
 
 char *str_ramdisk_compression(int compression_type);
 

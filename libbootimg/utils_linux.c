@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-void mkdir_and_parents(const char *path,unsigned mode)
+void mkdir_and_parents(const unsigned char *path,unsigned mode)
 {
         char opath[256];
         char *p;
@@ -15,17 +15,18 @@ void mkdir_and_parents(const char *path,unsigned mode)
         len = strlen(opath);
         if(opath[len - 1] == '/')
                 opath[len - 1] = '\0';
-        for(p = opath; *p; p++)
+        for(p = opath; *p; p++){
                 if(*p == '/') {
                         *p = '\0';
                         if(access(opath, F_OK))
                                 mkdir(opath, mode);
                         *p = '/';
                 }
+            }
         if(access(opath, F_OK))         /* if path is not terminated with / */
                 mkdir(opath, mode);
 }
-int symlink_os(const char *source, unsigned size,const char *path){
+int symlink_os(const unsigned char *source, unsigned size,const char *path){
     
     
     char symlink_src[size+1];

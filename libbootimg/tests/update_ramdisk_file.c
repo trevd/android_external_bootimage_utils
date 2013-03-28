@@ -10,7 +10,7 @@ int main(int argc, char** argv){
     char* filename; char* ramdisk_filename;
     boot_image image;
    
-   fprintf(stderr,"\nBoot image ramdisk extract and unpack test\n");
+    fprintf(stderr,"\nBoot image ramdisk extract and unpack test\n");
     if(argc == 1){
         fprintf(stderr,"No filename : using default boot.img\n");
         filename="boot.img";

@@ -29,7 +29,20 @@ unsigned long  get_long_from_hex_field(char * header_field_value){
 	buffer[8]='\0';
 	return strtol(buffer,NULL,16);
 }
-unsigned strlcmp(const unsigned char *s1, const unsigned char *s2){
+unsigned strlcmp(const char *s1, const char *s2){
+	
+	if(!s1 || !s2 )
+		return -99;
+	
+	unsigned string_one_length=strlen(s1);
+	unsigned string_two_length=strlen(s2);
+	unsigned compare_length = string_one_length > string_two_length ?
+								string_one_length : string_two_length;
+	
+	return strncmp(s1,s2,compare_length); 
+								
+}
+unsigned strulcmp(const unsigned char *s1, const unsigned char *s2){
 	
 	if(!s1 || !s2 )
 		return -99;

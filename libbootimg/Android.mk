@@ -30,5 +30,5 @@ LOCAL_MODULE := libbootimage
  
 include $(BUILD_HOST_STATIC_LIBRARY)
 
-include $(LOCAL_PATH)/test.mk
+#include $(LOCAL_PATH)/test.mk
 
