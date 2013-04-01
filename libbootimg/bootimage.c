@@ -56,6 +56,31 @@ int set_boot_image_defaults(boot_image* image){
 	return 0;	
 	
 } 
+int copy_boot_image_header_info(boot_image* dest,boot_image* source){
+	
+	dest->kernel_addr = source->kernel_addr;
+    dest->kernel_size = source->kernel_size;
+	
+	dest->ramdisk_size = source->ramdisk_size;
+	dest->ramdisk_addr = source->ramdisk_addr;
+	
+	if(source->second_size > 0){
+	    dest->second_size = source->second_size;
+	    dest->second_addr = source->second_addr;
+	}
+	
+	dest->tags_phy_addr = source->tags_phy_addr;
+	dest->page_size = source->page_size;
+	dest->ramdisk_phy_addr = source->ramdisk_phy_addr;
+	dest->kernel_phy_addr = source->kernel_phy_addr;
+	dest->second_phy_addr = source->second_phy_addr;
+	memcpy(dest->cmdline,source->cmdline,BOOT_ARGS_SIZE);
+	memcpy(dest->name,source->name,BOOT_NAME_SIZE);
+	
+	
+	
+}
+
 // set_boot_image_padding - work out the padding for each section
 // Padding is required because boot images are page aligned 
 int set_boot_image_padding(boot_image* image){
@@ -109,7 +134,7 @@ static int load_boot_image_into_memory(const char *filename, unsigned char** dat
 	(*filesize) = sb.st_size; 
 	
 	// Attempt to open the file in filename
-	FILE* file = fopen(filename,"r+b");
+	FILE* file = fopen(filename,"rb");
 	if(!file){
 		
 		return errno;
@@ -150,6 +175,15 @@ int set_boot_image_content_hash(boot_image* image)
     const uint8_t* sha = SHA_final(&ctx);
 	memcpy(&image->id, sha, SHA_DIGEST_SIZE > sizeof(image->id) ? sizeof(image->id) : SHA_DIGEST_SIZE);
     return 0;
+}
+int print_boot_image_header_info(boot_image* image){
+
+	boot_img_hdr* header = image->header_addr;
+	fprintf(stderr,"kernel_size:%u"EOL"kernel_address:0x%08x"EOL"ramdisk_size:%u"EOL"ramdisk_address:0x%08x"EOL"second_size:%u"EOL"second_address:0x%08x"EOL
+	"tags_address:0x%08x"EOL"page_size:%u"EOL"name:%s"EOL"cmdline:%s"EOL,
+	header->kernel_size,header->kernel_addr,header->ramdisk_size,header->ramdisk_addr,
+	header->second_size,header->second_addr,header->tags_addr,header->page_size,header->name,header->cmdline);
+	return 0;
 }
 
 
@@ -279,20 +313,33 @@ cleanup_and_return:
 }
 
 
-
 int write_boot_image(const char *filename,boot_image* image){
 	
-	FILE* boot_image_file_fp = fopen(filename,"w+b");
-	
+	errno = 0;
+	FILE* boot_image_file_fp = fopen(filename,"wb");
+	if(!boot_image_file_fp)
+		return errno;
+	//memcpy(image->magic,"TWAT", 4);
+	//fprintf(stderr,"writing boot image %s header_size %u\n  ",filename,image->header_size);
+	//fprintf(stderr,"writing boot image %p\n",&image->header_addr);
 	boot_img_hdr hdr;
 	
-	memcpy(&hdr,image->header_addr,sizeof(boot_img_hdr));
+	//memcpy(&hdr,image->header_addr,sizeof(boot_img_hdr));
+	
+	fprintf(stderr,"writing boot image %s header_size %u\n  ",filename,image->kernel_size);
 	
 	if(fwrite(image->header_addr,1,image->header_size,boot_image_file_fp) !=  image->header_size) goto fail;
 	
+	//fclose(boot_image_file_fp);
+	//return 0;
+	
 	if(fwrite(padding,1,image->header_padding,boot_image_file_fp) != image->header_padding) goto fail;
 	
+
+	
 	if(fwrite(image->kernel_addr,1,image->kernel_size,boot_image_file_fp) !=  image->kernel_size) goto fail;
+	
+	fprintf(stderr,"writing boot image kernel size %u %p\n",image->kernel_size,image->kernel_addr);
 	
 	if(image->kernel_padding > 0 )
 		if(fwrite(padding,1,image->kernel_padding,boot_image_file_fp) != image->kernel_padding) goto fail;
@@ -311,6 +358,55 @@ int write_boot_image(const char *filename,boot_image* image){
 	fclose(boot_image_file_fp);
 	return 0;
 fail:
+	fprintf(stderr,"write_boot_image failed %d\n",errno);
 	fclose(boot_image_file_fp);
 	return errno;	
+}
+int print_boot_image_info(boot_image* image){
+	 fprintf(stderr,"\nboot_image struct values:\n");
+    fprintf(stderr," memory locations:\n");
+    fprintf(stderr,"  start_addr       :%p\n",image->start_addr);
+    fprintf(stderr,"  header_addr      :%p\n",image->header_addr); 
+    fprintf(stderr,"  kernel_addr      :%p\n",image->kernel_addr); 
+    fprintf(stderr,"  ramdisk_addr     :%p\n",image->ramdisk_addr); 
+    fprintf(stderr,"  second_addr      :%p\n",image->second_addr); 
+    
+    fprintf(stderr,"\n header information:\n");
+    fprintf(stderr,"  magic            :%8s\n",image->magic);
+    fprintf(stderr,"  kernel_size      :%u\n",image->kernel_size);
+    fprintf(stderr,"  kernel_phy_addr  :0x%08x\n",image->kernel_phy_addr);
+    fprintf(stderr,"  ramdisk_size     :%u\n",image->ramdisk_size);
+    fprintf(stderr,"  ramdisk_phy_addr :0x%08x\n",image->ramdisk_phy_addr);
+    fprintf(stderr,"  second_size      :%u\n",image->second_size);
+    fprintf(stderr,"  second_phy_addr  :0x%08x\n",image->second_phy_addr);
+    fprintf(stderr,"  tags_phy_addr    :0x%08x\n",image->tags_phy_addr);
+    fprintf(stderr,"  page_size        :%u\n",image->page_size);
+    fprintf(stderr,"  name             :%s\n",image->name);
+    fprintf(stderr,"  cmdline          :%s\n",image->cmdline);
+    fprintf(stderr,"  id[0]            :%u\n",image->id[0]);
+    fprintf(stderr,"  id[1]            :%u\n",image->id[1]);
+    fprintf(stderr,"  id[2]            :%u\n",image->id[2]);
+    fprintf(stderr,"  id[3]            :%u\n",image->id[3]);
+    fprintf(stderr,"  id[4]            :%u\n",image->id[4]);
+    fprintf(stderr,"  id[5]            :%u\n",image->id[5]);
+    fprintf(stderr,"  id[6]            :%u\n",image->id[6]);
+    fprintf(stderr,"  id[7]            :%u\n",image->id[7]);
+    
+    fprintf(stderr,"\n additonal information:\n");
+    fprintf(stderr,"  total_size       :%08u\n",image->total_size);
+    fprintf(stderr,"  header_size      :%08u\n\n",image->header_size);
+    
+    fprintf(stderr,"  header_offset    :%08u\n",image->header_offset);
+    fprintf(stderr,"  header_padding   :%08u\n\n",image->header_padding);
+
+    fprintf(stderr,"  kernel_offset    :%08u\n",image->kernel_offset);
+    fprintf(stderr,"  kernel_padding   :%08u\n\n",image->kernel_padding);
+    
+    fprintf(stderr,"  ramdisk_offset   :%08u\n",image->ramdisk_offset);
+    fprintf(stderr,"  ramdisk_padding  :%08u\n\n",image->ramdisk_padding);
+    
+    fprintf(stderr,"  second_offset    :%08d\n",image->second_offset);
+    fprintf(stderr,"  second_padding   :%08d\n",image->second_padding);
+    
+    return 0;
 }

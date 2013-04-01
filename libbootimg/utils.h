@@ -18,4 +18,5 @@
     int symlink_os(const unsigned char *source, unsigned size,const char *path);
     unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size);
     unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,char* name);
+    unsigned char* read_item_from_disk(char *name, unsigned* data_size);
 #endif

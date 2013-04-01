@@ -31,7 +31,6 @@ struct extract_action{
 	char *		second_filename		;
 	unsigned char * output_directory 	;
 	unsigned	ramdisk_filenames_count	;
-
 };
 
 int extract_bootimage(extract_action* action){
@@ -163,7 +162,7 @@ int process_extract_action(int argc,char ** argv){
 		}
 		
 		
-	}else if(!strlcmp(argv[0],"--header") || !strlcmp(argv[0],"-h")){
+	}else if((!strlcmp(argv[0],"--header") || !strlcmp(argv[0],"-h")) && !action.header_filename){
 		
 		// we have an header, do we have a filename
 		

@@ -3,5 +3,6 @@
 
 int process_extract_action(int argc,char ** argv);
 int process_update_action(int argc,char ** argv);
+int process_info_action(int argc,char ** argv);
 
 #endif

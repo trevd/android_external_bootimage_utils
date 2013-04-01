@@ -17,6 +17,16 @@
 
 #define MAX_KERNEL_SIZE (8192*1024)*4
 
+int print_kernel_info(kernel_image* kimage){
+    
+    fprintf(stderr,"\nkernel info:\n");
+    //fprintf(stderr,"  kernel_addr      :%p\n",bimage.kernel_addr); 
+    //fprintf(stderr,"  kernel_size      :%u\n",bimage.kernel_size); 
+    fprintf(stderr,"  kernel version   :%s\n",kimage->version);
+    
+    
+}
+
 
 int load_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image ){
     

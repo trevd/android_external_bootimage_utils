@@ -79,6 +79,46 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 		
 	
 }
+
+unsigned char* read_item_from_disk(char *name, unsigned* data_size){
+    
+    errno = 0 ;
+    char *data;
+    unsigned size;
+    int fd;
+	
+    data = 0;
+    
+    fprintf(stderr,"read_item_from_disk %s\n",name);
+    struct stat sb;
+	if (stat(name, &sb) == -1) {
+		
+		return errno;
+	}
+    size = sb.st_size; 
+    fprintf(stderr,"read_item_from_disk size %u\n",size);
+    FILE* fp = fopen(name, "r+b");
+    fprintf(stderr,"read_item_from_disk fp %p\n",fp);
+    fprintf(stderr,"read_item_from_disk size %u\n",size);
+    if(!fp) return NULL;
+
+    data = (char*) malloc(size);
+    if(data == 0) goto oops;
+	
+    if(fread(data, 1,size, fp) != size) goto oops;
+    fprintf(stderr,"read_item_from_disk data %p\n",data);
+    fclose(fp);
+
+    if(data_size) *data_size = size;
+    
+    return data;
+
+oops:
+    close(fp);
+    if(data != 0) free(data);
+    return 0;
+	
+}
 unsigned long  get_long_from_hex_field(char * header_field_value){
 	char buffer[9];
 	strncpy(buffer, header_field_value,8 );
