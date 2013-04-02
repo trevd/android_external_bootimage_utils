@@ -51,11 +51,7 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 	    
 		mkdir_and_parents(name,mode);
 	}else{
-	    if(!data || !data_size || !name ){
-		errno =EINVAL;
-		fprintf(stderr,"error mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
-		return errno;
-	    }	
+
 	    char * directory_seperator = strrchr(name,'/');
 	    //fprintf(stderr,"directory_seperator %p\n",directory_seperator);
 	    if(directory_seperator){

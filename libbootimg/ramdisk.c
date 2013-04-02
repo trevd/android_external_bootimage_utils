@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <ctype.h>
 
 #define CPIO_HEADER_MAGIC "070701"
 #define CPIO_HEADER_MAGIC_SIZE 6
@@ -76,23 +77,27 @@ unsigned populate_ramdisk_entries(ramdisk_image* image){
     //fprintf(stderr,"DEBUG:populate_ramdisk_entries\n") ;   
     while(cpio_magic_offset_p){
 	//fprintf(stderr,"DEBUG:populate_ramdisk_entries  %p %d\n",cpio_magic_offset_p ,sizeof(ramdisk_entry)) ;   
-	
-	image->entries[counter]->start_addr = cpio_magic_offset_p;
-	
-	cpio_newc_header* header = (cpio_newc_header*)cpio_magic_offset_p;
-	
-	image->entries[counter]->mode = get_long_from_hex_field(header->c_mode);
-	image->entries[counter]->name_size = get_long_from_hex_field(header->c_namesize);
-	image->entries[counter]->name_addr = cpio_magic_offset_p+sizeof(cpio_newc_header);
-	image->entries[counter]->name_padding = ((4 - ((sizeof(cpio_newc_header) + image->entries[counter]->name_size ) % 4)) % 4);
-	image->entries[counter]->data_addr = image->entries[counter]->name_addr + 	image->entries[counter]->name_size + image->entries[counter]->name_padding ;
-	image->entries[counter]->data_size = get_long_from_hex_field(header->c_filesize);
-	image->entries[counter]->data_padding = ((4 - ((image->entries[counter]->data_size ) % 4)) % 4);
-	image->entries[counter]->next_addr = image->entries[counter]->data_addr + (image->entries[counter]->data_size + image->entries[counter]->data_padding);
+	//fprintf(stderr,"%s %1c\n",cpio_magic_offset_p+CPIO_HEADER_MAGIC_SIZE,(cpio_magic_offset_p+CPIO_HEADER_MAGIC_SIZE)[0]);
+	if(isdigit((cpio_magic_offset_p+CPIO_HEADER_MAGIC_SIZE)[0])){
+	    
 	
 	
-	counter += 1 ;
-	
+	    image->entries[counter]->start_addr = cpio_magic_offset_p;
+	    
+	    cpio_newc_header* header = (cpio_newc_header*)cpio_magic_offset_p;
+	    
+	    image->entries[counter]->mode = get_long_from_hex_field(header->c_mode);
+	    image->entries[counter]->name_size = get_long_from_hex_field(header->c_namesize);
+	    image->entries[counter]->name_addr = cpio_magic_offset_p+sizeof(cpio_newc_header);
+	    image->entries[counter]->name_padding = ((4 - ((sizeof(cpio_newc_header) + image->entries[counter]->name_size ) % 4)) % 4);
+	    image->entries[counter]->data_addr = image->entries[counter]->name_addr + 	image->entries[counter]->name_size + image->entries[counter]->name_padding ;
+	    image->entries[counter]->data_size = get_long_from_hex_field(header->c_filesize);
+	    image->entries[counter]->data_padding = ((4 - ((image->entries[counter]->data_size ) % 4)) % 4);
+	    image->entries[counter]->next_addr = image->entries[counter]->data_addr + (image->entries[counter]->data_size + image->entries[counter]->data_padding);
+	    
+	    
+	    counter += 1 ;
+	}
 	    // Get the next entry
 	cpio_magic_offset_p+=CPIO_HEADER_MAGIC_SIZE;
 	cpio_magic_offset_p = find_in_memory_start_at(image->start_addr,image->size,cpio_magic_offset_p,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );
@@ -113,7 +118,9 @@ unsigned count_ramdisk_archive_entries(ramdisk_image* image){
     unsigned return_value = 0; 
     unsigned char * cpio_magic_offset_p = find_in_memory( image->start_addr, image->size,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );
     while(cpio_magic_offset_p){
-	return_value += 1;
+	if(isdigit((cpio_magic_offset_p+CPIO_HEADER_MAGIC_SIZE)[0])){
+	    return_value += 1;	
+	}
 	cpio_magic_offset_p+=CPIO_HEADER_MAGIC_SIZE;
 	cpio_magic_offset_p = find_in_memory_start_at(image->start_addr,image->size,cpio_magic_offset_p,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );
     }
@@ -179,7 +186,7 @@ int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_n
     fprintf(stderr,"ramdisk_entry_count %u\n", image->entry_count);
     for(i = 0 ; i < image->entry_count ; i++){
 	int is_dir = S_ISDIR(image->entries[i]->mode);
-	fprintf(stderr,"%u:  %s %u %d\n", i,image->entries[i]->name_addr,image->entries[i]->mode,is_dir);
+	//fprintf(stderr,"%u:  %s %u %d\n", i,image->entries[i]->name_addr,image->entries[i]->mode,is_dir);
 	write_item_to_disk_extended(image->entries[i]->data_addr,image->entries[i]->data_size,image->entries[i]->mode, image->entries[i]->name_addr,image->entries[i]->name_size);
 	
     }
@@ -281,7 +288,7 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 
     
     unsigned total_size = 0 ; 
-    char *cwd;
+    char cwd[PATH_MAX];
     getcwd(cwd,PATH_MAX);
     chdir(directory_name);
     for(i = 0; i < filesystem_entries; i++){
@@ -291,10 +298,10 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 	//fprintf(stderr,"name %s  size: %u\n",names[i] , sb.st_size);	
 	total_size += sizeof(cpio_newc_header);
 	total_size += strlen(names[i]); 
-	//if(S_ISDIR(names[i]))  
+	if(!S_ISDIR(sb.st_mode))  
 	    total_size += sb.st_size ; 
     }
-    fprintf(stderr,"filesystem_entries %u  size: %u\n",filesystem_entries,total_size);	
+    fprintf(stderr,"filesystem_entries %s %u  size: %u %u\n",cwd,filesystem_entries,total_size,PATH_MAX);	
     chdir(cwd) ;
     return NULL;
     
