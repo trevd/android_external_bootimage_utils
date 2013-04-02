@@ -23,7 +23,7 @@ int print_kernel_info(kernel_image* kimage){
     //fprintf(stderr,"  kernel_addr      :%p\n",bimage.kernel_addr); 
     //fprintf(stderr,"  kernel_size      :%u\n",bimage.kernel_size); 
     fprintf(stderr,"  kernel version   :%s\n",kimage->version);
-    
+    return 0;
     
 }
 

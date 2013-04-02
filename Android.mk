@@ -26,3 +26,19 @@ LOCAL_SRC_FILES := $(src_files)
 LOCAL_MODULE := bootimage-utils
  
 include $(BUILD_HOST_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH) \
+					$(LOCAL_PATH)/libbootimg \
+					
+
+LOCAL_STATIC_LIBRARIES := libbootimage libz
+
+LOCAL_SRC_FILES := $(src_files)
+
+LOCAL_MODULE := bootimage-utils
+ 
+include $(BUILD_EXECUTABLE)

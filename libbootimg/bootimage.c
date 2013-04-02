@@ -77,7 +77,7 @@ int copy_boot_image_header_info(boot_image* dest,boot_image* source){
 	memcpy(dest->cmdline,source->cmdline,BOOT_ARGS_SIZE);
 	memcpy(dest->name,source->name,BOOT_NAME_SIZE);
 	
-	
+	return 0;
 	
 }
 
