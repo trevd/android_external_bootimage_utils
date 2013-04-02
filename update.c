@@ -80,6 +80,39 @@ int update_bootimage(update_action* action){
 	//write_item_to_disk(new_ramdisk_data,compressed_ramdisk_size,33188,"test.cpio.gz");
 	bnewimage.ramdisk_addr = new_ramdisk_data;
 	bnewimage.ramdisk_size = compressed_ramdisk_size;      
+	free(cpio_data);
+    }
+    
+    if(action->ramdisk_cpioname){
+    
+	unsigned new_ramdisk_size = 0; 
+	unsigned char* cpio_data =  read_item_from_disk(action->ramdisk_cpioname,&new_ramdisk_size);
+	new_ramdisk_data = calloc(new_ramdisk_size,sizeof(char));
+	unsigned compressed_ramdisk_size = compress_gzip_memory(cpio_data,new_ramdisk_size,new_ramdisk_data,new_ramdisk_size);
+	//write_item_to_disk(new_ramdisk_data,compressed_ramdisk_size,33188,"test.cpio.gz");
+	bnewimage.ramdisk_addr = new_ramdisk_data;
+	bnewimage.ramdisk_size = compressed_ramdisk_size;      
+	free(cpio_data);
+	
+    }    
+    if(action->ramdisk_imagename){
+    
+	unsigned new_ramdisk_size = 0; 
+	unsigned char* new_ramdisk_data =  read_item_from_disk(action->ramdisk_imagename,&new_ramdisk_size);
+	
+	bnewimage.ramdisk_addr = new_ramdisk_data;
+	bnewimage.ramdisk_size = new_ramdisk_size;      
+	
+    }
+    
+    if(action->second_filename){
+    
+	unsigned new_second_size = 0; 
+	unsigned char* new_second_data =  read_item_from_disk(action->second_filename,&new_second_size);
+	
+	bnewimage.second_addr = new_second_data;
+	bnewimage.second_size = new_second_size;      
+	
     }
     set_boot_image_padding(&bnewimage);
     set_boot_image_offsets(&bnewimage);

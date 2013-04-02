@@ -112,7 +112,7 @@ unsigned char* read_item_from_disk(char *name, unsigned* data_size){
     return data;
 
 oops:
-    close(fp);
+    fclose(fp);
     if(data != 0) free(data);
     return 0;
 	
