@@ -63,7 +63,7 @@ static unsigned long  get_long_from_hex_field(char * header_field_value){
 
 static void* append_cpio_header_to_stream(struct stat s,char *filename, byte_p output_header){
 	 static unsigned next_inode = 300000;
-	size_t  namesize=  strlen(filename)+1;
+	 size_t  namesize=  strlen(filename)+1;
 	 unsigned filesize = S_ISDIR(s.st_mode) ? 0 : s.st_size;
 	 unsigned long namealign = ((4 - ((CPIO_HEADER_SIZE+namesize) % 4)) % 4);
 	

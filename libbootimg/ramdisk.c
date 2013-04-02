@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <ctype.h>
-
+#include <private/android_filesystem_config.h>
 #define CPIO_HEADER_MAGIC "070701"
 #define CPIO_HEADER_MAGIC_SIZE 6
 
@@ -269,11 +269,70 @@ void get_filesystem_entry_names( char *name, int level){
    
    return  ;
 }
+static unsigned char* append_cpio_header_to_stream(struct stat s,char *filename, unsigned char* output_header){
+	 static unsigned next_inode = 300000;
+	 unsigned  namesize =  strlen(filename)+1;
+	 unsigned filesize = S_ISDIR(s.st_mode) ? 0 : s.st_size;
+	 unsigned long namealign = ((4 - ((sizeof(cpio_newc_header)+namesize) % 4)) % 4);
+	
+	 uint64_t capabilities;
+	 fs_config(filename, S_ISDIR(s.st_mode),(unsigned*) &s.st_uid, (unsigned*)&s.st_gid, (unsigned*)&s.st_mode,&capabilities);  
+	
+	 sprintf((char*)output_header,"%06x%08x%08x%08x%08x%08x%08x"
+           "%08x%08x%08x%08x%08x%08x%08x%s",
+           0x070701,
+           next_inode++,  //  s.st_ino,
+           s.st_mode,
+           0, // s.st_uid,
+           0, // s.st_gid,
+           1, // s.st_nlink,
+           0, // s.st_mtime,
+           filesize ,
+           0, // volmajor
+           0, // volminor
+           0, // devmajor
+           0, // devminor,
+		  namesize	,
+           0,filename
+           );     
+    fprintf(stderr,"namealign:%s %d %p %p\n",filename,namealign,output_header,output_header);
+    output_header+=(sizeof(cpio_newc_header)+namesize);
+    strncat(output_header,"\0\0\0\0",namealign);
+    //fprintf(stderr,"Out:%p\n", output_header);
+    output_header+=namealign;
+    return output_header;
+}
+static unsigned char* append_file_contents_to_stream(struct stat s,char *filename, unsigned char* output_header){
+    
+    if(S_ISDIR(s.st_mode)){
+    }else {
+	unsigned long filealign = ((4 - ((s.st_size) % 4)) % 4);
+	if(S_ISREG(s.st_mode)){
+	    fprintf(stderr,"open reg %s\n",filename);
+	    FILE* fp = fopen(filename,"r+b");
+	    fread(output_header,s.st_size,1,fp);
+	    output_header+=s.st_size;
+	    fclose(fp);
+	}else if(S_ISLNK(s.st_mode)){
+	    
+	    readlink(filename,output_header,PATH_MAX);
+	    
+	    
+	    //readlink(filename,output_header,PATH_MAX);
+	    output_header+=s.st_size;
+	}
+	output_header+=filealign;
+    }
+    
+    return output_header; 
+    
+}
 
 unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size){
     
     
     // allocate the memory required for the filenames list
+    
     unsigned filesystem_entries = count_filesystem_entries(directory_name,0);
     fprintf(stderr,"filesystem_entries %u\n",filesystem_entries);
     int i; names = calloc(filesystem_entries, sizeof(names));
@@ -287,7 +346,7 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     qsort(names, filesystem_entries, sizeof(char*), qsort_comparer);
 
     
-    unsigned total_size = 0 ; 
+   /* unsigned total_size = 0 ; 
     char cwd[PATH_MAX];
     getcwd(cwd,PATH_MAX);
     chdir(directory_name);
@@ -298,12 +357,36 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 	//fprintf(stderr,"name %s  size: %u\n",names[i] , sb.st_size);	
 	total_size += sizeof(cpio_newc_header);
 	total_size += strlen(names[i]); 
-	if(!S_ISDIR(sb.st_mode))  
+	total_size += ((4 - ((sizeof(cpio_newc_header) + strlen(names[i]) ) % 4)) % 4);
+	if(!S_ISDIR(sb.st_mode)){  
 	    total_size += sb.st_size ; 
+	     total_size += ((4 - ((sb.st_size ) % 4)) % 4);
+	}
+	
     }
     fprintf(stderr,"filesystem_entries %s %u  size: %u %u\n",cwd,filesystem_entries,total_size,PATH_MAX);	
-    chdir(cwd) ;
-    return NULL;
+    chdir(cwd) ; */
+    
+    char cwd[PATH_MAX];
+    getcwd(cwd,PATH_MAX);
+    chdir(directory_name);
+    unsigned char* cpio_data = calloc(MAX_RAMDISK_SIZE,sizeof(char));
+    unsigned char* nextbyte = &cpio_data[0];
+    for(i = 0; i < filesystem_entries; i++){
+	
+	struct stat sb;
+	if(lstat(names[i],&sb) == -1)
+	    continue;
+	fprintf(stderr,"nextbyte %p\n",nextbyte);
+	nextbyte = append_cpio_header_to_stream(sb,names[i],nextbyte);
+	nextbyte = append_file_contents_to_stream(sb,names[i],nextbyte);
+	
+    }
+     chdir(cwd) ;
+    unsigned file_size = nextbyte - &cpio_data[0] ;
+    fprintf(stderr,"file_size %u %p\n",file_size,nextbyte);
+    write_item_to_disk(cpio_data,file_size,33188,"test.cpio");
+    return cpio_data;
     
     
     

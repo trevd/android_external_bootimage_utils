@@ -70,6 +70,7 @@ int update_bootimage(update_action* action){
     if(action->ramdisk_directory){
     
 	unsigned new_ramdisk_size = 0; 
+	
 	pack_ramdisk_directory(action->ramdisk_directory,&new_ramdisk_size) ;
     }
     set_boot_image_padding(&bnewimage);
