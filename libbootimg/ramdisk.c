@@ -398,12 +398,19 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 	nextbyte = append_file_contents_to_stream(sb,names[i],nextbyte);
 	
     }
-    struct stat s ;	 memset(&s, 0, sizeof(s));
+    struct stat s ; memset(&s, 0, sizeof(s));
     nextbyte =append_cpio_header_to_stream(s,CPIO_TRAILER_MAGIC,nextbyte);
+    
      chdir(cwd) ;
-    unsigned file_size = nextbyte - &cpio_data[0] ;
-    fprintf(stderr,"file_size %u %p\n",file_size,nextbyte);
-    write_item_to_disk(cpio_data,file_size,33188,"test.cpio");
+    (*cpio_size) = nextbyte - &cpio_data[0] ;
+    // align the file size to the next 256 boundary
+    while((*cpio_size) & 0xff) {
+        (*cpio_size)++;
+        
+    }
+    
+    //fprintf(stderr,"file_size %u %p\n",file_size,nextbyte);
+    
     return cpio_data;
     
     

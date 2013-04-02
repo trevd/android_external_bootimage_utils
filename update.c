@@ -13,6 +13,7 @@
 // libbootimage headers
 #include <utils.h>
 #include <bootimage.h>
+#include <compression.h>
 
 // internal program headers
 #include <actions.h>
@@ -71,7 +72,14 @@ int update_bootimage(update_action* action){
     
 	unsigned new_ramdisk_size = 0; 
 	
-	pack_ramdisk_directory(action->ramdisk_directory,&new_ramdisk_size) ;
+	unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&new_ramdisk_size) ;
+	write_item_to_disk(cpio_data,new_ramdisk_size,33188,"test.cpio");
+	//unsigned char compress_data[new_ramdisk_size];
+	new_ramdisk_data = calloc(new_ramdisk_size,sizeof(char));
+	unsigned compressed_ramdisk_size = compress_gzip_memory(cpio_data,new_ramdisk_size,new_ramdisk_data,new_ramdisk_size);
+	write_item_to_disk(new_ramdisk_data,compressed_ramdisk_size,33188,"test.cpio.gz");
+	bnewimage.ramdisk_addr = new_ramdisk_data;
+	bnewimage.ramdisk_size = compressed_ramdisk_size;      
     }
     set_boot_image_padding(&bnewimage);
     set_boot_image_offsets(&bnewimage);
