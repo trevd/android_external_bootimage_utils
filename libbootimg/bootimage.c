@@ -326,7 +326,7 @@ int write_boot_image(const char *filename,boot_image* image){
 	
 	//memcpy(&hdr,image->header_addr,sizeof(boot_img_hdr));
 	
-	fprintf(stderr,"writing boot image %s header_size %u\n  ",filename,image->kernel_size);
+	//fprintf(stderr,"writing boot image %s header_size %u\n  ",filename,image->kernel_size);
 	
 	if(fwrite(image->header_addr,1,image->header_size,boot_image_file_fp) !=  image->header_size) goto fail;
 	
@@ -339,7 +339,7 @@ int write_boot_image(const char *filename,boot_image* image){
 	
 	if(fwrite(image->kernel_addr,1,image->kernel_size,boot_image_file_fp) !=  image->kernel_size) goto fail;
 	
-	fprintf(stderr,"writing boot image kernel size %u %p\n",image->kernel_size,image->kernel_addr);
+	//fprintf(stderr,"writing boot image kernel size %u %p\n",image->kernel_size,image->kernel_addr);
 	
 	if(image->kernel_padding > 0 )
 		if(fwrite(padding,1,image->kernel_padding,boot_image_file_fp) != image->kernel_padding) goto fail;

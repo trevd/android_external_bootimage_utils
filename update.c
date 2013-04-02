@@ -48,48 +48,46 @@ int update_bootimage(update_action* action){
         return return_value;
     }
     
-    // setup a new boot_image_struct to receive the modified
-    // information
+    // setup a new boot_image_struct to receive the modified information
     boot_image bnewimage ;
     set_boot_image_defaults(&bnewimage);
     copy_boot_image_header_info(&bnewimage,&bimage);
     
+    //
     unsigned char* new_kernel_data = NULL;
+    unsigned char* new_ramdisk_data = NULL;
+    unsigned char* new_second_data = NULL;
     
     if(action->kernel_filename){
         
-	
-	//print_boot_image_header_info(&bimage) ;
-	
 	unsigned new_kernel_size = 0; 
 	new_kernel_data = read_item_from_disk(action->kernel_filename,&new_kernel_size);
 	    	
 	bnewimage.kernel_addr = new_kernel_data;
 	bnewimage.kernel_size = new_kernel_size;      
-        set_boot_image_padding(&bnewimage);
-        set_boot_image_offsets(&bnewimage);
-        set_boot_image_content_hash(&bnewimage);
-        
-	//print_boot_image_header_info(&bnewimage) ;
-    
-	//FILE* boot_image_file_fp = fopen(action->output_filename,"wb");
-	//fwrite(bimage.header_addr,1,bimage.header_size,boot_image_file_fp)  ;
-	//fclose(boot_image_file_fp);
-	
-	//write_boot_image_header_to_disk("header.txt",&bimage) ;
-	
-       
-	
-       
+
     }
+    if(action->ramdisk_directory){
+    
+	unsigned new_ramdisk_size = 0; 
+	pack_ramdisk_directory(action->ramdisk_directory,&new_ramdisk_size) ;
+    }
+    set_boot_image_padding(&bnewimage);
+    set_boot_image_offsets(&bnewimage);
+    set_boot_image_content_hash(&bnewimage); 
+       
     
      if(write_boot_image(action->output_filename,&bnewimage)){
-	    fprintf(stderr,"write_boot_image failed %d\n",errno);
-	}
+	fprintf(stderr,"write_boot_image failed %d\n",errno);
+    }
+    
+   
     
 
 cleanup_bootimage:
     if(new_kernel_data) free(new_kernel_data);
+    if(new_ramdisk_data) free(new_ramdisk_data);
+    if(new_second_data) free(new_second_data);
     free(bimage.start_addr);
     return errno;
     

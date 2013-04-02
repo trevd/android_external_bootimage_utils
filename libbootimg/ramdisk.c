@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <utils.h>
@@ -8,6 +9,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <dirent.h>
 
 #define CPIO_HEADER_MAGIC "070701"
 #define CPIO_HEADER_MAGIC_SIZE 6
@@ -102,15 +104,9 @@ unsigned populate_ramdisk_entries(ramdisk_image* image){
     return 0;
 	    
 }
-/*int qsort_ramdisk_comparer(const void* a, const void* b) {
-
-  ramdisk_entry *e1 = (ramdisk_entry *)a;
-  ramdisk_entry *e2 = (ramdisk_entry *)b;
-    fprintf(stderr,"DEBUG:qsort_ramdisk_comparer %p %p\n",e1->start_addr ,e2->start_addr) ;   
-  return strlcmp(e1->name_addr, e2->name_addr);
-  
-  
-}*/
+static int qsort_comparer(const void* a, const void* b) {
+  return strlcmp(*(const char**)a, *(const char**)b);
+}
 
 unsigned count_ramdisk_archive_entries(ramdisk_image* image){
     
@@ -148,7 +144,7 @@ int load_ramdisk_image(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk
 	free(uncompressed_ramdisk_data);
 	return  image->size;
     }
-    
+    fprintf(stderr,"ramdisk_image_size:%u\n",image->size);
     image->start_addr = uncompressed_ramdisk_data ;
     
     image->entry_count = count_ramdisk_archive_entries(image);
@@ -180,8 +176,10 @@ int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_n
     }
     
     unsigned i = 0;
+    fprintf(stderr,"ramdisk_entry_count %u\n", image->entry_count);
     for(i = 0 ; i < image->entry_count ; i++){
-	
+	int is_dir = S_ISDIR(image->entries[i]->mode);
+	fprintf(stderr,"%u:  %s %u %d\n", i,image->entries[i]->name_addr,image->entries[i]->mode,is_dir);
 	write_item_to_disk_extended(image->entries[i]->data_addr,image->entries[i]->data_size,image->entries[i]->mode, image->entries[i]->name_addr,image->entries[i]->name_size);
 	
     }
@@ -191,6 +189,129 @@ int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_n
     }
     return 0;
     
+}
+
+unsigned count_filesystem_entries( char *name, int level){
+    
+    static unsigned total;
+    DIR *dir;
+    struct dirent *entry;
+	
+    if (!(dir = opendir(name)))
+       return total;
+    if (!(entry = readdir(dir)))
+       return total ;
+    
+    do {
+	struct stat sb;	
+	lstat(entry->d_name,&sb);
+        if (S_ISDIR(sb.st_mode)) {
+            char path[PATH_MAX];
+            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+	    total++;
+            count_filesystem_entries(path, level + 1);
+        }
+        else{
+	    char path[PATH_MAX];
+	    int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+            total++;
+	}   
+    } while ((entry = readdir(dir)));
+    closedir(dir);
+   return total;
+}
+static char ** names;
+void get_filesystem_entry_names( char *name, int level){
+    
+    static unsigned total;
+    static unsigned total_size ;
+    static int root_len; 
+    if(level == 0 ) root_len = strlen(name)+1;
+    DIR *dir;
+    struct dirent *entry;
+	
+    if (!(dir = opendir(name)))
+       return ;
+    if (!(entry = readdir(dir)))
+       return  ;
+    
+    do {
+	struct stat sb;	
+	lstat(entry->d_name,&sb);
+	
+        if (S_ISDIR(sb.st_mode)) {
+            char path[PATH_MAX];
+            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+	    total_size += 0;
+	    names[total]=strdup(path+root_len);
+	    total++;
+            get_filesystem_entry_names(path, level + 1);
+        }
+        else{
+	    char path[PATH_MAX];
+	    int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+	    names[total]=strdup(path+root_len);
+	    total++;
+	}   
+    } while ((entry = readdir(dir)));
+    closedir(dir);
+   
+   return  ;
+}
+
+unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size){
+    
+    
+    // allocate the memory required for the filenames list
+    unsigned filesystem_entries = count_filesystem_entries(directory_name,0);
+    fprintf(stderr,"filesystem_entries %u\n",filesystem_entries);
+    int i; names = calloc(filesystem_entries, sizeof(names));
+    for(i = 0; i < filesystem_entries; i++) {
+	names[i] = (char *)calloc(PATH_MAX,sizeof(char));	
+	if (names[i] == NULL) {
+		perror("Memory cannot be allocated to arr[]");
+	}
+    }
+    get_filesystem_entry_names(directory_name,0);
+    qsort(names, filesystem_entries, sizeof(char*), qsort_comparer);
+
+    
+    unsigned total_size = 0 ; 
+    char *cwd;
+    getcwd(cwd,PATH_MAX);
+    chdir(directory_name);
+    for(i = 0; i < filesystem_entries; i++){
+	struct stat sb;
+	if(lstat(names[i],&sb) == -1)
+	    continue;
+	//fprintf(stderr,"name %s  size: %u\n",names[i] , sb.st_size);	
+	total_size += sizeof(cpio_newc_header);
+	total_size += strlen(names[i]); 
+	//if(S_ISDIR(names[i]))  
+	    total_size += sb.st_size ; 
+    }
+    fprintf(stderr,"filesystem_entries %u  size: %u\n",filesystem_entries,total_size);	
+    chdir(cwd) ;
+    return NULL;
+    
+    
+    
+}
+int print_ramdisk_info(ramdisk_image* rimage){
+    
+    fprintf(stderr,"\nramdisk_image struct values:\n");
+    fprintf(stderr,"  start_addr       :%p\n",rimage->start_addr);
+    fprintf(stderr,"  size             :%u\n",rimage->size);
+    fprintf(stderr,"  compression_type :%s\n",str_ramdisk_compression(rimage->compression_type));
+    fprintf(stderr,"  type             :%s\n",str_ramdisk_type(rimage->type));
+    fprintf(stderr,"  entry_count      :%u\n",rimage->entry_count);
+    fprintf(stderr,"  entries          :%p\n",rimage->entries);
+    
+    return 0;
 }
 char *str_ramdisk_type(int ramdisk_type){
     

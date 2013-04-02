@@ -44,35 +44,37 @@ unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,cha
 unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size){
 	
 	errno = 0; 
-	if(!data || !data_size || !name ){
-		errno =EINVAL;
-		return errno;
-	}
 	
-	
-	fprintf(stderr,"mode: %u %08x %s\n",mode,mode,name);
+	//fprintf(stderr,"mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
+	//fprintf(stderr,"is dir %s\n",name);
 	if(S_ISDIR(mode)){
+	    
 		mkdir_and_parents(name,mode);
 	}else{
-		char * directory_seperator = find_in_memory(name,name_size,"/",1);
-		fprintf(stderr,"directory_seperator %p\n",directory_seperator);
-		if(directory_seperator){
-			// a cheeky bit of string manipulation to create a directory
-			(*directory_seperator) ='\0';
-			fprintf(stderr,"directory: %s\n",name);
-			mkdir_and_parents(name,mode);
-			(*directory_seperator) ='/';
-		}
-		if(S_ISREG(mode)){
-			FILE* filefp = fopen(name,"w+b");
-			if(!filefp)	return errno;
-			fwrite(data,data_size,1,filefp);
-			fclose(filefp);
-			chmod(name,mode);
-		}else if(S_ISLNK(mode)){
-			symlink_os(data, data_size ,name);			
-		}
-				
+	    if(!data || !data_size || !name ){
+		errno =EINVAL;
+		fprintf(stderr,"error mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
+		return errno;
+	    }	
+	    char * directory_seperator = strrchr(name,'/');
+	    //fprintf(stderr,"directory_seperator %p\n",directory_seperator);
+	    if(directory_seperator){
+		    // a cheeky bit of string manipulation to create a directory
+		    (*directory_seperator) ='\0';
+		    //fprintf(stderr,"directory: %s\n",name);
+		    mkdir_and_parents(name,0777);
+		    (*directory_seperator) ='/';
+	    }
+	    if(S_ISREG(mode)){
+		    FILE* filefp = fopen(name,"w+b");
+		    if(!filefp)	return errno;
+		    fwrite(data,data_size,1,filefp);
+		    fclose(filefp);
+		    chmod(name,mode);
+	    }else if(S_ISLNK(mode)){
+		    symlink_os(data, data_size ,name);			
+	    }
+			    
 	}
 	return errno;
 	

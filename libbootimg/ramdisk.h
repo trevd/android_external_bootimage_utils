@@ -27,7 +27,7 @@ struct ramdisk_entry{
      
     unsigned size;
 
-    unsigned mode;    
+    unsigned long mode;    
     
     unsigned char* name_addr ;
     unsigned name_size ;
@@ -61,6 +61,10 @@ struct ramdisk_image {
 int load_ramdisk_image(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
 int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_name);
+
+unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size);
+
+int print_ramdisk_info(ramdisk_image* rimage);
 
 char *str_ramdisk_compression(int compression_type);
 

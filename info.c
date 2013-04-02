@@ -50,6 +50,12 @@ int info_boot_image(info_action* action){
     
     print_kernel_info(&kimage);
     
+    ramdisk_image rimage;
+    return_value = load_ramdisk_image(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage);
+    
+    print_ramdisk_info(&rimage);
+    
+    free(rimage.start_addr);
     free(kimage.start_addr);
     free(bimage.start_addr);
     
@@ -69,9 +75,6 @@ int process_info_action(int argc,char ** argv){
 	    fclose(file);
 	    action.bootimage_filename = argv[0];
 	    fprintf(stderr,"action.bootimage_filename:%s\n",action.bootimage_filename);
-	    // set full extract if this is the last token 
-	    // or if the next token is NOT a switch. 
-		
 	}
     }
     // we must have at least a boot image to process
