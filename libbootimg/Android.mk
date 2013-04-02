@@ -6,9 +6,7 @@ src_files := bootimage.c \
 			ramdisk.c\
 			utils.c \
 			../../../system/core/libmincrypt/sha.c 
-
-include $(CLEAR_VARS)
-
+			
 ifeq ($(HOST_OS),windows)
 	src_files += utils_windows.c
 endif
@@ -16,6 +14,10 @@ endif
 ifeq ($(HOST_OS),linux)
 	src_files += utils_linux.c
 endif 
+
+include $(CLEAR_VARS)
+
+
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 					system/core/mkbootimg \
@@ -31,14 +33,6 @@ LOCAL_MODULE := libbootimage
 include $(BUILD_HOST_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-
-ifeq ($(HOST_OS),windows)
-	src_files += utils_windows.c
-endif
-
-ifeq ($(HOST_OS),linux)
-	src_files += utils_linux.c
-endif 
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 					system/core/mkbootimg \
