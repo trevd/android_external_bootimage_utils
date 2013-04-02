@@ -504,7 +504,7 @@ size_t pack_ramdisk_directory(byte_p ramdisk_cpio_data){
 		nextbyte = append_cpio_header_to_stream(sb,names[i],start_header);
 		//fprintf(stderr,"names[%d]: %p %s %d\n",i,names[i] ,names[i], strlen(names[i])+4);
 		unsigned filesize = S_ISDIR(sb.st_mode) ? 0 : sb.st_size;
-		unsigned long   header_align = (4 - (((nextbyte-start_header)+filesize) % 4)) % 4;
+		unsigned long  header_align = (4 - (((nextbyte-start_header)+filesize) % 4)) % 4;
 		fprintf(stderr,"Heade:%d %p %p %d %d\n",nextbyte-start_header, nextbyte,start_header,header_align,sb.st_size);
 		if(S_ISREG(sb.st_mode)){
 			nextbyte = load_file_easy(names[i],sb.st_size,&nextbyte);

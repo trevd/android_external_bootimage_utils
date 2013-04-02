@@ -14,7 +14,7 @@
 #include <private/android_filesystem_config.h>
 #define CPIO_HEADER_MAGIC "070701"
 #define CPIO_HEADER_MAGIC_SIZE 6
-
+#define CPIO_TRAILER_MAGIC "TRAILER!!!"
 typedef struct cpio_newc_header cpio_newc_header;
 
 struct cpio_newc_header {
@@ -197,42 +197,10 @@ int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_n
     return 0;
     
 }
-
-unsigned count_filesystem_entries( char *name, int level){
+static unsigned total;
+void count_filesystem_entries( char *name, int level){
     
-    static unsigned total;
-    DIR *dir;
-    struct dirent *entry;
-	
-    if (!(dir = opendir(name)))
-       return total;
-    if (!(entry = readdir(dir)))
-       return total ;
     
-    do {
-	struct stat sb;	
-	lstat(entry->d_name,&sb);
-        if (S_ISDIR(sb.st_mode)) {
-            char path[PATH_MAX];
-            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                continue;
-	    total++;
-            count_filesystem_entries(path, level + 1);
-        }
-        else{
-	    char path[PATH_MAX];
-	    int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
-            total++;
-	}   
-    } while ((entry = readdir(dir)));
-    closedir(dir);
-   return total;
-}
-static char ** names;
-void get_filesystem_entry_names( char *name, int level){
-    
-    static unsigned total;
     static unsigned total_size ;
     static int root_len; 
     if(level == 0 ) root_len = strlen(name)+1;
@@ -246,7 +214,7 @@ void get_filesystem_entry_names( char *name, int level){
     
     do {
 	struct stat sb;	
-	lstat(entry->d_name,&sb);
+	lstat(name,&sb);
 	
         if (S_ISDIR(sb.st_mode)) {
             char path[PATH_MAX];
@@ -254,7 +222,52 @@ void get_filesystem_entry_names( char *name, int level){
             if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
                 continue;
 	    total_size += 0;
+	    
+	    //names[total]=strdup(path+root_len);
+	    //fprintf(stderr,"names[%u]:%s\n",total,names[total]);
+	    total++;
+            count_filesystem_entries(path, level + 1);
+        }
+        else{
+	    char path[PATH_MAX];
+	    int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+	    //names[total]=strdup(path+root_len);
+	    //fprintf("names[%d]:%s\n",total,names[total]);
+	    total++;
+	}   
+    } while ((entry = readdir(dir)));
+    closedir(dir);
+   
+   return  ;
+}
+static char ** names;
+
+void get_filesystem_entry_names( char *name, int level){
+    
+    static unsigned total_size ;
+    static int root_len; 
+    if(level == 0 ) root_len = strlen(name)+1;
+    DIR *dir;
+    struct dirent *entry;
+	
+    if (!(dir = opendir(name)))
+       return ;
+    if (!(entry = readdir(dir)))
+       return  ;
+    
+    do {
+	struct stat sb;	
+	lstat(name,&sb);
+	
+        if (S_ISDIR(sb.st_mode)) {
+            char path[PATH_MAX];
+            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+	    total_size += 0;
+	    
 	    names[total]=strdup(path+root_len);
+	    fprintf(stderr,"names[%u]:%s\n",total,names[total]);
 	    total++;
             get_filesystem_entry_names(path, level + 1);
         }
@@ -262,6 +275,7 @@ void get_filesystem_entry_names( char *name, int level){
 	    char path[PATH_MAX];
 	    int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
 	    names[total]=strdup(path+root_len);
+	    //fprintf("names[%d]:%s\n",total,names[total]);
 	    total++;
 	}   
     } while ((entry = readdir(dir)));
@@ -317,8 +331,6 @@ static unsigned char* append_file_contents_to_stream(struct stat s,char *filenam
 	    
 	    readlink(filename,output_header,PATH_MAX);
 	    
-	    
-	    //readlink(filename,output_header,PATH_MAX);
 	    output_header+=s.st_size;
 	}
 	output_header+=filealign;
@@ -333,15 +345,19 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     
     // allocate the memory required for the filenames list
     
-    unsigned filesystem_entries = count_filesystem_entries(directory_name,0);
-    fprintf(stderr,"filesystem_entries %u\n",filesystem_entries);
+    unsigned filesystem_entries =0 ;
+    count_filesystem_entries(directory_name,0);
+    fprintf(stderr,"filesystem_entries %u %u\n",filesystem_entries,total);
+    filesystem_entries = total;
     int i; names = calloc(filesystem_entries, sizeof(names));
     for(i = 0; i < filesystem_entries; i++) {
 	names[i] = (char *)calloc(PATH_MAX,sizeof(char));	
 	if (names[i] == NULL) {
 		perror("Memory cannot be allocated to arr[]");
 	}
+	 fprintf(stderr,"i: %d \n",i);
     }
+    total = 0;
     get_filesystem_entry_names(directory_name,0);
     qsort(names, filesystem_entries, sizeof(char*), qsort_comparer);
 
@@ -382,6 +398,8 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 	nextbyte = append_file_contents_to_stream(sb,names[i],nextbyte);
 	
     }
+    struct stat s ;	 memset(&s, 0, sizeof(s));
+    nextbyte =append_cpio_header_to_stream(s,CPIO_TRAILER_MAGIC,nextbyte);
      chdir(cwd) ;
     unsigned file_size = nextbyte - &cpio_data[0] ;
     fprintf(stderr,"file_size %u %p\n",file_size,nextbyte);
