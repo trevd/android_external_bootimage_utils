@@ -69,14 +69,8 @@ int extract_ramdisk(extract_action* action,ramdisk_image* rimage){
 int extract_bootimage(extract_action* action,boot_image* bimage){
     
     
-    int return_value=0;
     
-    if(action->output_directory){
-	fprintf(stderr,"action->output_directory:%s\n",action->output_directory);
-	mkdir_and_parents(action->output_directory,0755);
-	chdir((char*)action->output_directory);
-    }
-    
+     int return_value=0;
     if(action->header_filename)
 	write_boot_image_header_to_disk(action->header_filename,&bimage);
 	
@@ -125,10 +119,19 @@ int extract_file(extract_action* action){
     unsigned action_size; 
     
     getcwd(current_working_directory,PATH_MAX);
+  
+    
+
     boot_image bimage;
     
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
+    
+        if(action->output_directory){
+	fprintf(stderr,"action->output_directory:%s\n",action->output_directory);
+	mkdir_and_parents(action->output_directory,0755);
+	chdir((char*)action->output_directory);
+    }
     
     
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
