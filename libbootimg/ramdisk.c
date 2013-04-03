@@ -15,6 +15,7 @@
 #define CPIO_HEADER_MAGIC "070701"
 #define CPIO_HEADER_MAGIC_SIZE 6
 #define CPIO_TRAILER_MAGIC "TRAILER!!!"
+#define CPIO_TRAILER_MAGIC_SIZE 10
 typedef struct cpio_newc_header cpio_newc_header;
 
 struct cpio_newc_header {
@@ -127,38 +128,38 @@ unsigned count_ramdisk_archive_entries(ramdisk_image* image){
     return return_value;
     
 }
-int load_ramdisk_image(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
-
-    int return_value = 0 ;
-    errno = 0;
-    // look for a gzip magic to make sure the ramdisk is the correct type
-    unsigned char * gzip_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
-    if(!gzip_magic_offset_p){
-	return_value = ENOEXEC;
-	goto exit;
+int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image){
+      
+    return 0;
+}
+int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image){
+    return 0;
+}
+int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
+    
+    
+    fprintf(stderr,"load_ramdisk_image_from_cpio_memory %u\n", ramdisk_size);
+    // now we have uncompressed data check we have a cpio file look for the magic
+    if(memcmp(ramdisk_addr,CPIO_HEADER_MAGIC,CPIO_HEADER_MAGIC_SIZE)){
+	 fprintf(stderr,"CPIO_HEADER_MAGIC %u\n", ramdisk_size);
+	return ENOEXEC;
     }
-        
-    image->compression_type = RAMDISK_COMPRESSION_GZIP ;
-    
-    unsigned char *uncompressed_ramdisk_data = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ;
-    
-    long uncompressed_ramdisk_size = 0;
-    
-    image->size = uncompress_gzip_memory(gzip_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-   
-    if(!image->size){
-	free(uncompressed_ramdisk_data);
-	return  image->size;
+	
+    // and also look for the trailer
+    if(!find_in_memory(ramdisk_addr,ramdisk_size,CPIO_TRAILER_MAGIC,CPIO_TRAILER_MAGIC_SIZE)){
+		 fprintf(stderr,"CPIO_TRAILER_MAGIC %u\n", ramdisk_size);
+	return ENOEXEC;
     }
-    fprintf(stderr,"ramdisk_image_size:%u\n",image->size);
-    image->start_addr = uncompressed_ramdisk_data ;
+	
+    image->size = ramdisk_size;
+    image->start_addr = ramdisk_addr ;
     
     image->entry_count = count_ramdisk_archive_entries(image);
     
     if(!image->entry_count){
-	free(uncompressed_ramdisk_data);
-	return -1;
+		 fprintf(stderr,"image->entry_count %u\n", image->entry_count);
+	return EINVAL;
     }
     
     carve_out_entry_space(image);
@@ -166,11 +167,43 @@ int load_ramdisk_image(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk
     
     populate_ramdisk_entries(image);
     
-    //qsort(image->entries,image->entry_count-1,sizeof(ramdisk_entry*),qsort_ramdisk_comparer);
+    return 0;
+}
+int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
-exit:
-    return return_value;
+fprintf(stderr,"load_ramdisk_image_from_archive_memory %u\n", ramdisk_size);
+  
+    errno = 0;
+    // look for a gzip magic to make sure the ramdisk is the correct type
+    unsigned char * gzip_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
+    if(!gzip_magic_offset_p){
+	return ENOEXEC;
+	
+	
+    }
+        
+    image->compression_type = RAMDISK_COMPRESSION_GZIP ;
     
+    unsigned char *uncompressed_ramdisk_data = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ;
+    
+    
+    
+    unsigned uncompressed_ramdisk_size = uncompress_gzip_memory(gzip_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+   
+    if(!uncompressed_ramdisk_size){
+	fprintf(stderr,"uncompressed_ramdisk_size error\n");
+	free(uncompressed_ramdisk_data);
+	return  EINVAL;
+    }
+    if(load_ramdisk_image_from_cpio_memory(uncompressed_ramdisk_data,uncompressed_ramdisk_size,image)){
+	fprintf(stderr,"load_ramdisk_image_from_cpio_memory error\n");
+	free(uncompressed_ramdisk_data);
+	return  EINVAL;
+    }
+    fprintf(stderr,"load_ramdisk_image_from_archive_memory %u\n", image->entry_count);
+    //free(uncompressed_ramdisk_data);
+    return 0;
+
 }
 int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_name){
 

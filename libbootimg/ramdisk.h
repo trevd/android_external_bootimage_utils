@@ -58,7 +58,14 @@ struct ramdisk_image {
 
     };
 
-int load_ramdisk_image(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
+int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image);
+
+int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image);
+
+
+int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
+
+int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
 int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_name);
 

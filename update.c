@@ -13,6 +13,7 @@
 // libbootimage headers
 #include <utils.h>
 #include <bootimage.h>
+#include <ramdisk.h>
 #include <compression.h>
 
 // internal program headers
@@ -114,6 +115,32 @@ int update_bootimage(update_action* action){
 	bnewimage.second_size = new_second_size;      
 	
     }
+    if(action->property_names){
+	
+	
+	ramdisk_image rimage ;
+	if(!load_ramdisk_image(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage)){
+	    
+	    int i = 0;
+	    for(i = 0 ; i < rimage.entry_count ; i ++ ){
+		if(!strlcmp(rimage.entries[i]->name_addr,"default.prop")){
+		    fprintf(stderr,"default prop:\n");
+		}
+	    }
+	    
+	    
+	    
+	    for(i = 0 ; i < action->property_count ; i++){
+		
+		fprintf(stderr,"prop:%s\n", action->property_names[i]);
+	    } 
+	    free(rimage.start_addr);
+	}
+    }
+    
+    
+    
+    
     set_boot_image_padding(&bnewimage);
     set_boot_image_offsets(&bnewimage);
     set_boot_image_content_hash(&bnewimage); 
@@ -150,7 +177,9 @@ int process_update_action(int argc,char ** argv){
     action.ramdisk_directory  	= NULL 	;
     action.second_filename  	= NULL 	;
     action.output_filename  	= NULL 	;
+    action.property_names  	= NULL 	;
     action.ramdisk_filenames_count	= 0	;
+    action.property_count = 0 ;
 
     FILE*file; int ramdisk_set = 0;
       
@@ -226,7 +255,50 @@ int process_update_action(int argc,char ** argv){
 
 	    fprintf(stderr,"action.output_filename:%s\n",action.output_filename);
 		
-	}else if (!ramdisk_set){
+	}else if(!strlcmp(argv[0],"--second") || !strlcmp(argv[0],"-s")) {
+		
+		// the second bootloader. AFAIK there is only 1 device
+		// in existance that
+		
+		// use the default filename if this is the last token
+		// or if the next token is a switch
+		if(argc == 1 || (argv[1][0]=='-')){
+			action.second_filename = "second";
+		}else{
+			action.second_filename = argv[1];
+			--argc; ++argv;
+		}
+		fprintf(stderr,"action.second_filename:%s\n",action.second_filename);
+		
+	} else if(!strlcmp(argv[0],"--properties") || !strlcmp(argv[0],"-p")) {
+		
+            // properties. This is a variable length char array
+            // containing a list of properties to be modified in the 
+            // default.prop
+                    
+            // if this is the last token or if the next token is a switch
+            // we need to create an array with 1 entry 
+              fprintf(stderr,"action.property\n");
+            // work out how much memory is required
+            int targc = 0 ; 
+            for(targc=0; targc < argc-1 ; targc++ ){
+                fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
+                if(argv[targc+1] && argv[targc+1][0]=='-')
+                  break;
+                else
+                action.property_count++;		
+                
+            }
+            fprintf(stderr,"action.property_count %d argc %d\n",action.property_count,argc);
+            // allocate the memory and assign null to the end of the array
+            action.property_names = calloc(action.property_count,sizeof(unsigned char*)) ;
+            // populate the array with the values 
+            for(targc =0 ; targc < action.property_count; targc++) {
+                argc--; argv++;
+                action.property_names[targc] = argv[0]; 
+                fprintf(stderr,"action.property_names[%d]:%s\n",targc,action.property_names[targc] );
+            }
+        }else if (!ramdisk_set){
     
 	    if(!strlcmp(argv[0],"--cpio") || !strlcmp(argv[0],"-C")) {
 		    
@@ -300,50 +372,7 @@ int process_update_action(int argc,char ** argv){
 		}
 		ramdisk_set = 1 ;
 	    }        
-	}else if(!strlcmp(argv[0],"--second") || !strlcmp(argv[0],"-s")) {
-		
-		// the second bootloader. AFAIK there is only 1 device
-		// in existance that
-		
-		// use the default filename if this is the last token
-		// or if the next token is a switch
-		if(argc == 1 || (argv[1][0]=='-')){
-			action.second_filename = "second";
-		}else{
-			action.second_filename = argv[1];
-			--argc; ++argv;
-		}
-		fprintf(stderr,"action.second_filename:%s\n",action.second_filename);
-		
-	} else if(!strlcmp(argv[0],"--properties") || !strlcmp(argv[0],"-p")) {
-		
-            // properties. This is a variable length char array
-            // containing a list of properties to be modified in the 
-            // default.prop
-                    
-            // if this is the last token or if the next token is a switch
-            // we need to create an array with 1 entry 
-            
-            // work out how much memory is required
-            int targc = 0 ; 
-            for(targc=0; targc < argc-1 ; targc++ ){
-                fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
-                if(argv[targc+1] && argv[targc+1][0]=='-')
-                  break;
-                else
-                action.property_count++;		
-                
-            }
-            fprintf(stderr,"action.ramdisk_filenames_count %d argc %d\n",action.property_count,argc);
-            // allocate the memory and assign null to the end of the array
-            action.property_names = calloc(action.property_count,sizeof(unsigned char*)) ;
-            // populate the array with the values 
-            for(targc =0 ; targc < action.property_count; targc++) {
-                argc--; argv++;
-                action.property_names[targc] = argv[0]; 
-                fprintf(stderr,"action.ramdisk_filenames[%d]:%s\n",targc,action.property_names[targc] );
-            }
-        }    
+	}
         argc--; argv++ ;
     }
     // we must have at least a boot image to process

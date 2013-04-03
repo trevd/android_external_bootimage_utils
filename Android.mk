@@ -7,9 +7,10 @@ LOCAL_PATH := $(MAIN_PATH)
 	
 src_files :=  main.c \
 			  extract.c \
-			  update.c \
-			  info.c \
 			  libbootimg/utils.c	
+			  #update.c \
+			  #info.c \
+			  
 			
 include $(CLEAR_VARS)
 

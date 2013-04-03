@@ -245,31 +245,38 @@ int load_boot_image_header_from_disk(const char *filename, boot_image* image){
  * 
  * returns zero when successful, return errno on failure
  * */
-int load_boot_image(const char *filename, boot_image* image){
+int load_boot_image_from_file(const char *filename, boot_image* image){
 
-	unsigned char* data = NULL;
-	int return_value = 0;
-	size_t filesize = 0;
-	image->start_addr = NULL;
-	// Load the file into memory
-	if((return_value = load_boot_image_into_memory(filename,&data,&filesize))){
+	errno = 0;
+	unsigned boot_image_size = 0;
+	unsigned char* boot_image_addr = read_item_from_disk(filename,&boot_image_size);
+	if(!boot_image_addr){
+		return errno;
 		
-		goto cleanup_and_return;
 	}
+	int return_value = load_boot_image_from_memory(boot_image_addr,boot_image_size,image);
+	free(boot_image_addr);
+	
+	return  return_value;
 	
 	// Look for the Android Boot Magic
-	unsigned char * magic_offset_p = find_in_memory(data,filesize,BOOT_MAGIC, BOOT_MAGIC_SIZE );
+}
+int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image){
+
+
+	unsigned char * magic_offset_p = find_in_memory(boot_image_addr,boot_image_size,BOOT_MAGIC, BOOT_MAGIC_SIZE );
 	if(!magic_offset_p){
-		return_value = ENOEXEC;
-		goto cleanup_and_return;
+		image->start_addr = NULL;
+		return ENOEXEC;
+		
 		
 	}
 	
 	// set the image start to be a pointer to the data buffer in memory
-	image->start_addr = data;
+	image->start_addr = boot_image_addr;
 	
 	// set the image total_size equal to the filesize
-	image->total_size = filesize;
+	image->total_size = boot_image_size;
 	
 	// Populate the AOSP boot_img_hdr struct from the magic offset
 	// then we can jiggery pokery the start of the header to the image magic
@@ -278,24 +285,24 @@ int load_boot_image(const char *filename, boot_image* image){
 	
 	// Work out the header values
 	image->header_size = sizeof(boot_img_hdr);
-	image->header_offset = magic_offset_p - data; 
-	image->header_addr = data + image->header_offset;
+	image->header_offset = magic_offset_p - boot_image_addr; 
+	image->header_addr = boot_image_addr + image->header_offset;
 	image->header_padding = calculate_padding(image->header_size,image->page_size);	
 	
 	// Work out the kernel values	
 	image->kernel_offset = image->header_offset + image->page_size;
-	image->kernel_addr =  data + image->kernel_offset ;
+	image->kernel_addr =  boot_image_addr + image->kernel_offset ;
 	image->kernel_padding = calculate_padding(image->kernel_size,image->page_size);
 	
 	// Work out the ramdisk values
 	image->ramdisk_offset = image->kernel_offset + image->kernel_size + image->kernel_padding;
-	image->ramdisk_addr = data + image->ramdisk_offset;
+	image->ramdisk_addr = boot_image_addr + image->ramdisk_offset;
 	image->ramdisk_padding = calculate_padding(image->ramdisk_size,image->page_size);
 	
 	// Work out the second values
 	if(image->second_size > 0){
 		image->second_offset = image->ramdisk_offset + image->ramdisk_size + image->ramdisk_padding;
-		image->second_addr = data + image->second_offset ;
+		image->second_addr = boot_image_addr + image->second_offset ;
 		image->second_padding = calculate_padding(image->second_size,image->page_size);
 	}else{
 		image->second_offset = -1;
@@ -304,12 +311,8 @@ int load_boot_image(const char *filename, boot_image* image){
 	}
 	return 0;
 	
-cleanup_and_return:
-	if(data){
-		image->start_addr = NULL;
-		free(data);
-	}
-	return return_value;
+
+	
 }
 
 
