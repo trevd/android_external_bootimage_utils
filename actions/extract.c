@@ -113,10 +113,6 @@ int extract_file(extract_action* action){
     unsigned action_size;     
     getcwd(current_working_directory,PATH_MAX);
     
-
-  
-    
-    
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
     
         if(action->output_directory){

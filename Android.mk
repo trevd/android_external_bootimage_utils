@@ -8,9 +8,9 @@ LOCAL_PATH := $(MAIN_PATH)
 src_files :=  main.c \
 			  actions/extract.c \
 			  actions/create.c \
-			  libbootimg/utils.c	
-			  #update.c \
-			  #info.c \
+			  actions/update.c
+			  actions/info.c \
+			  libbootimg/utils.c
 			  
 			
 include $(CLEAR_VARS)

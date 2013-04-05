@@ -44,7 +44,7 @@ int update_bootimage(update_action* action){
     
     char* current_working_directory = NULL; 
     getcwd(current_working_directory,PATH_MAX);
-    int return_value = load_boot_image(action->bootimage_filename,&bimage);
+    int return_value = load_boot_image_from_file(action->bootimage_filename,&bimage);
     if(return_value != 0){
         if(bimage.start_addr != NULL  ) free(bimage.start_addr);
         return return_value;
@@ -119,7 +119,7 @@ int update_bootimage(update_action* action){
 	
 	
 	ramdisk_image rimage ;
-	if(!load_ramdisk_image(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage)){
+	if(!load_ramdisk_image_from_archive_memory(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage)){
 	    
 	    int i = 0;
 	    for(i = 0 ; i < rimage.entry_count ; i ++ ){
