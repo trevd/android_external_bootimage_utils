@@ -19,7 +19,7 @@ include $(CLEAR_VARS)
 
 
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH) \
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
 					system/core/mkbootimg \
 					system/core/include/mincrypt \
 					external/zlib 
@@ -34,7 +34,7 @@ include $(BUILD_HOST_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(LOCAL_PATH) \
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
 					system/core/mkbootimg \
 					system/core/include/mincrypt \
 					external/zlib 

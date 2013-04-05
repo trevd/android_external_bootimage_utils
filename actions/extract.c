@@ -68,9 +68,7 @@ int extract_ramdisk(extract_action* action,ramdisk_image* rimage){
 
 int extract_bootimage(extract_action* action,boot_image* bimage){
     
-    
-    
-     int return_value=0;
+    int return_value=0;
     if(action->header_filename)
 	write_boot_image_header_to_disk(action->header_filename,&bimage);
 	
@@ -91,38 +89,32 @@ int extract_bootimage(extract_action* action,boot_image* bimage){
     
     if(action->ramdisk_cpioname || action->ramdisk_directory || action->ramdisk_filenames_count > 0){
 	
-			 
 	ramdisk_image rimage; 
 	return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->ramdisk_size,&rimage);
 	//fprintf(stderr,"load_ramdisk_image function returns %d %s\n",return_value,strerror(return_value));
 	if(return_value != 0){
 	    if(rimage.start_addr != NULL  ) {
 		free(rimage.start_addr);
-		
 	    }
 	    return return_value;
 	}
 	extract_ramdisk(action,&rimage);
 	free(rimage.start_addr);
-	
-	
     }
-
     return 0;
     
 }
-
+/* extract_file - determines the file type we are dealing with and branches
+		  accordingly */
 int extract_file(extract_action* action){
 
     char* current_working_directory = NULL; 
     int return_value=0;
-    unsigned action_size; 
-    
+    unsigned action_size;     
     getcwd(current_working_directory,PATH_MAX);
-  
     
 
-    boot_image bimage;
+  
     
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
@@ -133,7 +125,7 @@ int extract_file(extract_action* action){
 	chdir((char*)action->output_directory);
     }
     
-    
+    boot_image bimage;
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
 	return_value = extract_bootimage(action, &bimage);
 	free(bimage.start_addr); 

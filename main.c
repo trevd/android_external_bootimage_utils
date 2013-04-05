@@ -5,9 +5,6 @@
 #include <utils.h>
 #include <actions.h>
 
-
-
-
 int get_action(int argc,char ** argv){
 
 	if(!strlcmp(argv[0],"extract") || !strlcmp(argv[0],"x")) {
@@ -15,6 +12,11 @@ int get_action(int argc,char ** argv){
 	}else if(!strlcmp(argv[0],"update") || !strlcmp(argv[0],"u")) {
 	//	process_update_action(--argc,++argv);
 	}else if(!strlcmp(argv[0],"info") || !strlcmp(argv[0],"i")) {
+		//process_info_action(--argc,++argv);
+	}else if(!strlcmp(argv[0],"create-boot") || !strlcmp(argv[0],"c")) {
+		process_create_action(--argc,++argv);
+	}
+	else if(!strlcmp(argv[0],"create-ramdisk") || !strlcmp(argv[0],"r")) {
 		//process_info_action(--argc,++argv);
 	}
 	return  0 ;

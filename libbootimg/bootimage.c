@@ -112,56 +112,6 @@ int set_boot_image_offsets(boot_image*image)
 	return 0;
 }
 
-static int load_boot_image_into_memory(const char *filename, unsigned char** data,size_t *filesize){
-	
-	// reset the error number for sanity 
-	errno = 0 ; 
-	// Stat the file for the size
-	struct stat sb;
-	if (stat(filename, &sb) == -1) {
-		
-		return errno;
-    }
-	
-	// Check the filesize. We will handle files upto
-	// 32MB in size. A boot image should not be this size
-	// anyway but we will try to handle it
-	// any larger and you can just fuck off
-	if(sb.st_size > BOOT_IMAGE_SIZE_MAX){
-		errno = EFBIG;
-		return errno;
-	}
-	(*filesize) = sb.st_size; 
-	
-	// Attempt to open the file in filename
-	FILE* file = fopen(filename,"rb");
-	if(!file){
-		
-		return errno;
-	}
-	
-	// Allocate memory for file 
-	(*data) = calloc((*filesize),sizeof(unsigned char));
-	
-	if(!data){
-		goto close_file;
-	}
-		
-	// read the boot image into memory
-	size_t read_size =  fread((*data),1,(*filesize),file);
-	if(  read_size != (*filesize) ){
-		goto close_file;
-	}
-	
-close_file:	
-	// Close the file stream if we have one.
-	if(file){
-		if(fclose(file)==EOF){	
-			return errno;
-		}
-	}
-	return errno;
-}
 int set_boot_image_content_hash(boot_image* image)
 {
 	SHA_CTX ctx;

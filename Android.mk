@@ -6,7 +6,8 @@ LOCAL_PATH := $(MAIN_PATH)
 
 	
 src_files :=  main.c \
-			  extract.c \
+			  actions/extract.c \
+			  actions/create.c \
 			  libbootimg/utils.c	
 			  #update.c \
 			  #info.c \
@@ -17,9 +18,8 @@ include $(CLEAR_VARS)
 
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
-					$(LOCAL_PATH)/libbootimg \
+					$(LOCAL_PATH)/include \
 					
-
 LOCAL_STATIC_LIBRARIES := libbootimage libz
 
 LOCAL_SRC_FILES := $(src_files)
@@ -33,8 +33,7 @@ include $(CLEAR_VARS)
 
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH) \
-					$(LOCAL_PATH)/libbootimg \
-					
+					$(LOCAL_PATH)/include \					
 
 LOCAL_STATIC_LIBRARIES := libbootimage libz
 
