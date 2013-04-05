@@ -59,6 +59,7 @@ int update_bootimage(update_action* action){
     unsigned char* new_kernel_data = NULL;
     unsigned char* new_ramdisk_data = NULL;
     unsigned char* new_second_data = NULL;
+    int ramdisk_processed = 0;
     
     if(action->kernel_filename){
         
@@ -82,9 +83,10 @@ int update_bootimage(update_action* action){
 	bnewimage.ramdisk_addr = new_ramdisk_data;
 	bnewimage.ramdisk_size = compressed_ramdisk_size;      
 	free(cpio_data);
+	ramdisk_processed = 1; 
     }
     
-    if(action->ramdisk_cpioname){
+    if(action->ramdisk_cpioname && !ramdisk_processed){
     
 	unsigned new_ramdisk_size = 0; 
 	unsigned char* cpio_data =  read_item_from_disk(action->ramdisk_cpioname,&new_ramdisk_size);
@@ -94,9 +96,9 @@ int update_bootimage(update_action* action){
 	bnewimage.ramdisk_addr = new_ramdisk_data;
 	bnewimage.ramdisk_size = compressed_ramdisk_size;      
 	free(cpio_data);
-	
+	ramdisk_processed = 1;
     }    
-    if(action->ramdisk_imagename){
+    if(action->ramdisk_imagename && !ramdisk_processed){
     
 	unsigned new_ramdisk_size = 0; 
 	unsigned char* new_ramdisk_data =  read_item_from_disk(action->ramdisk_imagename,&new_ramdisk_size);
@@ -194,7 +196,7 @@ int process_update_action(int argc,char ** argv){
 		// set full extract if this is the last token 
 		// or if the next token is NOT a switch. 
 		
-		if(argc == 1 || argv[1][0]!='-'){ 
+		if(argc == 1 || ( argv[1][0]=='-' && argv[1][1]=='o') ||argv[1][0]!='-'){ 
 		    fprintf(stderr,"extract all\n");
 		    action.header_filename 	= "header";
 		    action.kernel_filename 	= "kernel";
@@ -203,7 +205,7 @@ int process_update_action(int argc,char ** argv){
 		    action.ramdisk_directory 	= "ramdisk";
 		    action.second_filename 	= "second";
 		    // do we have an impiled output filename
-		    if (argv[1]) action.output_filename = argv[1];
+		    if (argv[1] && argv[1][0]!='-') action.output_filename = argv[1];
 
 		}
 		

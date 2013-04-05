@@ -33,7 +33,7 @@ int info_boot_image(info_action* action){
     boot_image bimage ;
     char* current_working_directory = NULL; 
     getcwd(current_working_directory,PATH_MAX);
-    int return_value = load_boot_image(action->bootimage_filename,&bimage);
+    int return_value = load_boot_image_from_file(action->bootimage_filename,&bimage);
     if(return_value != 0){
         if(bimage.start_addr != NULL  ) free(bimage.start_addr);
         return return_value;
@@ -51,7 +51,7 @@ int info_boot_image(info_action* action){
     print_kernel_info(&kimage);
     
     ramdisk_image rimage;
-    return_value = load_ramdisk_image(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage);
+    return_value = load_ramdisk_image_from_archive_memory(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage);
     
     print_ramdisk_info(&rimage);
     
@@ -69,9 +69,7 @@ int process_info_action(int argc,char ** argv){
     FILE*file; int ramdisk_set = 0;
       
     if(argc > 0){
-	    
 	if(!action.bootimage_filename && (file=fopen(argv[0],"r+b"))){
-	    
 	    fclose(file);
 	    action.bootimage_filename = argv[0];
 	    fprintf(stderr,"action.bootimage_filename:%s\n",action.bootimage_filename);

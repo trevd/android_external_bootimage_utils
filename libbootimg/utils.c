@@ -100,10 +100,13 @@ unsigned char* read_item_from_disk(const char *name, unsigned* data_size){
    // fprintf(stderr,"read_item_from_disk size %u\n",size);
     if(!fp) return NULL;
 
-    data = (char*) malloc(size);
-    if(data == 0) goto oops;
+    data = calloc(size,sizeof(char));
+    if(data == 0) {
+	errno = ENOMEM; 
+	goto oops;
+    }
 	
-    if(fread(data, 1,size, fp) != size) goto oops;
+    if(fread(data, 1,size, fp) != size)  goto oops;
    // fprintf(stderr,"read_item_from_disk data %p\n",data);
     fclose(fp);
 
@@ -114,7 +117,7 @@ unsigned char* read_item_from_disk(const char *name, unsigned* data_size){
 oops:
     fclose(fp);
     if(data != 0) free(data);
-    return 0;
+    return NULL;
 	
 }
 unsigned long  get_long_from_hex_field(char * header_field_value){

@@ -8,7 +8,7 @@ LOCAL_PATH := $(MAIN_PATH)
 src_files :=  main.c \
 			  actions/extract.c \
 			  actions/create.c \
-			  actions/update.c
+			  actions/update.c \
 			  actions/info.c \
 			  libbootimg/utils.c
 			  

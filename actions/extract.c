@@ -70,7 +70,7 @@ int extract_bootimage(extract_action* action,boot_image* bimage){
     
     int return_value=0;
     if(action->header_filename)
-	write_boot_image_header_to_disk(action->header_filename,&bimage);
+	write_boot_image_header_to_disk(action->header_filename,bimage);
 	
     if(action->kernel_filename){
 	if(write_item_to_disk(bimage->kernel_addr,bimage->kernel_size,33188,action->kernel_filename))
@@ -115,7 +115,7 @@ int extract_file(extract_action* action){
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
     
-        if(action->output_directory){
+    if(action->output_directory){
 	fprintf(stderr,"action->output_directory:%s\n",action->output_directory);
 	mkdir_and_parents(action->output_directory,0755);
 	chdir((char*)action->output_directory);
@@ -190,7 +190,7 @@ int process_extract_action(int argc,char ** argv){
 		// set full extract if this is the last token 
 		// or if the next token is NOT a switch. 
 		
-		if(argc == 1 || argv[1][0]!='-'){ 
+		if(argc == 1 || ( argv[1][0]=='-' && argv[1][1]=='o') ||argv[1][0]!='-'){ 
 		    fprintf(stderr,"extract all\n");
 		    action.header_filename 	= "header";
 		    action.kernel_filename 	= "kernel";
@@ -199,7 +199,7 @@ int process_extract_action(int argc,char ** argv){
 		    action.ramdisk_directory 	= "ramdisk";
 		    action.second_filename 	= "second";
 		    // do we have an impiled output directory
-		    if (argv[1]) action.output_directory = argv[1];
+		    if (argv[1] && argv[1][0]!='-') action.output_directory = argv[1];
 
 		}
 		

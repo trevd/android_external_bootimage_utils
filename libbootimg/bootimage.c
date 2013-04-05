@@ -139,7 +139,7 @@ int print_boot_image_header_info(boot_image* image){
 
 int write_boot_image_header_to_disk(const char *filename, boot_image* image){
 	
-	FILE * header_file = fopen(filename,"wb");
+	FILE * header_file = fopen(filename,"w");
 		if(header_file){
 			fprintf(header_file,"kernel_size:%u"EOL"kernel_address:0x%08x"EOL"ramdisk_size:%u"EOL"ramdisk_address:0x%08x"EOL"second_size:%u"EOL"second_address:0x%08x"EOL
 			"tags_address:0x%08x"EOL"page_size:%u"EOL"name:%s"EOL"cmdline:%s"EOL,

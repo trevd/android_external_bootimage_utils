@@ -1,8 +1,14 @@
 // internal program headers
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <errno.h>
-#include <actions.h>
 
+#include <utils.h>
+#include <actions.h>
+#include <bootimage.h>
+#include <ramdisk.h>
+#include <compression.h>
 typedef struct create_action create_action;
 
 struct create_action{
@@ -20,7 +26,88 @@ struct create_action{
 };
 
 int create_bootimage(create_action* action){
-    return 0;
+    
+    // setup a new boot_image_struct to receive the new information
+    errno = 0;
+    boot_image bimage ;
+    int ramdisk_processed = 0 ;
+    unsigned char* ramdisk_data;
+    
+    // set the physical address defaults and other boot_image structure defaults
+    set_boot_image_defaults(&bimage);
+    if ( action->header_filename) {
+	load_boot_image_header_from_disk(action->header_filename,&bimage);
+    }
+    
+    if(action->kernel_filename){
+        
+	unsigned kernel_size = 0; 
+	bimage.kernel_addr = read_item_from_disk(action->kernel_filename,&kernel_size);
+	fprintf(stderr,"read_item_from_disk kernel:%d\n",errno) ;
+	bimage.kernel_size = kernel_size;      
+
+    }
+    if(action->ramdisk_directory){
+    
+	unsigned cpio_ramdisk_size = 0; 
+	
+	unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
+	
+	ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+	bimage.ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+	bimage.ramdisk_addr = ramdisk_data;
+	
+	free(cpio_data);
+	fprintf(stderr,"ramdisk_directory:%s\n",action->ramdisk_directory);
+	ramdisk_processed = 1;
+	
+    }
+    
+    if(action->ramdisk_cpioname && !ramdisk_processed){
+	
+	unsigned cpio_ramdisk_size = 0;     
+	unsigned char* cpio_data = read_item_from_disk(action->ramdisk_cpioname,&cpio_ramdisk_size);
+	
+	ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+	bimage.ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+	
+	bimage.ramdisk_addr = ramdisk_data;
+	
+	free(cpio_data);
+	ramdisk_processed = 1;
+	
+    }    
+    if(action->ramdisk_imagename && !ramdisk_processed ){
+
+	  bimage.ramdisk_addr =  read_item_from_disk(action->ramdisk_imagename,&bimage.ramdisk_size);
+	  
+    }
+    
+    if(action->second_filename){
+	
+	bimage.second_addr =  read_item_from_disk(action->second_filename,&bimage.second_size);
+	if(bimage.second_size == 0 )  bimage.second_addr = NULL;
+    }
+    
+    
+    set_boot_image_padding(&bimage);
+    set_boot_image_content_hash(&bimage);
+    set_boot_image_offsets(&bimage);
+    
+    print_boot_image_info(&bimage);
+        
+   if(write_boot_image(action->bootimage_filename,&bimage)){
+	fprintf(stderr,"write_boot_image failed %d %s\n",errno,strerror(errno));
+    }
+   
+cleanup_bootimage:
+    fprintf(stderr,"kernel_addr free\n");
+    if(bimage.kernel_addr) free(bimage.kernel_addr);
+    fprintf(stderr,"ramdisk_addr free\n");
+    if(bimage.ramdisk_addr) free(bimage.ramdisk_addr);
+    fprintf(stderr,"second_addr free\n");
+    if(bimage.second_addr) free(bimage.second_addr);
+    return errno;
 }
 
 
@@ -48,9 +135,9 @@ int process_create_action(int argc,char ** argv){
     while(argc > 0){
 	    
 	// check for a valid file name
-	if(!action.bootimage_filename && (file=fopen(argv[0],"r+b"))){
+	if(!action.bootimage_filename){
 		
-		fclose(file);
+		//fclose(file);
 		action.bootimage_filename = argv[0];
 		fprintf(stderr,"action.bootimage_filename:%s\n",action.bootimage_filename);
 		// set full extract if this is the last token 
