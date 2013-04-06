@@ -1,4 +1,4 @@
-
+/* info.c - functions to display boot image information */
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
