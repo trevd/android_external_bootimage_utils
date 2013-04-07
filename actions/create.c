@@ -44,7 +44,7 @@ int create_bootimage(create_action* action){
 	unsigned kernel_size = 0; 
 	bimage.kernel_addr = read_item_from_disk(action->kernel_filename,&kernel_size);
 	fprintf(stderr,"read_item_from_disk kernel:%d\n",errno) ;
-	bimage.kernel_size = kernel_size;      
+	bimage.header->kernel_size = kernel_size;      
 
     }
     if(action->ramdisk_directory){
@@ -52,15 +52,15 @@ int create_bootimage(create_action* action){
 	unsigned cpio_ramdisk_size = 0; 
 	
 	unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
-	
-	ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
-	bimage.ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
-	bimage.ramdisk_addr = ramdisk_data;
-	
-	free(cpio_data);
-	fprintf(stderr,"ramdisk_directory:%s\n",action->ramdisk_directory);
-	ramdisk_processed = 1;
-	
+	if(cpio_data){
+	    ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+	    bimage.header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+	    bimage.ramdisk_addr = ramdisk_data;
+	    
+	    free(cpio_data);
+	    fprintf(stderr,"ramdisk_directory:%s\n",action->ramdisk_directory);
+	    ramdisk_processed = 1;
+	}
     }
     
     if(action->ramdisk_cpioname && !ramdisk_processed){
@@ -69,7 +69,7 @@ int create_bootimage(create_action* action){
 	unsigned char* cpio_data = read_item_from_disk(action->ramdisk_cpioname,&cpio_ramdisk_size);
 	
 	ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
-	bimage.ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+	bimage.header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
 	
 	bimage.ramdisk_addr = ramdisk_data;
 	
@@ -79,14 +79,14 @@ int create_bootimage(create_action* action){
     }    
     if(action->ramdisk_imagename && !ramdisk_processed ){
 
-	  bimage.ramdisk_addr =  read_item_from_disk(action->ramdisk_imagename,&bimage.ramdisk_size);
+	  bimage.ramdisk_addr =  read_item_from_disk(action->ramdisk_imagename,&bimage.header->ramdisk_size);
 	  
     }
     
     if(action->second_filename){
 	
-	bimage.second_addr =  read_item_from_disk(action->second_filename,&bimage.second_size);
-	if(bimage.second_size == 0 )  bimage.second_addr = NULL;
+	bimage.second_addr =  read_item_from_disk(action->second_filename,&bimage.header->second_size);
+	if(bimage.header->second_size == 0 )  bimage.second_addr = NULL;
     }
     
     

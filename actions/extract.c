@@ -73,24 +73,24 @@ int extract_bootimage(extract_action* action,boot_image* bimage){
 	write_boot_image_header_to_disk(action->header_filename,bimage);
 	
     if(action->kernel_filename){
-	if(write_item_to_disk(bimage->kernel_addr,bimage->kernel_size,33188,action->kernel_filename))
+	if(write_item_to_disk(bimage->kernel_addr,bimage->header->kernel_size,33188,action->kernel_filename))
 	    fprintf(stderr,"error writing %s %d %s\n",action->kernel_filename,errno,strerror(errno));
     }
     
-    if(action->second_filename && bimage->second_size > 0){
-	if(write_item_to_disk(bimage->second_addr,bimage->second_size,33188,action->second_filename))
+    if(action->second_filename && bimage->header->second_size > 0){
+	if(write_item_to_disk(bimage->second_addr,bimage->header->second_size,33188,action->second_filename))
 		fprintf(stderr,"error writing %s %d %s\n",action->second_filename,errno,strerror(errno));
     }
     
     if(action->ramdisk_imagename){
-	if(write_item_to_disk(bimage->ramdisk_addr,bimage->ramdisk_size,33188,action->ramdisk_imagename))
+	if(write_item_to_disk(bimage->ramdisk_addr,bimage->header->ramdisk_size,33188,action->ramdisk_imagename))
 	    fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_imagename,errno,strerror(errno));
     }
     
     if(action->ramdisk_cpioname || action->ramdisk_directory || action->ramdisk_filenames_count > 0){
 	
 	ramdisk_image rimage; 
-	return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->ramdisk_size,&rimage);
+	return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
 	//fprintf(stderr,"load_ramdisk_image function returns %d %s\n",return_value,strerror(return_value));
 	if(return_value != 0){
 	    if(rimage.start_addr != NULL  ) {

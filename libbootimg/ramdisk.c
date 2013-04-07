@@ -172,7 +172,7 @@ int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ram
 }
 int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
-fprintf(stderr,"load_ramdisk_image_from_archive_memory %u\n", ramdisk_size);
+    fprintf(stderr,"load_ramdisk_image_from_archive_memory %u\n", ramdisk_size);
   
     errno = 0;
     // look for a gzip magic to make sure the ramdisk is the correct type
@@ -378,6 +378,9 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     
     
     // allocate the memory required for the filenames list
+    struct stat sb;
+    if(lstat(directory_name,&sb) == -1)
+	return NULL;
     
     unsigned filesystem_entries =0 ;
     count_filesystem_entries(directory_name,0);
@@ -395,27 +398,6 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     get_filesystem_entry_names(directory_name,0);
     qsort(names, filesystem_entries, sizeof(char*), qsort_comparer);
 
-    
-   /* unsigned total_size = 0 ; 
-    char cwd[PATH_MAX];
-    getcwd(cwd,PATH_MAX);
-    chdir(directory_name);
-    for(i = 0; i < filesystem_entries; i++){
-	struct stat sb;
-	if(lstat(names[i],&sb) == -1)
-	    continue;
-	//fprintf(stderr,"name %s  size: %u\n",names[i] , sb.st_size);	
-	total_size += sizeof(cpio_newc_header);
-	total_size += strlen(names[i]); 
-	total_size += ((4 - ((sizeof(cpio_newc_header) + strlen(names[i]) ) % 4)) % 4);
-	if(!S_ISDIR(sb.st_mode)){  
-	    total_size += sb.st_size ; 
-	     total_size += ((4 - ((sb.st_size ) % 4)) % 4);
-	}
-	
-    }
-    fprintf(stderr,"filesystem_entries %s %u  size: %u %u\n",cwd,filesystem_entries,total_size,PATH_MAX);	
-    chdir(cwd) ; */
     
     char cwd[PATH_MAX];
     getcwd(cwd,PATH_MAX);
@@ -462,6 +444,7 @@ int print_ramdisk_info(ramdisk_image* rimage){
     
     return 0;
 }
+
 char *str_ramdisk_type(int ramdisk_type){
     
     switch(ramdisk_type){
@@ -485,4 +468,17 @@ char *str_ramdisk_compression(int compression_type){
     }
     return "unknown";
     
+}
+int update_ramdisk_header(unsigned char*entry_addr){
+    
+    unsigned char filesize_string[8];
+    ramdisk_entry *entry = entry_addr;
+    sprintf(filesize_string,"%08x",entry->data_size);
+    
+    
+    cpio_newc_header* head = entry_addr;
+    fprintf(stderr,"update_header_filesize: old:%s",head->c_filesize);
+    memmove(head->c_filesize,filesize_string,8);
+    fprintf(stderr,"new:%s\n",head->c_filesize);
+    return 0;
 }

@@ -42,7 +42,7 @@ int info_boot_image(info_action* action){
     print_boot_image_info(&bimage);
     
     kernel_image kimage;
-    return_value = load_kernel_image(bimage.kernel_addr,bimage.kernel_size,&kimage);
+    return_value = load_kernel_image(bimage.kernel_addr,bimage.header->kernel_size,&kimage);
     if(return_value != 0){
         if(bimage.start_addr != NULL  ) free(bimage.start_addr);
         return return_value;
@@ -51,7 +51,7 @@ int info_boot_image(info_action* action){
     print_kernel_info(&kimage);
     
     ramdisk_image rimage;
-    return_value = load_ramdisk_image_from_archive_memory(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage);
+    return_value = load_ramdisk_image_from_archive_memory(bimage.ramdisk_addr,bimage.header->ramdisk_size,&rimage);
     
     print_ramdisk_info(&rimage);
     

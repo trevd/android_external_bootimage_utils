@@ -2,7 +2,9 @@
 #define _46760ac0_903b_11e2_929b_5404a601fa9d
 #include <kernel.h>
 #include <ramdisk.h>
+#include <bootimg.h>
 typedef struct boot_image boot_image;
+
 
 #define BOOT_MAGIC_SIZE 8
 #define BOOT_NAME_SIZE 16
@@ -16,32 +18,11 @@ struct boot_image
     
     /* The addresses within the boot image memory to find the specific parts */
     
-    unsigned char* header_addr; 
+    boot_img_hdr*  header; 
     unsigned char* kernel_addr;
     unsigned char* ramdisk_addr;
     unsigned char* second_addr;   
     
-    /* Borrowed from AOSP Source */
-    unsigned char magic[BOOT_MAGIC_SIZE];
-
-    unsigned kernel_size;      /* size in bytes */
-    unsigned kernel_phy_addr;  /* physical load addr */
-
-    unsigned ramdisk_size;      /* size in bytes */
-    unsigned ramdisk_phy_addr;  /* physical load addr */
-
-    unsigned second_size;      /* size in bytes */
-    unsigned second_phy_addr;  /* physical load addr */
-
-    unsigned tags_phy_addr;    /* physical addr for kernel tags */
-    unsigned page_size;        /* flash page size we assume */
-    unsigned unused[2];        /* future expansion: should be 0 */
-
-    unsigned char name[BOOT_NAME_SIZE]; /* asciiz product name */
-    
-    unsigned char cmdline[BOOT_ARGS_SIZE];
-
-    unsigned id[8]; /* timestamp / checksum / sha1 / etc */
     
     /* Additional Boot Image Information */
 
@@ -67,7 +48,7 @@ struct boot_image
 };
 int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
 int load_boot_image_from_file(const char *filename, boot_image* image);
-int write_boot_image(const char *filename, boot_image* image);
+int write_boot_image(char *filename, boot_image* image);
 int write_boot_image_header_to_disk(const char *filename, boot_image* image);
 int load_boot_image_header_from_disk(const char *filename, boot_image* image);
 int set_boot_image_defaults(boot_image* image);

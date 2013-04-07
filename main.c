@@ -23,6 +23,7 @@ int get_action(int argc,char ** argv){
 	else if(!strlcmp(argv[0],"create-ramdisk") || !strlcmp(argv[0],"r") ) {
 		//process_info_action(--argc,++argv);
 	}
+	//fprintf(stderr,"get_action\n");
 	return  0 ;
 
 }

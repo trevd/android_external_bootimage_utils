@@ -77,5 +77,6 @@ char *str_ramdisk_compression(int compression_type);
 
 char *str_ramdisk_type(int type);
 
+int update_ramdisk_header(unsigned char*entry_addr);
 
 #endif

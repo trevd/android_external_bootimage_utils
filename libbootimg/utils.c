@@ -62,7 +62,7 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 		    (*directory_seperator) ='/';
 	    }
 	    if(S_ISREG(mode)){
-		    FILE* filefp = fopen(name,"w+b");
+		    FILE* filefp = fopen(name,"wb");
 		    if(!filefp)	return errno;
 		    fwrite(data,data_size,1,filefp);
 		    fclose(filefp);
