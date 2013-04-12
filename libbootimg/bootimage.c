@@ -23,8 +23,11 @@ static size_t calculate_padding(size_t size,unsigned page_size){
 // set_boot_image_defaults - when creating a new boot image
 int set_boot_image_defaults(boot_image* image){
 	
+	fprintf(stderr,"set_boot_image_defaults\n") ;
 	
-	memcpy(image->header, BOOT_MAGIC, BOOT_MAGIC_SIZE);
+	image->header = calloc(1,sizeof(boot_img_hdr));
+	
+	memcpy(image->header->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
 	
 	image->header->kernel_addr = 0x10008000;
 	
@@ -150,8 +153,8 @@ int write_boot_image_header_to_disk(const char *filename, boot_image* image){
 		if(header_file){
 			fprintf(header_file,"kernel_size:%u"EOL"kernel_address:0x%08x"EOL"ramdisk_size:%u"EOL"ramdisk_address:0x%08x"EOL"second_size:%u"EOL"second_address:0x%08x"EOL
 			"tags_address:0x%08x"EOL"page_size:%u"EOL"name:%s"EOL"cmdline:%s"EOL,
-			image->header->kernel_size,image->kernel_addr,image->header->ramdisk_size,image->ramdisk_addr,
-			image->header->second_size,image->second_addr,image->header->tags_addr,image->header->page_size,image->header->name,image->header->cmdline);
+			image->header->kernel_size,image->header->kernel_addr,image->header->ramdisk_size,image->header->ramdisk_addr,
+			image->header->second_size,image->header->second_addr,image->header->tags_addr,image->header->page_size,image->header->name,image->header->cmdline);
 			fclose(header_file);
 		}
 	return 0;

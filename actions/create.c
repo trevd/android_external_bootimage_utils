@@ -28,6 +28,7 @@ struct create_action{
 int create_bootimage(create_action* action){
     
     // setup a new boot_image_struct to receive the new information
+    fprintf(stderr,"create_bootimage\n") ;
     errno = 0;
     boot_image bimage ;
     int ramdisk_processed = 0 ;
@@ -36,6 +37,7 @@ int create_bootimage(create_action* action){
     // set the physical address defaults and other boot_image structure defaults
     set_boot_image_defaults(&bimage);
     if ( action->header_filename) {
+	fprintf(stderr,"read_item_from_disk header:%s\n",action->header_filename) ;
 	load_boot_image_header_from_disk(action->header_filename,&bimage);
     }
     
