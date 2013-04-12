@@ -7,4 +7,5 @@ int process_create_action(int argc,char ** argv);
 int process_update_action(int argc,char ** argv);
 int process_info_action(int argc,char ** argv);
 int process_scan_action(int argc,char ** argv);
+int process_copy_kernel_action(int argc,char ** argv);
 #endif

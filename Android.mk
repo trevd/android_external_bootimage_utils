@@ -11,6 +11,7 @@ src_files :=  main.c \
 			  actions/update.c \
 			  actions/info.c \
 			  actions/scan.c \
+			  actions/copy_kernel.c \
 			  libbootimg/utils.c \
 			 
 			  
@@ -42,6 +43,8 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH) \
 LOCAL_STATIC_LIBRARIES := libbootimage libz libc
 
 LOCAL_SRC_FILES := $(src_files)
+
+LOCAL_FORCE_STATIC_EXECUTABLE := true
 
 LOCAL_MODULE := bootimage-utils
  

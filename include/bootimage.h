@@ -20,7 +20,7 @@ struct boot_image
     
     boot_img_hdr*  header; 
     unsigned char* kernel_addr;
-    unsigned char* ramdisk_addr;
+    char* ramdisk_addr;
     unsigned char* second_addr;   
     
     

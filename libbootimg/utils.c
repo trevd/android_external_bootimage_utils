@@ -6,9 +6,10 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
+#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <utils.h>
-
+#include <linux/fs.h>
 unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len){
 	
 	size_t begin=0;
@@ -77,27 +78,39 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 		
 	
 }
-
-unsigned char* read_item_from_disk(const char *name, unsigned* data_size){
+unsigned char* read_from_block_device(const char *name, unsigned* data_size){
     
-    errno = 0 ;
+    
+    fprintf(stderr,"read_from_block_device data %s\n",name);
     unsigned char *data =NULL;
-    unsigned size;
-    int fd;
+    unsigned long numblocks=0;
+    unsigned size =0;
+    int fd = open(name, O_RDONLY);
+    if(!fd){
+	fprintf(stderr,"read_from_block_device data faile %d\n",numblocks);
+	return NULL ;
+    }
+    ioctl(fd, BLKGETSIZE64, &numblocks);
+    fprintf(stderr,"read_from_block_device data numblocks %d\n",numblocks);
+    if (numblocks) size =numblocks;
+    data = calloc(size,sizeof(char));
+    if ((*data_size = read(fd, data, size)) != size) goto oops;
+    close(fd);
+    return data;
+oops:
+    close(fd);
+    //printf("Number of blocks: %lu, this makes %.3f GB\n",numblocks, (double)numblocks * 512.0 / (1024 * 1024 * 1024));
+    return NULL;
+}
+
+unsigned char* read_regular_file_from_disk(const char *name, unsigned* data_size, unsigned size ){
+    
+    unsigned char *data =NULL;
+    
 	
     data = 0;
-    
-    //fprintf(stderr,"read_item_from_disk %s\n",name);
-    struct stat sb;
-	if (stat(name, &sb) == -1) {
-		
-		return errno;
-	}
-    size = sb.st_size; 
-    //fprintf(stderr,"read_item_from_disk size %u\n",size);
+    errno = 0;
     FILE* fp = fopen(name, "r+b");
-   // fprintf(stderr,"read_item_from_disk fp %p\n",fp);
-   // fprintf(stderr,"read_item_from_disk size %u\n",size);
     if(!fp) return NULL;
 
     data = calloc(size,sizeof(char));
@@ -118,6 +131,29 @@ oops:
     fclose(fp);
     if(data != 0) free(data);
     return NULL;
+}
+
+unsigned char* read_item_from_disk(const char *name, unsigned* data_size){
+    
+    errno = 0 ;
+    struct stat sb;
+    if (stat(name, &sb) == -1) {
+	return NULL;
+    }
+    switch (sb.st_mode & S_IFMT) {
+       case S_IFBLK:  return read_from_block_device(name,data_size);	break;
+       case S_IFLNK:
+       case S_IFREG:  return read_regular_file_from_disk(name,data_size, sb.st_size );	break;
+       case S_IFSOCK: printf("socket\n");                  break;
+       case S_IFCHR:  printf("character device\n");        break;
+       case S_IFDIR:  printf("directory\n");               break;
+       case S_IFIFO:  printf("FIFO/pipe\n");               break;
+       default:       printf("unknown?\n");                break;
+           }
+    return NULL;
+
+    
+    
 	
 }
 unsigned long  get_long_from_hex_field(char * header_field_value){

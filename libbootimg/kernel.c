@@ -28,7 +28,7 @@ int print_kernel_info(kernel_image* kimage){
 }
 
 
-int load_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image ){
+int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image ){
     
     // Look for the kernel zImage Magic
     int return_value = 0 ;

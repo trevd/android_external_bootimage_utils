@@ -79,9 +79,13 @@ int update_bootimage(update_action* action){
         return return_value;
     }
     
+    if(action->kernel_filename){
+	fprintf(stderr,"doing action->kernel_filename\n");
+	
+	bimage->kernel_addr = read_item_from_disk(action->kernel_filename,&bimage->header->kernel_size);
+    }
     
-    
-    write_boot_image("test.img",bimage);
+    write_boot_image(action->output_filename,bimage);
     
     free(bimage->start_addr) ;
     return 0;

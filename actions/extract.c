@@ -146,16 +146,8 @@ int extract_file(extract_action* action){
 	free(rimage.start_addr); 
 	return return_value;
     }
-    
-    fprintf(stderr,"not a boot image rimage:%u\n",rimage.size);
-    
-    
-    
-    
-
+    fprintf(stderr,"file type not a recognized\n");
     return 0;
-    
-
 }
 
 // process_extract_action - parse the command line switches

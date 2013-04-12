@@ -10,7 +10,7 @@
 // Private defines
 #define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
 
-#define MAXIMUM_KNOWN_PAGE_SIZE 4096
+#define MAXIMUM_KNOWN_PAGE_SIZE 16384
 
 static unsigned char padding[MAXIMUM_KNOWN_PAGE_SIZE] = { 0, };
 
@@ -211,6 +211,7 @@ int load_boot_image_from_file(const char *filename, boot_image* image){
 		return errno;
 		
 	}
+	fprintf(stderr,"boot_image_addr %p %u\n",boot_image_addr,boot_image_size);
 	int return_value = load_boot_image_from_memory(boot_image_addr,boot_image_size,image);
 	//free(boot_image_addr);
 	
@@ -224,6 +225,7 @@ int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_ima
 	unsigned char * magic_offset_p = find_in_memory(boot_image_addr,boot_image_size,BOOT_MAGIC, BOOT_MAGIC_SIZE );
 	if(!magic_offset_p){
 		image->start_addr = NULL;
+		errno = ENOEXEC;
 		return ENOEXEC;
 		
 		

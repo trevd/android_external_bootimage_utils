@@ -37,8 +37,6 @@ int main(int argc,char ** argv){
 	if(!(strstr(argv[0],"-info") || strstr(argv[0],"-extract") 
 			|| strstr(argv[0],"-create") || strstr(argv[0],"-update") 
 			|| strstr(argv[0],"-scan") ) ){
-		
-	
 		--argc ; ++argv	;
 	}
 	
