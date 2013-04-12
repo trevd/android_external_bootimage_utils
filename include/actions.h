@@ -19,6 +19,8 @@ int process_info_action(int argc,char ** argv);
 int process_scan_action(int argc,char ** argv);
 int process_copy_kernel_action(int argc,char ** argv);
 int process_create_kernel_action(int argc,char ** argv);
+int process_global_action(int argc,char ** argv,global_action* action);
+int init_global_action(global_action* action);
 
 
 
