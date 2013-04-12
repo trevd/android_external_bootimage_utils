@@ -27,13 +27,7 @@ int info_ramdisk(ramdisk_image* rimage){
     return 0;
     
 }
-int info_kernel_image(kernel_image* kimage){
-    
-    
-    print_kernel_info(kimage);
-    return 0;
-    
-}
+
 int info_boot_image(info_action* action,boot_image* bimage){
        
     
@@ -45,7 +39,7 @@ int info_boot_image(info_action* action,boot_image* bimage){
     if(action->kernel){
         kernel_image kimage;
 	if(!load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage)){
-	    info_kernel_image(&kimage);
+	    print_kernel_info(&kimage);
 	    if(kimage.start_addr != NULL  )  free(kimage.start_addr);
 	}
     }
@@ -61,12 +55,13 @@ int info_boot_image(info_action* action,boot_image* bimage){
 int info_file(info_action* action){
 
     char* current_working_directory = NULL; 
+    errno = 0 ; 
     int return_value=0;
     unsigned action_size;     
     getcwd(current_working_directory,PATH_MAX);
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
-    
+    fprintf(stderr,"info_file: %s %u\n",action->filename,action_size);
     boot_image bimage;
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
 	return_value = info_boot_image(action, &bimage);
@@ -74,13 +69,17 @@ int info_file(info_action* action){
 	return return_value;   
     
     }else{
+	
 	if(bimage.start_addr != NULL  ) free(bimage.start_addr);
     }
-    
+
+
     kernel_image kimage;
-    return_value = load_kernel_image_from_memory(bimage.kernel_addr,bimage.header->kernel_size,&kimage);
-    if(return_value != 0){
-	
+    errno = 0 ; 
+    if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
+	fprintf(stderr,"load_kernel_image_from_memory returns:%d\n", return_value); 
+	return_value = print_kernel_info(&kimage);
+	if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         return return_value;
     }
     
@@ -136,6 +135,15 @@ int process_info_action(int argc,char ** argv){
 		action.kernel = 1;
 	    
 		fprintf(stderr,"action.kernel:%d\n",action.kernel);
+	}
+	else if(!strlcmp(argv[0],"--ramdisk") || !strlcmp(argv[0],"-i") || !strlcmp(argv[0],"-r") ){
+		
+		// we have a kernel setting
+		
+		// use the default filename if this is the last token
+		action.ramdisk = 1;
+	    
+		fprintf(stderr,"action.ramdisk:%d\n",action.ramdisk);
 	}
 	argc--; argv++ ;
     }

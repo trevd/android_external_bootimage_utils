@@ -16,12 +16,13 @@ int get_action(int argc,char ** argv){
 		process_info_action(--argc,++argv);
 	}else if(!strlcmp(argv[0],"create-boot") || !strlcmp(argv[0],"c") || strstr(argv[0],"-create") ) {
 		process_create_action(--argc,++argv);
-	}
-	else if(!strlcmp(argv[0],"scan") || !strlcmp(argv[0],"s") || strstr(argv[0],"-scan") ) {
+	}else if(!strlcmp(argv[0],"scan") || !strlcmp(argv[0],"s") || strstr(argv[0],"-scan") ) {
 		process_scan_action(--argc,++argv);
-	}
-	else if(!strlcmp(argv[0],"create-ramdisk") || !strlcmp(argv[0],"r") ) {
+	}else if(!strlcmp(argv[0],"create-ramdisk") || !strlcmp(argv[0],"r") ) {
 		//process_info_action(--argc,++argv);
+	}
+	else if(!strlcmp(argv[0],"copy-kernel") ) {
+		process_copy_kernel_action(--argc,++argv);
 	}
 	//fprintf(stderr,"get_action\n");
 	return  0 ;

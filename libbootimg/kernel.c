@@ -53,9 +53,10 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     
     unsigned char *uncompressed_kernel_data = calloc(MAX_KERNEL_SIZE,sizeof(unsigned char)) ;
     long uncompressed_kernel_size = 0;
+    errno = 0 ;
     uncompressed_kernel_size = uncompress_gzip_memory(gzip_magic_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
     if(errno){
-	fprintf(stderr,"errno: %u\n",errno);
+	fprintf(stderr,"errno: %u %s\n",errno,strerror(errno));
 	free(uncompressed_kernel_data);
 	return  uncompressed_kernel_size;
 	
