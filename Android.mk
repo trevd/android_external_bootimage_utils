@@ -12,6 +12,7 @@ src_files :=  main.c \
 			  actions/info.c \
 			  actions/scan.c \
 			  actions/copy_kernel.c \
+			  actions/create_ramdisk.c \
 			  libbootimg/utils.c \
 			 
 			  

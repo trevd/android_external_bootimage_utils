@@ -55,7 +55,7 @@ int set_boot_image_defaults(boot_image* image);
 int set_boot_image_content_hash(boot_image* image);
 int set_boot_image_padding(boot_image* image);
 int set_boot_image_offsets(boot_image* image);
-int print_boot_image_info(boot_image* image);
+int print_boot_image_info(boot_image* image,int debug);
 int print_boot_image_header_info(boot_image* image);
 int copy_boot_image_header_info(boot_image* dest,boot_image* source);
 #endif

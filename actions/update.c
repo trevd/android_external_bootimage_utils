@@ -82,10 +82,15 @@ int update_bootimage(update_action* action){
     
     if(action->kernel_filename){
 	fprintf(stderr,"doing action->kernel_filename\n");
-	
+	fprintf(stderr,"bimage.header->kernel_size:%u\n",bimage->header->kernel_size);
 	bimage->kernel_addr = read_item_from_disk(action->kernel_filename,&bimage->header->kernel_size);
+	fprintf(stderr,"bimage.header->kernel_size:%u\n",bimage->header->kernel_size);
     }
     
+    set_boot_image_padding(bimage);
+    set_boot_image_content_hash(bimage);
+    set_boot_image_offsets(bimage);
+    fprintf(stderr,"writing action->output_filename %s\n",action->output_filename);
     write_boot_image(action->output_filename,bimage);
     
     free(bimage->start_addr) ;

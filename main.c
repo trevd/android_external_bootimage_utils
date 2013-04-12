@@ -19,7 +19,7 @@ int get_action(int argc,char ** argv){
 	}else if(!strlcmp(argv[0],"scan") || !strlcmp(argv[0],"s") || strstr(argv[0],"-scan") ) {
 		process_scan_action(--argc,++argv);
 	}else if(!strlcmp(argv[0],"create-ramdisk") || !strlcmp(argv[0],"r") ) {
-		//process_info_action(--argc,++argv);
+		process_create_ramdisk_action(--argc,++argv);
 	}
 	else if(!strlcmp(argv[0],"copy-kernel") ) {
 		process_copy_kernel_action(--argc,++argv);

@@ -137,7 +137,7 @@ int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* im
 int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image){
     return 0;
 }
-int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
+int load_ramdisk_image_from_cpio_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
     
     
     fprintf(stderr,"load_ramdisk_image_from_cpio_memory %u\n", ramdisk_size);
@@ -170,7 +170,7 @@ int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ram
     
     return 0;
 }
-int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
+int load_ramdisk_image_from_archive_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
     fprintf(stderr,"load_ramdisk_image_from_archive_memory %u\n", ramdisk_size);
   

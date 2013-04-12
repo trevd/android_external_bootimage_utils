@@ -342,16 +342,18 @@ fail:
 	fclose(boot_image_file_fp);
 	return errno;	
 }
-int print_boot_image_info(boot_image* image){
+int print_boot_image_info(boot_image* image,int debug){
     fprintf(stderr,"\nboot_image struct values:\n");
     fprintf(stderr," memory locations:\n");
-    fprintf(stderr,"  image            :%08x\n",&image);
-    fprintf(stderr,"  start_addr       :%08x\n",&image->start_addr);
-    fprintf(stderr,"  header           :%08x\n",&image->header); 
-    fprintf(stderr,"  kernel_addr      :%08x\n",&image->kernel_addr); 
-    fprintf(stderr,"  ramdisk_addr     :%08x\n",&image->ramdisk_addr); 
-    fprintf(stderr,"  second_addr      :%08x\n",&image->second_addr); 
     
+    if(debug){
+	fprintf(stderr,"  image            :%08x\n",(unsigned int)&image);
+	fprintf(stderr,"  start_addr       :%08x\n",&image->start_addr);
+	fprintf(stderr,"  header           :%08x\n",&image->header); 
+	fprintf(stderr,"  kernel_addr      :%08x\n",&image->kernel_addr); 
+	fprintf(stderr,"  ramdisk_addr     :%08x\n",&image->ramdisk_addr); 
+	fprintf(stderr,"  second_addr      :%08x\n",&image->second_addr); 
+    }
     fprintf(stderr,"  start_addr       :%08x\n",image->start_addr);
     fprintf(stderr,"  header           :%08x\n",image->header); 
     fprintf(stderr,"  kernel_addr      :%08x\n",image->kernel_addr); 

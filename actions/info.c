@@ -32,7 +32,7 @@ int info_boot_image(info_action* action,boot_image* bimage){
        
     
     if(action->header){
-	print_boot_image_info(bimage);
+	print_boot_image_info(bimage,0);
     }
   
     
