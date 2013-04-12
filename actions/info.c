@@ -130,17 +130,13 @@ int process_info_action(int argc,char ** argv){
 	}else if(!strlcmp(argv[0],"--kernel") || !strlcmp(argv[0],"-k")){
 		
 		// we have a kernel setting
-		
-		// use the default filename if this is the last token
 		action.kernel = 1;
 	    
 		fprintf(stderr,"action.kernel:%d\n",action.kernel);
 	}
 	else if(!strlcmp(argv[0],"--ramdisk") || !strlcmp(argv[0],"-i") || !strlcmp(argv[0],"-r") ){
 		
-		// we have a kernel setting
-		
-		// use the default filename if this is the last token
+		// we have a ramdisk setting
 		action.ramdisk = 1;
 	    
 		fprintf(stderr,"action.ramdisk:%d\n",action.ramdisk);

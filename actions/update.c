@@ -66,6 +66,7 @@ int update_ramdisk_files(update_action* action,ramdisk_image* rimage){
 }
 
 int update_bootimage(update_action* action){
+    
     errno = 0 ;
     boot_image* bimage = calloc(1,sizeof(boot_image));
     
