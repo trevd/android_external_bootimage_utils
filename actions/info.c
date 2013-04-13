@@ -9,6 +9,7 @@
 #include <actions.h>
 #include <utils.h>
 #include <bootimage.h>
+#include <program.h>
 
 typedef struct info_action info_action;
 
@@ -21,10 +22,30 @@ struct info_action{
 	int	 	ramdisk ;
 	int		second  ;
 };
-int info_ramdisk(ramdisk_image* rimage){
+int info_kernel( kernel_image* kimage,info_action* action,int print_title){
     
+    if(print_title){
+	print_pogram_title();
+	fprintf(stderr," Printing Kernel Information for \"%s\"\n\n",action->filename);
+    }else{
+	fprintf(stderr," Kernel:\n");
+    }
     
-    //print_kernel_info(kimage);
+    print_kernel_info(kimage);
+    fprintf(stderr,"\n");
+    
+    return 0 ;
+}
+int info_ramdisk(ramdisk_image* rimage,info_action* action,int print_title){
+    
+    if(print_title){
+	print_pogram_title();
+	fprintf(stderr," Printing Ramdisk Information for \"%s\"\n\n",action->filename);
+    }else{
+	fprintf(stderr," Ramdisk:\n");
+    }
+    print_ramdisk_info(rimage);
+    fprintf(stderr,"\n");
     return 0;
     
 }
@@ -33,25 +54,35 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
        
     D("\n");
     
-    fprintf(stderr,"Printing Boot Image Information for %s\n",action->filename);
+    print_pogram_title();
+    
+    fprintf(stderr," Printing boot image information for \"%s\"\n\n",action->filename);
     if(action->header){
 	
-	fprintf(stderr,"\nHeader:\n");
+	fprintf(stderr," Header:\n");
 	print_boot_image_header_info(bimage);
+	fprintf(stderr,"\n");
     }
   
+    if(action->additional){
+	fprintf(stderr," File structure:\n");
+	print_boot_image_additional_info(bimage);
+	fprintf(stderr,"\n");
+	   
+
+    }
     
-    if(action->kernel){
-        kernel_image kimage;
-	if(!load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage)){
-	    print_kernel_info(&kimage);
-	    if(kimage.start_addr != NULL  )  free(kimage.start_addr);
-	}
+    
+    kernel_image kimage;
+    if(action->kernel && !load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage)){
+	info_kernel(&kimage,action,0) ;
+	if(kimage.start_addr != NULL  )  free(kimage.start_addr);
+        
     }
     if(action->ramdisk){
 	ramdisk_image rimage;
 	if(!load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage)){
-	    print_ramdisk_info(&rimage);
+	    info_ramdisk(&rimage,action,0);
 	    free(rimage.start_addr);
 	}
     }
@@ -67,7 +98,7 @@ int info_file(info_action* action,global_action* gaction ){
     unsigned action_size = 0;     
     getcwd(current_working_directory,PATH_MAX);
     
-    unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
+    char* action_data = read_item_from_disk(action->filename , &action_size);
     D("read_item_from_disk completed %s %u\n",action->filename,action_size);
     boot_image bimage;
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
@@ -87,7 +118,8 @@ int info_file(info_action* action,global_action* gaction ){
     errno = 0 ; 
     if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
 	D("load_kernel_image_from_memory returns:%d\n", return_value); 
-	return_value = print_kernel_info(&kimage);
+	
+	return_value = info_kernel(&kimage,action,1);
 	if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         return return_value;
     }
@@ -98,17 +130,21 @@ int info_file(info_action* action,global_action* gaction ){
     
     if(!return_value){
 	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
-	return_value = info_ramdisk(&rimage);
+	return_value = info_ramdisk(&rimage,action,1);
 	free(rimage.start_addr); 
 	return return_value;
     }
     
      if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
-	return_value = info_ramdisk(&rimage);
+	return_value = info_ramdisk(&rimage,action,1);
 	free(rimage.start_addr); 
 	return return_value;
     }
-    fprintf(stderr,"file type not a recognized\n");
+    
+    
+    print_pogram_title();
+    fprintf(stderr," Cannot process \"%s\" - file type not a recognized\n\n",action->filename);    
+    
     return 0;
 }
 
@@ -123,7 +159,7 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     action.header	= 0 	;
     action.ramdisk	= 0 	;
     action.second	= 0 	;
-    
+    action.additional	= 0 	;
     // a variable for the file check
     FILE*file; 
     

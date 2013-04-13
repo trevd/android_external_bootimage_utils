@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
 #include <utils.h>
 #include <kernel.h>
 #include <compression.h>
@@ -19,10 +20,16 @@
 
 int print_kernel_info(kernel_image* kimage){
     
-    fprintf(stderr,"\nkernel info:\n");
     //fprintf(stderr,"  kernel_addr      :%p\n",bimage.kernel_addr); 
     //fprintf(stderr,"  kernel_size      :%u\n",bimage.kernel_size); 
-    fprintf(stderr,"  kernel version   :%s\n",kimage->version);
+    int klen = 0 ;
+    if(kimage->version) klen = strlen(kimage->version);
+   
+    fprintf(stderr,"  Version   :%s",kimage->version);
+    if(klen > 0 && kimage->version[klen-1]!='\n') {
+	D("Adding newline kimage->version[%d]='%d'",klen,kimage->version[klen-1]);
+	 fprintf(stderr,"\n");
+	}
     return 0;
     
 }
@@ -33,17 +40,18 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     // Look for the kernel zImage Magic
     int return_value = 0 ;
     
-    
+    D("kernel_addr=%p kernel_size=%u\n",kernel_addr,kernel_size);
     unsigned char * kernel_magic_offset_p = find_in_memory(kernel_addr,kernel_size,KERNEL_ZIMAGE_MAGIC, KERNEL_ZIMAGE_MAGIC_SIZE );
     if(!kernel_magic_offset_p){
+	D("kernel_magic_offset not found\n")
 	return_value = ENOEXEC;
 	goto exit;
     
     }
-    fprintf(stderr,"kernel_magic_offset_p : %p\n",kernel_magic_offset_p);
+    D("kernel_magic_offset_p : %p\n",kernel_magic_offset_p);
     // look for a gzip entry in the packed kernel image data 
     unsigned char * gzip_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
-    fprintf(stderr,"gzip_magic_offset_p : %p\n",gzip_magic_offset_p);
+    D("gzip_magic_offset_p : %p\n",gzip_magic_offset_p);
      if(!gzip_magic_offset_p){
 	return_value = ENOEXEC;
 	goto exit;
@@ -56,12 +64,12 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     errno = 0 ;
     uncompressed_kernel_size = uncompress_gzip_memory(gzip_magic_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
     if(errno){
-	fprintf(stderr,"errno: %u %s\n",errno,strerror(errno));
+	D("errno: %u %s\n",errno,strerror(errno));
 	free(uncompressed_kernel_data);
 	return  uncompressed_kernel_size;
 	
     }
-    fprintf(stderr,"uncompressed_kernel_size : %ld\n",uncompressed_kernel_size);
+    D("uncompressed_kernel_size : %ld\n",uncompressed_kernel_size);
     // fill in the basic values    
     image->start_addr = uncompressed_kernel_data;
     image->size = uncompressed_kernel_size;

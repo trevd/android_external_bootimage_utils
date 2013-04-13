@@ -17,6 +17,26 @@
 #define CPIO_HEADER_MAGIC_SIZE 6
 #define CPIO_TRAILER_MAGIC "TRAILER!!!"
 #define CPIO_TRAILER_MAGIC_SIZE 10
+
+#define RECOVERY_FILE_NAME "sbin/recovery"
+
+#define RECOVERY_MAGIC_CLOCKWORK"ClockworkMod Recovery v"
+#define RECOVERY_MAGIC_SIZE_CLOCKWORK 23
+#define RECOVERY_MAGIC_NORMAL "Android system recovery <3e>"
+#define RECOVERY_MAGIC_SIZE_NORMAL 28
+#define RECOVERY_MAGIC_COT "Cannibal Open Touch v"
+#define RECOVERY_MAGIC_SIZE_COT 21
+#define RECOVERY_MAGIC_TWRP "Starting TWRP \%s on \%s"
+#define RECOVERY_MAGIC_SIZE_TWRP 22
+#define RECOVERY_MAGIC_CWM "CWM-based Recovery v"
+#define RECOVERY_MAGIC_SIZE_CWM 20
+#define RECOVERY_MAGIC_TWRP_VERSION "Team Win Recovery Project v%s"
+#define RECOVERY_MAGIC_SIZE_TWRP_VERSION 29
+#define RECOVERY_MAGIC_4EXT "4EXT"
+#define RECOVERY_MAGIC_SIZE_4EXT 4
+#define RECOVERY_MAGIC_4EXT_VERSION "\0\"v"
+#define RECOVERY_MAGIC_SIZE_4EXT_VERSION 3
+
 typedef struct cpio_newc_header cpio_newc_header;
 
 struct cpio_newc_header {
@@ -37,6 +57,50 @@ struct cpio_newc_header {
 } ;
 
 #define MAX_RAMDISK_SIZE (8192*1024)*4
+
+// get_ramdisk_type - heuristically work out the type of ramdisk
+// the following checks are carried out
+// does a recovery binary exist. 
+unsigned get_ramdisk_type(ramdisk_image* image){
+    
+    D("\n");
+    
+    image->type = RAMDISK_TYPE_NORMAL ;
+    image->recovery_brand = RECOVERY_BRAND_NONE ;
+    image->recovery_version = NULL ;
+    
+    int i =0;
+    for(i = 0; i < image->entry_count; i++) {
+	if(!strlcmp(image->entries[i]->name_addr,RECOVERY_FILE_NAME)){
+	    
+	    image->type = RAMDISK_TYPE_RECOVERY ;
+	    D("recovery image found at %d\n",i);
+	    unsigned char * recovery_name_offset = NULL; 
+	    if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_TWRP,RECOVERY_MAGIC_SIZE_TWRP))){
+		
+		// Found A TWRP Recovery. Advanced our offset along as the next string should be the version number
+		recovery_name_offset += (RECOVERY_MAGIC_SIZE_TWRP+1);
+		
+		// check for a digit and a dot -- A bit of future proofing in case the TWRP version gets into double figures
+		if(isdigit(recovery_name_offset[0]) && ( isdigit(recovery_name_offset[1]) || recovery_name_offset[1]=='.' )){
+		    image->recovery_brand = RECOVERY_BRAND_TWRP ;
+		    // do a sanity check on the version number length... if it is something silly i.e > 20 then we will disregard it
+		    int version_len = strlen(recovery_name_offset);
+		    if(version_len < 20 ){
+			image->recovery_version = recovery_name_offset;
+			   D("TWRP Recovery image recovery_name_offset=%p %d\n",image->recovery_version ,version_len);
+			
+		    }
+		    D("TWRP Recovery image recovery_name_offset=%s\n",recovery_name_offset);
+		    break ; 
+		}
+		
+	    }
+	    
+	}
+    }
+    return 0 ;
+}
 
 unsigned carve_out_entry_space(ramdisk_image* image){
 
@@ -131,25 +195,48 @@ unsigned count_ramdisk_archive_entries(ramdisk_image* image){
 }
 
 int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image){
-      
-    return 0;
+     
+    errno = 0;
+    unsigned data_size = 0;
+    unsigned char* ramdisk_addr = read_item_from_disk(filename,&data_size);
+    if(!ramdisk_addr){
+	fprintf(stderr,"Error %d\n",errno);
+	return errno;
+
+    }
+    fprintf(stderr,"ramdisk_addr %p %u\n",ramdisk_addr,data_size);
+    int return_value = load_ramdisk_image_from_archive_memory(ramdisk_addr,data_size,image);
+
+    return  return_value; 
 }
 int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image){
-    return 0;
+    
+    errno = 0;
+    unsigned data_size = 0;
+    unsigned char* ramdisk_addr = read_item_from_disk(filename,&data_size);
+    if(!ramdisk_addr){
+	fprintf(stderr,"Error %d\n",errno);
+	return errno;
+
+    }
+    fprintf(stderr,"ramdisk_addr %p %u\n",ramdisk_addr,data_size);
+    int return_value = load_ramdisk_image_from_cpio_memory(ramdisk_addr,data_size,image);
+
+    return  return_value; 
 }
 int load_ramdisk_image_from_cpio_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
     
     
-    fprintf(stderr,"load_ramdisk_image_from_cpio_memory %u\n", ramdisk_size);
+    D("ramdisk_size %u\n", ramdisk_size);
     // now we have uncompressed data check we have a cpio file look for the magic
     if(memcmp(ramdisk_addr,CPIO_HEADER_MAGIC,CPIO_HEADER_MAGIC_SIZE)){
-	 fprintf(stderr,"CPIO_HEADER_MAGIC %u\n", ramdisk_size);
+	 D("CPIO_HEADER_MAGIC not found\n");
 	return ENOEXEC;
     }
 	
     // and also look for the trailer
     if(!find_in_memory(ramdisk_addr,ramdisk_size,CPIO_TRAILER_MAGIC,CPIO_TRAILER_MAGIC_SIZE)){
-		 fprintf(stderr,"CPIO_TRAILER_MAGIC %u\n", ramdisk_size);
+	D("CPIO_TRAILER_MAGIC not found\n");
 	return ENOEXEC;
     }
 	
@@ -159,7 +246,7 @@ int load_ramdisk_image_from_cpio_memory(char* ramdisk_addr,unsigned ramdisk_size
     image->entry_count = count_ramdisk_archive_entries(image);
     
     if(!image->entry_count){
-		 fprintf(stderr,"image->entry_count %u\n", image->entry_count);
+	D("image->entry_count %u\n", image->entry_count);
 	return EINVAL;
     }
     
@@ -168,16 +255,19 @@ int load_ramdisk_image_from_cpio_memory(char* ramdisk_addr,unsigned ramdisk_size
     
     populate_ramdisk_entries(image);
     
+    get_ramdisk_type(image);
+    
     return 0;
 }
 int load_ramdisk_image_from_archive_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
-    fprintf(stderr,"load_ramdisk_image_from_archive_memory %u\n", ramdisk_size);
+    D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
   
     errno = 0;
     // look for a gzip magic to make sure the ramdisk is the correct type
     unsigned char * gzip_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
     if(!gzip_magic_offset_p){
+	errno = ENOEXEC ;
 	return ENOEXEC;
 	
 	
@@ -192,16 +282,16 @@ int load_ramdisk_image_from_archive_memory(char* ramdisk_addr,unsigned ramdisk_s
     unsigned uncompressed_ramdisk_size = uncompress_gzip_memory(gzip_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
    
     if(!uncompressed_ramdisk_size){
-	fprintf(stderr,"uncompressed_ramdisk_size error\n");
+	D("uncompressed_ramdisk_size error\n");
 	free(uncompressed_ramdisk_data);
 	return  EINVAL;
     }
     if(load_ramdisk_image_from_cpio_memory(uncompressed_ramdisk_data,uncompressed_ramdisk_size,image)){
-	fprintf(stderr,"load_ramdisk_image_from_cpio_memory error\n");
+	D("load_ramdisk_image_from_cpio_memory error\n");
 	free(uncompressed_ramdisk_data);
 	return  EINVAL;
     }
-    fprintf(stderr,"load_ramdisk_image_from_archive_memory %u\n", image->entry_count);
+    D("image->entry_count %u\n", image->entry_count);
     //free(uncompressed_ramdisk_data);
     return 0;
 
@@ -434,13 +524,19 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 }
 int print_ramdisk_info(ramdisk_image* rimage){
     
-    fprintf(stderr,"\nramdisk_image struct values:\n");
-    fprintf(stderr,"  start_addr       :%p\n",rimage->start_addr);
-    fprintf(stderr,"  size             :%u\n",rimage->size);
-    fprintf(stderr,"  compression_type :%s\n",str_ramdisk_compression(rimage->compression_type));
-    fprintf(stderr,"  type             :%s\n",str_ramdisk_type(rimage->type));
-    fprintf(stderr,"  entry_count      :%u\n",rimage->entry_count);
-    fprintf(stderr,"  entries          :%p\n",rimage->entries);
+    //fprintf(stderr,"\nramdisk_image struct values:\n");
+    D("start_addr=%p\n",rimage->start_addr);
+    D("entries=%p\n",rimage->entries);
+    fprintf(stderr,"  uncompressed size :%u\n",rimage->size);
+    fprintf(stderr,"  compression_type  :%s\n",str_ramdisk_compression(rimage->compression_type));
+    fprintf(stderr,"  type              :%s\n",str_ramdisk_type(rimage->type));
+    if(rimage->type == RAMDISK_TYPE_RECOVERY){
+	fprintf(stderr,"  recovery brand    :%s\n",str_recovery_brand(rimage->recovery_brand));
+	fprintf(stderr,"  recovery version  :%s\n",rimage->recovery_version);
+    }
+    
+    fprintf(stderr,"  entry_count       :%u\n",rimage->entry_count);
+    
     
     return 0;
 }
@@ -456,7 +552,21 @@ char *str_ramdisk_type(int ramdisk_type){
     }
     return "unknown";
 }
-
+char *str_recovery_brand(int ramdisk_brand){
+    
+    switch(ramdisk_brand){
+	case RECOVERY_BRAND_UNKNOWN: return "unknown"; 
+	case RECOVERY_BRAND_NONE: return "none";
+	case RECOVERY_BRAND_NORMAL: return "Android system recovery <3e>";
+	case RECOVERY_BRAND_CLOCKWORK: return "ClockworkMod Recovery";
+	case RECOVERY_BRAND_CWM: return "CWM-Based Recovery";
+	case RECOVERY_BRAND_COT: return "Cannibal Open Touch Recovery";
+	case RECOVERY_BRAND_TWRP: return "Team Win Recovery Project";
+	case RECOVERY_BRAND_4EXT: return "4EXT Touch Recovery";
+	default: return "unknown";
+    }
+    return "unknown";
+}
 char *str_ramdisk_compression(int compression_type){
   
   switch(compression_type){

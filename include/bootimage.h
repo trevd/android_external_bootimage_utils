@@ -46,7 +46,7 @@ struct boot_image
    
     
 };
-int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
+int load_boot_image_from_memory(char* boot_image_addr,unsigned boot_image_size, boot_image* image);
 int load_boot_image_from_file(const char *filename, boot_image* image);
 int write_boot_image(char *filename, boot_image* image);
 int write_boot_image_header_to_disk(const char *filename, boot_image* image);

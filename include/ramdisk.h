@@ -15,7 +15,14 @@
 #define RAMDISK_TYPE_RECOVERY 2
 #define RAMDISK_TYPE_UBUNTU 3
 
-
+#define RECOVERY_BRAND_UNKNOWN -1
+#define RECOVERY_BRAND_NONE 0
+#define RECOVERY_BRAND_NORMAL 1
+#define RECOVERY_BRAND_CLOCKWORK 2
+#define RECOVERY_BRAND_CWM 3
+#define RECOVERY_BRAND_COT 4
+#define RECOVERY_BRAND_TWRP 5
+#define RECOVERY_BRAND_4EXT 6
 
 typedef struct ramdisk_image ramdisk_image;
 
@@ -47,11 +54,13 @@ struct ramdisk_entry{
 
 struct ramdisk_image {
     
-    unsigned compression_type;
+    int compression_type;
     unsigned char* start_addr ;
     unsigned size;
-    unsigned type;
-    
+    int type;
+    int recovery_brand;   
+    unsigned char *recovery_version;
+        
     unsigned entry_count;
 
     ramdisk_entry ** entries ;
@@ -76,6 +85,8 @@ int print_ramdisk_info(ramdisk_image* rimage);
 char *str_ramdisk_compression(int compression_type);
 
 char *str_ramdisk_type(int type);
+
+char *str_recovery_brand(int ramdisk_brand);
 
 int update_ramdisk_header(unsigned char*entry_addr);
 
