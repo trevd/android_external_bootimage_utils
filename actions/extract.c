@@ -154,7 +154,7 @@ int extract_file(extract_action* action){
 // although this code is repetitive we will favour readability
 // over codesize ...... Ask me in 3 months time whether it was
 // a good idea.
-int process_extract_action(int argc,char ** argv){
+int process_extract_action(int argc,char ** argv,global_action* gaction){
 	
     // Initialize the action struct with NULL values
     extract_action action;

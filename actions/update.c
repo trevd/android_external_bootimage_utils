@@ -275,7 +275,7 @@ cleanup_bootimage:
     
     
 }*/
-int process_update_action(int argc,char ** argv){
+int process_update_action(int argc,char ** argv,global_action* gaction){
 
 	
     // Initialize the action struct with NULL values

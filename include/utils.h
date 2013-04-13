@@ -9,6 +9,18 @@
     #include <utils_linux.h>
 #endif
 
+// Debug Functionality. use the init_debug() function to turn on debug messages
+
+extern int   utils_debug;
+
+void init_debug() ;
+
+#define D(  ...) \
+        if (utils_debug){ \
+            fprintf(stderr, "DEBUG: %s::%s():", __FILE__, __FUNCTION__); \
+            fprintf(stderr,  __VA_ARGS__ ); \
+        }
+
     unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len); 
     unsigned char *find_in_memory_start_at(unsigned char *haystack, unsigned haystack_len,unsigned char *haystack_offset, char* needle, unsigned needle_len);
     unsigned long  get_long_from_hex_field(char * header_field_value);
@@ -19,4 +31,5 @@
     unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size);
     unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,char* name);
     unsigned char* read_item_from_disk(const char *name, unsigned* data_size);
+
 #endif

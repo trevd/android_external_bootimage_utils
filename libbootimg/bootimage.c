@@ -136,14 +136,38 @@ int set_boot_image_content_hash(boot_image* image)
 	memcpy(&image->header->id, sha, SHA_DIGEST_SIZE > sizeof(image->header->id) ? sizeof(image->header->id) : SHA_DIGEST_SIZE);
     return 0;
 }
+int print_boot_image_additional_info(boot_image* image){
+	
+	fprintf(stderr,"\n additonal information:\n");
+    fprintf(stderr,"  total_size       :%08u\n",image->total_size);
+    fprintf(stderr,"  header_size      :%08u\n\n",image->header_size);
+    
+    fprintf(stderr,"  header_offset    :%08u\n",image->header_offset);
+    fprintf(stderr,"  header_padding   :%08u\n\n",image->header_padding);
+
+    fprintf(stderr,"  kernel_offset    :%08u\n",image->kernel_offset);
+    fprintf(stderr,"  kernel_padding   :%08u\n\n",image->kernel_padding);
+    
+    fprintf(stderr,"  ramdisk_offset   :%08u\n",image->ramdisk_offset);
+    fprintf(stderr,"  ramdisk_padding  :%08u\n\n",image->ramdisk_padding);
+    
+    fprintf(stderr,"  second_offset    :%08d\n",image->second_offset);
+    fprintf(stderr,"  second_padding   :%08d\n",image->second_padding);
+    return 0;
+	}
 int print_boot_image_header_info(boot_image* image){
 
-	boot_img_hdr* header = image->header;
-	fprintf(stderr,"kernel_size:%u"EOL"kernel_address:0x%08x"EOL"ramdisk_size:%u"EOL"ramdisk_address:0x%08x"EOL"second_size:%u"EOL"second_address:0x%08x"EOL
-	"tags_address:0x%08x"EOL"page_size:%u"EOL"name:%s"EOL"cmdline:%s"EOL,
-	header->kernel_size,header->kernel_addr,header->ramdisk_size,header->ramdisk_addr,
-	header->second_size,header->second_addr,header->tags_addr,header->page_size,header->name,header->cmdline);
-	return 0;
+	fprintf(stderr,"  kernel_size      :%u\n",image->header->kernel_size);
+    fprintf(stderr,"  kernel_addr      :0x%08x\n",image->header->kernel_addr);
+    fprintf(stderr,"  ramdisk_size     :%u\n",image->header->ramdisk_size);
+    fprintf(stderr,"  ramdisk_addr     :0x%08x\n",image->header->ramdisk_addr);
+    fprintf(stderr,"  second_size      :%u\n",image->header->second_size);
+    fprintf(stderr,"  second_addr      :0x%08x\n",image->header->second_addr);
+    fprintf(stderr,"  tags_addr        :0x%08x\n",image->header->tags_addr);
+    fprintf(stderr,"  page_size        :%u\n",image->header->page_size);
+    fprintf(stderr,"  name             :%s\n",image->header->name);
+    fprintf(stderr,"  cmdline          :%s\n",image->header->cmdline);
+    return 0;
 }
 
 
@@ -342,27 +366,31 @@ fail:
 	fclose(boot_image_file_fp);
 	return errno;	
 }
-int print_boot_image_info(boot_image* image,int debug){
-    fprintf(stderr,"\nboot_image struct values:\n");
-    fprintf(stderr," memory locations:\n");
+int print_boot_image_info(boot_image* image){
+
     
-    if(debug){
-	fprintf(stderr,"  image            :%08x\n",(unsigned int)&image);
-	fprintf(stderr,"  start_addr       :%08x\n",&image->start_addr);
-	fprintf(stderr,"  header           :%08x\n",&image->header); 
-	fprintf(stderr,"  kernel_addr      :%08x\n",&image->kernel_addr); 
-	fprintf(stderr,"  ramdisk_addr     :%08x\n",&image->ramdisk_addr); 
-	fprintf(stderr,"  second_addr      :%08x\n",&image->second_addr); 
-    }
-    fprintf(stderr,"  start_addr       :%08x\n",image->start_addr);
-    fprintf(stderr,"  header           :%08x\n",image->header); 
-    fprintf(stderr,"  kernel_addr      :%08x\n",image->kernel_addr); 
-    fprintf(stderr,"  ramdisk_addr     :%08x\n",image->ramdisk_addr); 
-    fprintf(stderr,"  second_addr      :%08x\n",image->second_addr); 
+	
+	fprintf(stderr,"\nboot_image struct values:\n");
+	fprintf(stderr," memory locations:\n");
+	fprintf(stderr," boot_image structure:\n");
+	fprintf(stderr,"  image            :0x%08x\n",(unsigned int)&image);
+	fprintf(stderr,"  start_addr       :0x%08x\n",&image->start_addr);
+	fprintf(stderr,"  header           :0x%08x\n",&image->header); 
+	fprintf(stderr,"  kernel_addr      :0x%08x\n",&image->kernel_addr); 
+	fprintf(stderr,"  ramdisk_addr     :0x%08x\n",&image->ramdisk_addr); 
+	fprintf(stderr,"  second_addr      :0x%08x\n",&image->second_addr); 
+	
+	fprintf(stderr," boot_image components:\n");
+	fprintf(stderr,"  start_addr       :%08x\n",image->start_addr);
+	fprintf(stderr,"  header           :%08x\n",image->header); 
+	fprintf(stderr,"  kernel_addr      :%08x\n",image->kernel_addr); 
+	fprintf(stderr,"  ramdisk_addr     :%08x\n",image->ramdisk_addr); 
+	fprintf(stderr,"  second_addr      :%08x\n",image->second_addr); 
     
+        
     
     fprintf(stderr,"\n header information:\n");
-    fprintf(stderr,"  magic            :%.*s %p\n",8,image->header->magic,image->header->magic);
+    fprintf(stderr,"  magic            :%.*s\n",8,image->header->magic);
     fprintf(stderr,"  kernel_size      :%u\n",image->header->kernel_size);
     fprintf(stderr,"  kernel_addr      :0x%08x\n",image->header->kernel_addr);
     fprintf(stderr,"  ramdisk_size     :%u\n",image->header->ramdisk_size);
@@ -382,21 +410,7 @@ int print_boot_image_info(boot_image* image,int debug){
     fprintf(stderr,"  id[6]            :%u\n",image->header->id[6]);
     fprintf(stderr,"  id[7]            :%u\n",image->header->id[7]);
     
-    fprintf(stderr,"\n additonal information:\n");
-    fprintf(stderr,"  total_size       :%08u\n",image->total_size);
-    fprintf(stderr,"  header_size      :%08u\n\n",image->header_size);
-    
-    fprintf(stderr,"  header_offset    :%08u\n",image->header_offset);
-    fprintf(stderr,"  header_padding   :%08u\n\n",image->header_padding);
-
-    fprintf(stderr,"  kernel_offset    :%08u\n",image->kernel_offset);
-    fprintf(stderr,"  kernel_padding   :%08u\n\n",image->kernel_padding);
-    
-    fprintf(stderr,"  ramdisk_offset   :%08u\n",image->ramdisk_offset);
-    fprintf(stderr,"  ramdisk_padding  :%08u\n\n",image->ramdisk_padding);
-    
-    fprintf(stderr,"  second_offset    :%08d\n",image->second_offset);
-    fprintf(stderr,"  second_padding   :%08d\n",image->second_padding);
+   
     
     return 0;
 }

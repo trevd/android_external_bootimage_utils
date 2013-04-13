@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -10,6 +11,14 @@
 #include <fcntl.h>
 #include <utils.h>
 #include <linux/fs.h>
+
+int  utils_debug;
+
+void init_debug() {
+    utils_debug = 1; 
+
+}
+
 unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len){
 	
 	size_t begin=0;
@@ -106,7 +115,7 @@ oops:
 unsigned char* read_regular_file_from_disk(const char *name, unsigned* data_size, unsigned size ){
     
     unsigned char *data =NULL;
-    
+     D("name=%s data_size=%u size=%u\n",name,*data_size,size);    
 	
     data = 0;
     errno = 0;
@@ -123,7 +132,7 @@ unsigned char* read_regular_file_from_disk(const char *name, unsigned* data_size
    // fprintf(stderr,"read_item_from_disk data %p\n",data);
     fclose(fp);
 
-    if(data_size) *data_size = size;
+    if(!(*data_size)) *data_size = size;
     
     return data;
 
@@ -135,11 +144,15 @@ oops:
 
 unsigned char* read_item_from_disk(const char *name, unsigned* data_size){
     
+    D("name=%s data_size=%u\n",name,(*data_size));    
+        
     errno = 0 ;
     struct stat sb;
     if (stat(name, &sb) == -1) {
+	D("stat(%s)=-1 errno=%d\n",name,errno); 
 	return NULL;
     }
+    D("mode %u\n",sb.st_mode & S_IFMT); 
     switch (sb.st_mode & S_IFMT) {
        case S_IFBLK:  return read_from_block_device(name,data_size);	break;
        case S_IFLNK:
@@ -188,3 +201,4 @@ unsigned strulcmp(const unsigned char *s1, const unsigned char *s2){
 	return strncmp((const char*)s1,(const char*)s2,compare_length); 
 								
 }
+

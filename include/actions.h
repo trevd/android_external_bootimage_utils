@@ -11,16 +11,16 @@ struct global_action{
 	char *	log_filename;
 	int 	verbose ;
 };
-
-int process_extract_action(int argc,char ** argv);
-int process_create_action(int argc,char ** argv);
-int process_update_action(int argc,char ** argv);
-int process_info_action(int argc,char ** argv);
-int process_scan_action(int argc,char ** argv);
-int process_copy_kernel_action(int argc,char ** argv);
-int process_create_kernel_action(int argc,char ** argv);
+int only_global_actions(int argc,char ** argv,global_action* action);
+int process_extract_action(int argc,char ** argv,global_action* gaction);
+int process_create_action(int argc,char ** argv,global_action* gaction);
+int process_update_action(int argc,char ** argv,global_action* gaction);
+int process_info_action(int argc,char ** argv,global_action* gaction);
+int process_scan_action(int argc,char ** argv,global_action* gaction);
+int process_copy_kernel_action(int argc,char ** argv,global_action* gaction);
+int process_create_kernel_action(int argc,char ** argv,global_action* gaction);
+int process_create_ramdisk_action(int argc,char ** argv,global_action* gaction);
 int process_global_action(int argc,char ** argv,global_action* action);
-int init_global_action(global_action* action);
 
 
 

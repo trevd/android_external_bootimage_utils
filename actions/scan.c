@@ -5,6 +5,7 @@
 
 #include <utils.h>
 #include <bootimg.h>
+#include <actions.h>	
 
 #define SCAN_TYPE_QUICK 0
 #define SCAN_TYPE_FULL  1
@@ -78,7 +79,7 @@ int scan_for_boot_image(scan_action* action){
     return 0;
 }
 
-int process_scan_action(int argc,char ** argv){
+int process_scan_action(int argc,char ** argv,global_action* gaction){
 
     scan_action action;
     action.target_directory 	= NULL 	;

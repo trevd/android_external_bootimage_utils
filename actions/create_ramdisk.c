@@ -23,7 +23,9 @@ int create_ramdisk(create_ramdisk_action* action){
     return 0;
     
 }
-int process_create_ramdisk_action(int argc,char ** argv){
+int process_create_ramdisk_action(int argc,char ** argv,global_action* gaction){
+    
+
     
     create_ramdisk_action action;
     action.ramdisk_imagename 	= NULL 	;
@@ -36,8 +38,8 @@ int process_create_ramdisk_action(int argc,char ** argv){
 	if(!action.ramdisk_imagename){
 	    action.ramdisk_imagename = argv[0];
 	    fprintf(stderr,"action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
-	}else
-	 argc--; argv++ ;
+	}
+	argc--; argv++ ;
     }
     // we must have a source and destination image to process
     if(!action.ramdisk_imagename){
