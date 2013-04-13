@@ -12,7 +12,7 @@
 #include <actions.h>
 #include <utils.h>
 
-int init_global_action(global_action* action){
+int init_global_action(char* program_name, global_action* action){
     
     errno = 0;
     if(!action){
@@ -22,6 +22,8 @@ int init_global_action(global_action* action){
     action->debug = 0;
     action->log = 0;
     action->verbose = 0 ;
+    action->multicall = 0 ;
+    action->program_name = program_name ;
     return 0;
 }
 
@@ -54,7 +56,7 @@ int process_global_action(int argc,char ** argv,global_action* action){
 	errno = EINVAL ;
 	return errno;
     }
-    init_global_action(action);
+    init_global_action(argv[0],action);
    
     while(argc > 0){
 		

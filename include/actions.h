@@ -9,7 +9,9 @@ struct global_action{
 	int	debug ;
 	int  	log ;
 	char *	log_filename;
+	char *	program_name;
 	int 	verbose ;
+	int 	multicall ;
 };
 int only_global_actions(int argc,char ** argv,global_action* action);
 int process_extract_action(int argc,char ** argv,global_action* gaction);

@@ -11,6 +11,10 @@
 #include <utils.h>
 #include <linux/fs.h>
 
+
+#ifndef BOOT_IMAGE_SIZE_MAX
+#define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
+#endif
 int  utils_debug;
 
 void init_debug() {
@@ -89,18 +93,22 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 unsigned char* read_from_block_device(const char *name, unsigned* data_size){
     
     
-    fprintf(stderr,"read_from_block_device data %s\n",name);
+    D("read_from_block_device data %s\n",name);
     unsigned char *data =NULL;
     unsigned long numblocks=0;
     unsigned size =0;
     int fd = open(name, O_RDONLY);
     if(!fd){
-	fprintf(stderr,"read_from_block_device data faile %d\n",numblocks);
+	D("read_from_block_device data faile %d\n",numblocks);
 	return NULL ;
     }
     ioctl(fd, BLKGETSIZE64, &numblocks);
-    fprintf(stderr,"read_from_block_device data numblocks %d\n",numblocks);
+    D("read_from_block_device data numblocks %d\n",numblocks);
     if (numblocks) size =numblocks;
+    if(numblocks > (BOOT_IMAGE_SIZE_MAX)){
+	errno = EFBIG;
+	return NULL;
+    }
     data = calloc(size,sizeof(char));
     if ((*data_size = read(fd, data, size)) != size) goto oops;
     close(fd);

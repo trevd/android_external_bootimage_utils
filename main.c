@@ -9,6 +9,9 @@
 int get_action(int argc,char ** argv,global_action* gaction){
 
 	D("argv[0]=%s\n",argv[0]);
+	
+
+	
 	if(!strlcmp(argv[0],"extract") || !strlcmp(argv[0],"x") || strstr(argv[0],"-extract") ){
 		process_extract_action(--argc,++argv,gaction);
 	}else if(!strlcmp(argv[0],"update") || !strlcmp(argv[0],"u") || strstr(argv[0],"-update") ) {
@@ -46,14 +49,25 @@ int main(int argc,char ** argv){
 			D("argv[%d]=%s\n",i,argv[i]);
 		}
 	}
+	
 	// was this a multicall, if not then move the arg pointer along
 	if(!(strstr(argv[0],"-info") || strstr(argv[0],"-extract") 
 			|| strstr(argv[0],"-create") || strstr(argv[0],"-update") 
 			|| strstr(argv[0],"-scan") ) ){
+		
+		// not a multicall
+		if(!strlcmp(argv[1],"-help") || !strlcmp(argv[1],"-h")){
+			 //standard help requested 
+			 D("Printing Standard Help\n");
+		 }
+		
 		--argc ; ++argv	;
-	}
+		
+	}else{
+		gaction.multicall = 1 ;
+	} 
 	
-	get_action(argc , argv,&gaction	);
+	get_action(argc , argv,&gaction );
 		
 	return 0;
 

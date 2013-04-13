@@ -93,12 +93,22 @@ int info_file(info_action* action,global_action* gaction ){
    
     char* current_working_directory = NULL; 
     errno = 0 ; 
+    int saved_error = 0 ;
     int return_value=0;
     unsigned action_size = 0;     
     getcwd(current_working_directory,PATH_MAX);
     
     char* action_data = read_item_from_disk(action->filename , &action_size);
-    D("read_item_from_disk completed %s %u\n",action->filename,action_size);
+    if(!action_data && errno){
+	
+	    //  file too large error. no point in contining
+	    print_program_title();
+	    fprintf(stderr," Cannot process \"%s\" - error : %d %s\n\n",action->filename,errno,strerror(errno));
+	    return 0;    
+	}
+
+    
+    D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
     boot_image bimage;
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
 	D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
@@ -108,10 +118,11 @@ int info_file(info_action* action,global_action* gaction ){
 	return return_value;   
     
     }else{
+	if(bimage.start_addr != NULL ) free(bimage.start_addr); 
 	
-	if(bimage.start_addr != NULL  ) free(bimage.start_addr);
+	
     }
-
+    
 
     kernel_image kimage;
     errno = 0 ; 
@@ -146,11 +157,39 @@ int info_file(info_action* action,global_action* gaction ){
     
     return 0;
 }
+int print_info_action_help(global_action* gaction){
+    
+    
+    print_program_title();
+  
+    fprintf(stderr," %s ",gaction->program_name);
+    if(!gaction->multicall){
+	fprintf(stderr,"info ");
+		
+    }
+    fprintf(stderr,"- prints information for the specified boot image, kernel file or ramdisk\n\n");
+    
+    fprintf(stderr," Usage: %s ",gaction->program_name);
+    if(!gaction->multicall){
+	fprintf(stderr," [i|info] ");
+		
+    }
+    fprintf(stderr," <filename> [ <switches> ]\n\n");
+    fprintf(stderr," filename: The file specified by <filename> must be one of the following types:\n");
+    fprintf(stderr,"           Android Boot Image, Linux Kernel zImage, ASCII cpio archive,\n");
+    fprintf(stderr,"           Compressed gzipped cpio archive. block device\n\n");
+    
+    return 0; 
+}
 
 int process_info_action(int argc,char ** argv,global_action* gaction){
     
     
     D("argc=%d argv[0]=%s\n",argc,argv[0]);
+    if(!strlcmp(argv[0],"--help") || !strlcmp(argv[0],"-h")){
+	
+	return print_info_action_help(gaction);
+    }
     
     info_action action ;
     action.filename 	= NULL 	;
@@ -161,7 +200,7 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     action.additional	= 0 	;
     // a variable for the file check
     FILE*file; 
-    
+       
     // work out a possible file name just in case we need it for 
     // error reporting , the possible filename should be at position zero 
     // but it maybe elsewhere, as info printing doesn't require any require 
@@ -234,7 +273,10 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     // we must have at least a boot image to process
     if(!action.filename){
 	    print_program_title();
-	    fprintf(stderr," %s - file not found\n\n",possible_filename);
+	    if(!possible_filename){ 
+		fprintf(stderr," no file specified!\n\n");
+	    }else
+		fprintf(stderr," %s - file not found!\n\n",possible_filename);
 	    return EINVAL;
     }
     

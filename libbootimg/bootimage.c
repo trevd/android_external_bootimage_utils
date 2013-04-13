@@ -8,7 +8,9 @@
 #include <bootimage.h>
 #include <utils.h>
 // Private defines
+#ifndef BOOT_IMAGE_SIZE_MAX
 #define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
+#endif
 
 #define MAXIMUM_KNOWN_PAGE_SIZE 16384
 
