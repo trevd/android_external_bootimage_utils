@@ -9,7 +9,7 @@
 #define PROGRAM_VERSION "x.xx Alpha Release"
 
 
-int print_pogram_title(){
+int print_program_title(){
     
     fprintf(stderr,"\n %s %s\n\n",PROGRAM_TITLE,PROGRAM_VERSION);
     return 0 ; 

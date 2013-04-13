@@ -25,7 +25,7 @@ struct info_action{
 int info_kernel( kernel_image* kimage,info_action* action,int print_title){
     
     if(print_title){
-	print_pogram_title();
+	print_program_title();
 	fprintf(stderr," Printing Kernel Information for \"%s\"\n\n",action->filename);
     }else{
 	fprintf(stderr," Kernel:\n");
@@ -39,7 +39,7 @@ int info_kernel( kernel_image* kimage,info_action* action,int print_title){
 int info_ramdisk(ramdisk_image* rimage,info_action* action,int print_title){
     
     if(print_title){
-	print_pogram_title();
+	print_program_title();
 	fprintf(stderr," Printing Ramdisk Information for \"%s\"\n\n",action->filename);
     }else{
 	fprintf(stderr," Ramdisk:\n");
@@ -54,7 +54,7 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
        
     D("\n");
     
-    print_pogram_title();
+    print_program_title();
     
     fprintf(stderr," Printing boot image information for \"%s\"\n\n",action->filename);
     if(action->header){
@@ -142,7 +142,7 @@ int info_file(info_action* action,global_action* gaction ){
     }
     
     
-    print_pogram_title();
+    print_program_title();
     fprintf(stderr," Cannot process \"%s\" - file type not a recognized\n\n",action->filename);    
     
     return 0;
@@ -162,6 +162,21 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     action.additional	= 0 	;
     // a variable for the file check
     FILE*file; 
+    
+    // work out a possible file name just in case we need it for 
+    // error reporting , the possible filename should be at position zero 
+    // but it maybe elsewhere, as info printing doesn't require any require 
+    // filenames for switches we can look for the first argv that doesn't begin with "-"
+    unsigned char* possible_filename = NULL;
+    int i = 0 ;
+    for(i = 0 ; i < argc ; i++){
+    	if(argv[i][0]!='-'){
+	     possible_filename = argv[i];
+	     D("possible_filename at position %d - %s %s\n",i,argv[i],possible_filename);
+	     break ;
+	 }
+    }
+    
     
     // this is set to 1 if any action item has been set
     int action_set = 0 ; 
@@ -219,7 +234,8 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     }
     // we must have at least a boot image to process
     if(!action.filename){
-	    fprintf(stderr,"no filename\n");
+	    print_program_title();
+	    fprintf(stderr," %s - file not found\n\n",possible_filename);
 	    return EINVAL;
     }
     

@@ -528,8 +528,8 @@ int print_ramdisk_info(ramdisk_image* rimage){
     D("start_addr=%p\n",rimage->start_addr);
     D("entries=%p\n",rimage->entries);
     fprintf(stderr,"  uncompressed size :%u\n",rimage->size);
-    fprintf(stderr,"  compression_type  :%s\n",str_ramdisk_compression(rimage->compression_type));
-    fprintf(stderr,"  type              :%s\n",str_ramdisk_type(rimage->type));
+    fprintf(stderr,"  compression type  :%s\n",str_ramdisk_compression(rimage->compression_type));
+    fprintf(stderr,"  image type        :%s\n",str_ramdisk_type(rimage->type));
     if(rimage->type == RAMDISK_TYPE_RECOVERY){
 	fprintf(stderr,"  recovery brand    :%s\n",str_recovery_brand(rimage->recovery_brand));
 	fprintf(stderr,"  recovery version  :%s\n",rimage->recovery_version);

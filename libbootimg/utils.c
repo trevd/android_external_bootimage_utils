@@ -1,13 +1,12 @@
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <stdio.h>
+#include <string.h>
 #include <errno.h>
 #include <unistd.h>
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/ioctl.h>
 #include <fcntl.h>
 #include <utils.h>
 #include <linux/fs.h>
