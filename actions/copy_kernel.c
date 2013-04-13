@@ -39,7 +39,7 @@ int copy_kernel(copy_kernel_action* action){
 	if(bimage_dest.start_addr != NULL  ) free(bimage_dest.start_addr);
 	return return_value ;
     }
-    print_boot_image_info(&bimage_dest);
+   // print_boot_image_info(&bimage_dest);
     bimage_dest.kernel_addr = bimage_source.kernel_addr ;
     fprintf(stderr,"bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
     bimage_dest.header->kernel_size = bimage_source.header->kernel_size ;
@@ -48,7 +48,7 @@ int copy_kernel(copy_kernel_action* action){
     set_boot_image_content_hash(&bimage_dest);
     set_boot_image_offsets(&bimage_dest);
     
-    print_boot_image_info(&bimage_dest);
+    //print_boot_image_info(&bimage_dest);
     
     write_boot_image(action->destination,&bimage_dest);
     
@@ -62,7 +62,7 @@ int copy_kernel(copy_kernel_action* action){
     return 0;
     
 }
-int process_copy_kernel_action(int argc,char ** argv){
+int process_copy_kernel_action(int argc,char ** argv,global_action* gaction){
     
     copy_kernel_action action;
     action.source 	= NULL 	;

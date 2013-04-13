@@ -96,7 +96,7 @@ int create_bootimage(create_action* action, global_action* gaction){
     set_boot_image_content_hash(&bimage);
     set_boot_image_offsets(&bimage);
     
-    print_boot_image_info(&bimage);
+    //print_boot_image_info(&bimage);
         
    if(write_boot_image(action->bootimage_filename,&bimage)){
 	fprintf(stderr,"write_boot_image failed %d %s\n",errno,strerror(errno));

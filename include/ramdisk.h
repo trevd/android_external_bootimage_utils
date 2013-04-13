@@ -36,7 +36,7 @@ struct ramdisk_entry{
 
     unsigned long mode;    
     
-    unsigned char* name_addr ;
+    char* name_addr ;
     unsigned name_size ;
     unsigned name_offset ;
     unsigned name_padding ;

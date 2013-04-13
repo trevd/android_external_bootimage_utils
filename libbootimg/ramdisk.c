@@ -20,7 +20,7 @@
 
 #define RECOVERY_FILE_NAME "sbin/recovery"
 
-#define RECOVERY_MAGIC_CLOCKWORK"ClockworkMod Recovery v"
+#define RECOVERY_MAGIC_CLOCKWORK "ClockworkMod Recovery v"
 #define RECOVERY_MAGIC_SIZE_CLOCKWORK 23
 #define RECOVERY_MAGIC_STOCK "Android system recovery "
 #define RECOVERY_MAGIC_SIZE_STOCK 24
@@ -638,7 +638,7 @@ int print_ramdisk_info(ramdisk_image* rimage){
 	if(rimage->recovery_version && rimage->recovery_brand != RECOVERY_BRAND_UNKNOWN){
 	    fprintf(stderr,"  recovery version  :%.*s",rimage->recovery_version_size,rimage->recovery_version);
 	    // Do we need a new line
-	    D("rimage->recovery_version_size=%d rimage->recovery_version[%d]='%d'\n",rimage->recovery_version_size,rimage->recovery_version_size,rimage->recovery_version[rimage->recovery_version_size-1]);
+	    D("rimage->recovery_version_size=%d rimage->recovery_version[%d]='%d'\n",rimage->recovery_version_size,rimage->recovery_version_size-1,rimage->recovery_version[rimage->recovery_version_size-1]);
 	    if(rimage->recovery_version[rimage->recovery_version_size-1]!='\n'){
 		fprintf(stderr,"\n");
 	    }

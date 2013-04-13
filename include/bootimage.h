@@ -58,5 +58,6 @@ int set_boot_image_offsets(boot_image* image);
 int print_boot_image_info(boot_image* image);
 int print_boot_image_header_info(boot_image* image);
 int print_boot_image_additional_info(boot_image* image);
+int print_boot_image_header_hashes(boot_image* image);
 int copy_boot_image_header_info(boot_image* dest,boot_image* source);
 #endif

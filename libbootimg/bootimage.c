@@ -171,6 +171,19 @@ int print_boot_image_header_info(boot_image* image){
     fprintf(stderr,"  cmdline          :%s\n",image->header->cmdline);
     return 0;
 }
+int print_boot_image_header_hashes(boot_image* image){
+
+    fprintf(stderr,"  id[0]            :%u\n",image->header->id[0]);
+    fprintf(stderr,"  id[1]            :%u\n",image->header->id[1]);
+    fprintf(stderr,"  id[2]            :%u\n",image->header->id[2]);
+    fprintf(stderr,"  id[3]            :%u\n",image->header->id[3]);
+    fprintf(stderr,"  id[4]            :%u\n",image->header->id[4]);
+    fprintf(stderr,"  id[5]            :%u\n",image->header->id[5]);
+    fprintf(stderr,"  id[6]            :%u\n",image->header->id[6]);
+    fprintf(stderr,"  id[7]            :%u\n",image->header->id[7]);
+    return 0;
+}
+
 
 
 int write_boot_image_header_to_disk(const char *filename, boot_image* image){
@@ -367,52 +380,4 @@ fail:
 	fprintf(stderr,"write_boot_image failed %d\n",errno);
 	fclose(boot_image_file_fp);
 	return errno;	
-}
-int print_boot_image_info(boot_image* image){
-
-    
-	
-	fprintf(stderr,"\nboot_image struct values:\n");
-	fprintf(stderr," memory locations:\n");
-	fprintf(stderr," boot_image structure:\n");
-	fprintf(stderr,"  image            :0x%08x\n",(unsigned int)&image);
-	fprintf(stderr,"  start_addr       :0x%08x\n",&image->start_addr);
-	fprintf(stderr,"  header           :0x%08x\n",&image->header); 
-	fprintf(stderr,"  kernel_addr      :0x%08x\n",&image->kernel_addr); 
-	fprintf(stderr,"  ramdisk_addr     :0x%08x\n",&image->ramdisk_addr); 
-	fprintf(stderr,"  second_addr      :0x%08x\n",&image->second_addr); 
-	
-	fprintf(stderr," boot_image components:\n");
-	fprintf(stderr,"  start_addr       :%08x\n",image->start_addr);
-	fprintf(stderr,"  header           :%08x\n",image->header); 
-	fprintf(stderr,"  kernel_addr      :%08x\n",image->kernel_addr); 
-	fprintf(stderr,"  ramdisk_addr     :%08x\n",image->ramdisk_addr); 
-	fprintf(stderr,"  second_addr      :%08x\n",image->second_addr); 
-    
-        
-    
-    fprintf(stderr,"\n header information:\n");
-    fprintf(stderr,"  magic            :%.*s\n",8,image->header->magic);
-    fprintf(stderr,"  kernel_size      :%u\n",image->header->kernel_size);
-    fprintf(stderr,"  kernel_addr      :0x%08x\n",image->header->kernel_addr);
-    fprintf(stderr,"  ramdisk_size     :%u\n",image->header->ramdisk_size);
-    fprintf(stderr,"  ramdisk_addr     :0x%08x\n",image->header->ramdisk_addr);
-    fprintf(stderr,"  second_size      :%u\n",image->header->second_size);
-    fprintf(stderr,"  second_addr      :0x%08x\n",image->header->second_addr);
-    fprintf(stderr,"  tags_addr        :0x%08x\n",image->header->tags_addr);
-    fprintf(stderr,"  page_size        :%u\n",image->header->page_size);
-    fprintf(stderr,"  name             :%s\n",image->header->name);
-    fprintf(stderr,"  cmdline          :%s\n",image->header->cmdline);
-    fprintf(stderr,"  id[0]            :%u\n",image->header->id[0]);
-    fprintf(stderr,"  id[1]            :%u\n",image->header->id[1]);
-    fprintf(stderr,"  id[2]            :%u\n",image->header->id[2]);
-    fprintf(stderr,"  id[3]            :%u\n",image->header->id[3]);
-    fprintf(stderr,"  id[4]            :%u\n",image->header->id[4]);
-    fprintf(stderr,"  id[5]            :%u\n",image->header->id[5]);
-    fprintf(stderr,"  id[6]            :%u\n",image->header->id[6]);
-    fprintf(stderr,"  id[7]            :%u\n",image->header->id[7]);
-    
-   
-    
-    return 0;
 }
