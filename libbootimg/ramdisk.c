@@ -22,16 +22,16 @@
 
 #define RECOVERY_MAGIC_CLOCKWORK"ClockworkMod Recovery v"
 #define RECOVERY_MAGIC_SIZE_CLOCKWORK 23
-#define RECOVERY_MAGIC_NORMAL "Android system recovery <3e>"
-#define RECOVERY_MAGIC_SIZE_NORMAL 28
+#define RECOVERY_MAGIC_STOCK "Android system recovery "
+#define RECOVERY_MAGIC_SIZE_STOCK 24
 #define RECOVERY_MAGIC_COT "Cannibal Open Touch v"
 #define RECOVERY_MAGIC_SIZE_COT 21
 #define RECOVERY_MAGIC_TWRP "Starting TWRP \%s on \%s"
 #define RECOVERY_MAGIC_SIZE_TWRP 22
 #define RECOVERY_MAGIC_CWM "CWM-based Recovery v"
 #define RECOVERY_MAGIC_SIZE_CWM 20
-#define RECOVERY_MAGIC_TWRP_VERSION "Team Win Recovery Project v%s"
-#define RECOVERY_MAGIC_SIZE_TWRP_VERSION 29
+#define RECOVERY_MAGIC_TEAMWIN "Team Win Recovery Project v%s"
+#define RECOVERY_MAGIC_SIZE_TEAMWIN 29
 #define RECOVERY_MAGIC_4EXT "4EXT"
 #define RECOVERY_MAGIC_SIZE_4EXT 4
 #define RECOVERY_MAGIC_4EXT_VERSION "\0\"v"
@@ -58,6 +58,38 @@ struct cpio_newc_header {
 
 #define MAX_RAMDISK_SIZE (8192*1024)*4
 
+int get_recovery_version_number(ramdisk_image* image, char * version_number_offset){
+    
+    // check for a digit and a dot -- A bit of future proofing in case the version gets into double figures
+    if((isdigit(version_number_offset[0]) ||  version_number_offset[0]=='<')  && ( isdigit(version_number_offset[1]) || version_number_offset[1]=='.' )){
+		    
+	// do a sanity check on the version number length... if it is something silly i.e > 20 then we will disregard it
+	int version_len = strlen(version_number_offset);
+	D("version_len %d version_number_offset[%d]='%c'\n",version_len,version_len-1,version_number_offset[version_len-1]);
+	// remove unwanted chars from the end of the struing
+	if(version_number_offset[version_len-1]=='\"'){
+	    //D("Found a quote\n");
+	    version_len -=1 ; 
+	}
+	
+	if(version_len < 20 ){
+	    image->recovery_version = version_number_offset;
+	    image->recovery_version_size = version_len ;
+	    D("Recovery image recovery_name_offset=%p recovery_version=%s version_len=%d\n",image->recovery_version ,image->recovery_version,version_len);
+	    
+	}else{
+	    image->recovery_version_size = 0;
+	    image->recovery_version = NULL ; 
+	    D("Version Length Too Long recovery_name_offset=%p recovery_version=%s version_len=%d\n",image->recovery_version ,image->recovery_version,version_len);
+	}
+    }else{
+	D("Version Number not found at expected position %p\n",version_number_offset);
+	image->recovery_version = NULL ; 
+	image->recovery_version_size = 0;
+    }
+    return 0; 
+}
+
 // get_ramdisk_type - heuristically work out the type of ramdisk
 // the following checks are carried out
 // does a recovery binary exist. 
@@ -74,28 +106,99 @@ unsigned get_ramdisk_type(ramdisk_image* image){
 	if(!strlcmp(image->entries[i]->name_addr,RECOVERY_FILE_NAME)){
 	    
 	    image->type = RAMDISK_TYPE_RECOVERY ;
+	    image->recovery_brand = RECOVERY_BRAND_UNKNOWN ;
+	    image->recovery_version = NULL ;
 	    D("recovery image found at %d\n",i);
-	    unsigned char * recovery_name_offset = NULL; 
+	    char * recovery_name_offset = NULL; 
 	    if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_TWRP,RECOVERY_MAGIC_SIZE_TWRP))){
 		
+		
 		// Found A TWRP Recovery. Advanced our offset along as the next string should be the version number
+		// we need to advanced size +1 for twrp because the version should be the next string after the NULL Terminator
 		recovery_name_offset += (RECOVERY_MAGIC_SIZE_TWRP+1);
+		// set the recovery brand 
+		image->recovery_brand = RECOVERY_BRAND_TWRP ;
 		
-		// check for a digit and a dot -- A bit of future proofing in case the TWRP version gets into double figures
-		if(isdigit(recovery_name_offset[0]) && ( isdigit(recovery_name_offset[1]) || recovery_name_offset[1]=='.' )){
-		    image->recovery_brand = RECOVERY_BRAND_TWRP ;
-		    // do a sanity check on the version number length... if it is something silly i.e > 20 then we will disregard it
-		    int version_len = strlen(recovery_name_offset);
-		    if(version_len < 20 ){
-			image->recovery_version = recovery_name_offset;
-			   D("TWRP Recovery image recovery_name_offset=%p %d\n",image->recovery_version ,version_len);
-			
-		    }
-		    D("TWRP Recovery image recovery_name_offset=%s\n",recovery_name_offset);
-		    break ; 
-		}
+		// get the version number
+		get_recovery_version_number(image,recovery_name_offset);
 		
+		
+	    }else if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_TEAMWIN,RECOVERY_MAGIC_SIZE_TEAMWIN))){
+		
+		// Found An Older TWRP Recovery. Advanced our offset along as the end of this string should be the version number
+		recovery_name_offset += RECOVERY_MAGIC_SIZE_TEAMWIN;
+		// set the recovery brand to TWRP
+		image->recovery_brand = RECOVERY_BRAND_TWRP ;
+		
+		// get the version number
+		get_recovery_version_number(image,recovery_name_offset);
+		
+	    }else if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_CLOCKWORK,RECOVERY_MAGIC_SIZE_CLOCKWORK))){
+		D("Clockworkmod Recovery image recovery_name_offset=%s\n",recovery_name_offset);
+		
+		// Found An Official ClockworkMod Recovery. Advanced our offset along as the end of this string should be the version number
+		recovery_name_offset += RECOVERY_MAGIC_SIZE_CLOCKWORK;
+		
+		// set the recovery brand to Clockworkmod
+		image->recovery_brand = RECOVERY_BRAND_CLOCKWORK ;
+		
+		// get the version number
+		get_recovery_version_number(image,recovery_name_offset);
+		
+		
+		
+	    }else if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_COT,RECOVERY_MAGIC_SIZE_COT))){
+		D("COT Recovery image recovery_name_offset=%s\n",recovery_name_offset);
+		
+		// Found A COT ( Cannibal Open Touch ) Recovery. Advanced our offset along as the end of this string should be the version number
+		recovery_name_offset += RECOVERY_MAGIC_SIZE_COT;
+		
+		// set the recovery brand to COT
+		image->recovery_brand = RECOVERY_BRAND_COT ;
+		
+		// get the version number
+		get_recovery_version_number(image,recovery_name_offset);
+		
+	    }else if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_STOCK,RECOVERY_MAGIC_SIZE_STOCK))){
+		D("Stock Recovery image recovery_name_offset=%s\n",recovery_name_offset);
+		
+		// Found A Stock Recovery. Advanced our offset along as the end of this string should be the version number
+		recovery_name_offset += RECOVERY_MAGIC_SIZE_STOCK;
+		
+		// set the recovery brand to Stock
+		image->recovery_brand = RECOVERY_BRAND_STOCK ;
+		
+		// get the version number
+		get_recovery_version_number(image,recovery_name_offset);
 	    }
+	    else if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_CWM,RECOVERY_MAGIC_SIZE_CWM))){
+		D("CWM-based Recovery image recovery_name_offset=%s\n",recovery_name_offset);
+		
+		// Found A CWM-based Recovery. Advanced our offset along as the end of this string should be the version number
+		recovery_name_offset += RECOVERY_MAGIC_SIZE_CWM;
+		
+		// set the recovery brand to Stock
+		image->recovery_brand = RECOVERY_BRAND_CWM ;
+		
+		// get the version number
+		get_recovery_version_number(image,recovery_name_offset);
+	    }
+	    else if((recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_4EXT,RECOVERY_MAGIC_SIZE_4EXT))){
+		D("4EXT Recovery image recovery_name_offset=%s %p\n",recovery_name_offset,recovery_name_offset);
+		
+		// Found A 4EXT Recovery. look for the version number string
+		recovery_name_offset = find_in_memory(image->entries[i]->data_addr,image->entries[i]->data_size,RECOVERY_MAGIC_4EXT_VERSION,RECOVERY_MAGIC_SIZE_4EXT_VERSION);
+		if(recovery_name_offset) recovery_name_offset += RECOVERY_MAGIC_SIZE_4EXT_VERSION;
+		
+		D("4EXT Version offset recovery_name_offset=%s %p\n",recovery_name_offset,recovery_name_offset);
+		
+		// set the recovery brand to Stock
+		image->recovery_brand = RECOVERY_BRAND_4EXT ;
+		
+		// get the version number
+		get_recovery_version_number(image,recovery_name_offset);
+	    }
+	    break;
 	    
 	}
     }
@@ -532,7 +635,14 @@ int print_ramdisk_info(ramdisk_image* rimage){
     fprintf(stderr,"  image type        :%s\n",str_ramdisk_type(rimage->type));
     if(rimage->type == RAMDISK_TYPE_RECOVERY){
 	fprintf(stderr,"  recovery brand    :%s\n",str_recovery_brand(rimage->recovery_brand));
-	fprintf(stderr,"  recovery version  :%s\n",rimage->recovery_version);
+	if(rimage->recovery_version && rimage->recovery_brand != RECOVERY_BRAND_UNKNOWN){
+	    fprintf(stderr,"  recovery version  :%.*s",rimage->recovery_version_size,rimage->recovery_version);
+	    // Do we need a new line
+	    D("rimage->recovery_version_size=%d rimage->recovery_version[%d]='%d'\n",rimage->recovery_version_size,rimage->recovery_version_size,rimage->recovery_version[rimage->recovery_version_size-1]);
+	    if(rimage->recovery_version[rimage->recovery_version_size-1]!='\n'){
+		fprintf(stderr,"\n");
+	    }
+	}
     }
     
     fprintf(stderr,"  entry_count       :%u\n",rimage->entry_count);
@@ -557,7 +667,7 @@ char *str_recovery_brand(int ramdisk_brand){
     switch(ramdisk_brand){
 	case RECOVERY_BRAND_UNKNOWN: return "unknown"; 
 	case RECOVERY_BRAND_NONE: return "none";
-	case RECOVERY_BRAND_NORMAL: return "Android system recovery <3e>";
+	case RECOVERY_BRAND_STOCK: return "Android system recovery";
 	case RECOVERY_BRAND_CLOCKWORK: return "ClockworkMod Recovery";
 	case RECOVERY_BRAND_CWM: return "CWM-Based Recovery";
 	case RECOVERY_BRAND_COT: return "Cannibal Open Touch Recovery";

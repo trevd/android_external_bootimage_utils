@@ -17,7 +17,7 @@
 
 #define RECOVERY_BRAND_UNKNOWN -1
 #define RECOVERY_BRAND_NONE 0
-#define RECOVERY_BRAND_NORMAL 1
+#define RECOVERY_BRAND_STOCK 1
 #define RECOVERY_BRAND_CLOCKWORK 2
 #define RECOVERY_BRAND_CWM 3
 #define RECOVERY_BRAND_COT 4
@@ -60,6 +60,7 @@ struct ramdisk_image {
     int type;
     int recovery_brand;   
     unsigned char *recovery_version;
+    int recovery_version_size;
         
     unsigned entry_count;
 

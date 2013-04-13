@@ -86,7 +86,6 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
 	    free(rimage.start_addr);
 	}
     }
-    fprintf(stderr,"\n");
     return 0 ;
 }
 int info_file(info_action* action,global_action* gaction ){
