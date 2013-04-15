@@ -75,6 +75,16 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     image->size = uncompressed_kernel_size;
     image->version = find_in_memory(uncompressed_kernel_data,uncompressed_kernel_size,KERNEL_VERSION_STRING,KERNEL_VERSION_STRING_SIZE);
     
+    // find the first number string
+    image->version_number = image->version + KERNEL_VERSION_STRING_SIZE + 1 ;
+    unsigned char* first_space = strchr(image->version_number,32);
+    D("first_space : %p\n",first_space);
+    
+    D("image->version_number  : %s\n",image->version_number);
+    image->version_number_length = first_space - image->version_number;
+    D("image->version_number_length : %d\n",image->version_number_length);
+    
+    
     // find the config.gz if there is one
     image->config_addr = find_in_memory(uncompressed_kernel_data,uncompressed_kernel_size,KERNEL_IKCFG_ST,KERNEL_IKCFG_SIZE);
     if(image->config_addr){

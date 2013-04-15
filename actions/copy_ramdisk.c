@@ -11,14 +11,14 @@
 #include <program.h>
 #include <bootimage.h>
 
-typedef struct copy_kernel_action copy_kernel_action;
+typedef struct copy_ramdisk_action copy_ramdisk_action;
 
-struct copy_kernel_action{
+struct copy_ramdisk_action{
     char*	source ;
     char*	destination ;
     char*	output ;
 };
-int copy_kernel(copy_kernel_action* action){
+int copy_ramdisk(copy_ramdisk_action* action){
     
     
     boot_image bimage_source , bimage_dest;
@@ -62,12 +62,10 @@ int copy_kernel(copy_kernel_action* action){
     }
     
     // Tell 'em how it's going down
-    int version_length = kimage_dest.version_number_length > kimage_source.version_number_length ? kimage_dest.version_number_length : kimage_source.version_number_length ;
-    
-    fprintf(stderr," copying kernel from %s to %s\n\n",action->source,action->destination);
-    
-    fprintf(stderr," old kernel %-*.*s %u\n",version_length,kimage_dest.version_number_length,kimage_dest.version_number,bimage_dest.header->kernel_size);
-    fprintf(stderr," new kernel %-*.*s %u\n\n",version_length,kimage_source.version_number_length,kimage_source.version_number,bimage_source.header->kernel_size);
+    fprintf(stderr," replacing kernel in %s\n",action->destination);
+    print_kernel_info(&kimage_dest);
+    fprintf(stderr," with\n");
+    print_kernel_info(&kimage_source);        
         
     
    
@@ -96,9 +94,9 @@ fail_hard:
 
     
 }
-int process_copy_kernel_action(int argc,char ** argv,global_action* gaction){
+int process_copy_ramdisk_action(int argc,char ** argv,global_action* gaction){
     
-    copy_kernel_action action;
+    copy_ramdisk_action action;
     action.source 	= NULL 	;
     action.destination 	= NULL 	;
     action.output 	= NULL 	;

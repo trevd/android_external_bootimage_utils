@@ -15,6 +15,8 @@ struct kernel_image {
     unsigned char* ramdisk_addr ;
     unsigned char* config_addr ;
     unsigned char* version ;
+    unsigned char* version_number ;
+    int version_number_length ;
     
     unsigned compression_type;
     unsigned size;
