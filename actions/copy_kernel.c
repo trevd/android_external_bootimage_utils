@@ -74,6 +74,7 @@ int copy_kernel(copy_kernel_action* action){
     
     D("bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
     bimage_dest.header->kernel_size = bimage_source.header->kernel_size ;
+    bimage_dest.kernel_addr = bimage_source.ramdisk_addr;
     D("bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
     set_boot_image_padding(&bimage_dest);
     set_boot_image_content_hash(&bimage_dest);

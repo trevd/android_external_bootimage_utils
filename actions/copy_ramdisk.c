@@ -39,40 +39,38 @@ int copy_ramdisk(copy_ramdisk_action* action){
 	goto fail_hard;
     }
     
-    kernel_image kimage_source, kimage_dest ;
+    ramdisk_image rimage_source, rimage_dest ;
     errno = 0 ;
 
-    // check to see if kernels matchs 
-    if(bimage_source.header->kernel_size==bimage_dest.header->kernel_size){
-	fprintf(stderr," nothing to update, source and destination kernels are the same\n\n");
+    // check to see if ramdisks matchs 
+    if(bimage_source.header->ramdisk_size==bimage_dest.header->ramdisk_size){
+	fprintf(stderr," nothing to update, source and destination ramdisks are the same\n\n");
 	goto fail_hard;
 	
     }
-    // load the source kernel details 
-    return_value = load_kernel_image_from_memory(bimage_source.kernel_addr,bimage_source.header->kernel_size,&kimage_source);
+    // load the source ramdisk details 
+    return_value = load_ramdisk_image_from_archive_memory(bimage_source.ramdisk_addr,bimage_source.header->ramdisk_size,&rimage_source);
     if(errno){
-	fprintf(stderr," cannot get kernel information in \"%s\" as boot image - error %d - %s\n",action->source ,errno , strerror(errno));
+	fprintf(stderr," cannot get ramdisk information in \"%s\" as boot image - error %d - %s\n",action->source ,errno , strerror(errno));
 	goto fail_hard;
     }
-    // load the source kernel details 
-    return_value = load_kernel_image_from_memory(bimage_dest.kernel_addr,bimage_dest.header->kernel_size,&kimage_dest);
+    // load the source ramdisk details 
+    return_value = load_ramdisk_image_from_archive_memory(bimage_dest.ramdisk_addr,bimage_dest.header->ramdisk_size,&rimage_dest);
     if(errno){
-	fprintf(stderr," cannot get kernel information in \"%s\" as boot image - error %d - %s\n",action->destination ,errno , strerror(errno));
+	fprintf(stderr," cannot get ramdisk information in \"%s\" as boot image - error %d - %s\n",action->destination ,errno , strerror(errno));
 	goto fail_hard;
     }
     
-    // Tell 'em how it's going down
-    fprintf(stderr," replacing kernel in %s\n",action->destination);
-    print_kernel_info(&kimage_dest);
-    fprintf(stderr," with\n");
-    print_kernel_info(&kimage_source);        
+   fprintf(stderr," copying ramdisk from %s to %s\n\n",action->source,action->destination);
+    
+    fprintf(stderr," old ramdisk size %u\n",bimage_dest.header->ramdisk_size);
+    fprintf(stderr," new ramdisk size %u\n\n",bimage_source.header->ramdisk_size);    
         
-    
+   bimage_dest.ramdisk_addr = bimage_source.ramdisk_addr ;
    
     
-    D("bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
-    bimage_dest.header->kernel_size = bimage_source.header->kernel_size ;
-    D("bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
+    D("bimage_dest.header->ramdisk_size:%u\n",bimage_dest.header->ramdisk_size);
+    bimage_dest.header->ramdisk_size = bimage_source.header->ramdisk_size ;
     set_boot_image_padding(&bimage_dest);
     set_boot_image_content_hash(&bimage_dest);
     set_boot_image_offsets(&bimage_dest);
@@ -134,6 +132,6 @@ int process_copy_ramdisk_action(int argc,char ** argv,global_action* gaction){
 	    errno = EINVAL ;
 	    return EINVAL;
     }
-    copy_kernel(&action);
+    copy_ramdisk(&action);
     return 0;
 }

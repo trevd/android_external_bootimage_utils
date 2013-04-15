@@ -22,7 +22,7 @@ int get_action(int argc,char ** argv,global_action* gaction){
 		case ACTION_EXTRACT_HEADER:		break;	
 		case ACTION_SCAN:				process_scan_action(--argc,++argv,gaction);				break;				
 		case ACTION_COPY_KERNEL:		process_copy_kernel_action(--argc,++argv,gaction);		break;		
-		case ACTION_COPY_RAMDISK:		break;
+		case ACTION_COPY_RAMDISK:		process_copy_ramdisk_action(--argc,++argv,gaction);		break;
 		case ACTION_CREATE_BOOT_IMAGE:	process_create_action(--argc,++argv,gaction); 			break;
 		case ACTION_CREATE_RAMDISK:		process_create_ramdisk_action(--argc,++argv,gaction);	break;
 		case ACTION_CREATE_KERNEL:		break;
