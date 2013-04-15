@@ -25,10 +25,18 @@ void init_debug() {
 unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len){
 	
 	size_t begin=0;
+	unsigned char* uneedle = needle ;
+	 D("find_in_memory haystack=%p haystack_len=%u needle=%p needle_len=%u\n",haystack,haystack_len,needle,needle_len);
 	//fprintf(stderr,"Memory HS:%p HL:%u\n",haystack,	haystack_len);
+	D("haystack[0]='%x' needle[0]='%x'\n",haystack[0],uneedle[0]);
 	for(begin=0 ; begin < haystack_len; begin++){
-		if(haystack[begin]==needle[0]){
-			 if(!memcmp(needle,haystack+begin,needle_len)) return haystack+begin;
+		// make sure we are comparing apples with apples
+		if(haystack[begin]==uneedle[0]){
+			
+			 if(!memcmp(uneedle,haystack+begin,needle_len)){
+			     D("haystack[%d]='%x'\n",begin,haystack[begin]);
+			  return haystack+begin;
+		      }
 		}
 	}
 	//fprintf(stderr,"Memory Not Found\n");

@@ -5,6 +5,7 @@ src_files := bootimage.c \
 			kernel.c \
 			ramdisk.c\
 			utils.c \
+			minilzo.c \
 			../../../system/core/libmincrypt/sha.c 
 			
 ifeq ($(HOST_OS),windows)
@@ -26,7 +27,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz
+LOCAL_STATIC_LIBRARIES := libz libminilzo
 
 LOCAL_MODULE := libbootimage
  
@@ -39,15 +40,16 @@ include $(CLEAR_VARS)
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
 					system/core/mkbootimg \
 					system/core/include/mincrypt \
-					external/zlib 
+					external/zlib
+					 
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz
+LOCAL_STATIC_LIBRARIES := libz libminilzo
 
 LOCAL_MODULE := libbootimage
  
-include $(BUILD_HOST_SHARED_LIBRARY)
+#include $(BUILD_HOST_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
@@ -58,7 +60,7 @@ LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz
+LOCAL_STATIC_LIBRARIES := libz libminilzo
 
 LOCAL_MODULE := libbootimage
  
@@ -69,13 +71,18 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
+					$(LOCAL_PATH)/../minilzo \
+					$(LOCAL_PATH)/../minilzo/include/lzo \
+					$(LOCAL_PATH)/../minilzo/include \
 					system/core/mkbootimg \
 					system/core/include/mincrypt \
 					external/zlib 
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_SHARED_LIBRARIES := libz
+LOCAL_SHARED_LIBRARIES := libminilzo
+
+LOCAL_STATIC_LIBRARIES := libz
 
 LOCAL_MODULE := libbootimage
  

@@ -54,6 +54,7 @@ struct ramdisk_entry{
 
 struct ramdisk_image {
     
+    
     int compression_type;
     unsigned char* start_addr ;
     unsigned size;
@@ -72,6 +73,8 @@ int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* im
 
 int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image);
 
+
+int init_ramdisk_image(ramdisk_image* image);
 
 int load_ramdisk_image_from_cpio_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 

@@ -136,6 +136,7 @@ int info_file(info_action* action,global_action* gaction ){
     
     
     ramdisk_image rimage;
+    init_ramdisk_image(&rimage);
     return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
     
     if(!return_value){
@@ -157,6 +158,13 @@ int info_file(info_action* action,global_action* gaction ){
     
     return 0;
 }
+int print_info_action_help_usage(global_action* gaction){
+    fprintf(stderr," Usage: %s ",gaction->program_name);
+    if(!gaction->multicall){
+	fprintf(stderr," [i|info] ");
+    }
+    return 0;
+}
 int print_info_action_help(global_action* gaction){
     
     
@@ -169,11 +177,12 @@ int print_info_action_help(global_action* gaction){
     }
     fprintf(stderr,"- prints information for the specified boot image, kernel file or ramdisk\n\n");
     
-    fprintf(stderr," Usage: %s ",gaction->program_name);
-    if(!gaction->multicall){
-	fprintf(stderr," [i|info] ");
-		
-    }
+    print_info_action_help_usage(gaction);
+    
+    fprintf(stderr," <filename> [ < directory > ]\n\n");
+    
+    print_info_action_help_usage(gaction);
+    
     fprintf(stderr," <filename> [ <switches> ]\n\n");
     fprintf(stderr," filename: The file specified by <filename> must be one of the following types:\n");
     fprintf(stderr,"           Android Boot Image, Linux Kernel zImage, ASCII cpio archive,\n");

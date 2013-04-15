@@ -58,6 +58,21 @@ struct cpio_newc_header {
 
 #define MAX_RAMDISK_SIZE (8192*1024)*4
 
+int init_ramdisk_image(ramdisk_image* image){
+    
+    image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
+    image->start_addr = NULL ;
+    image->size = 0 ;
+    image->type = RAMDISK_TYPE_UNKNOWN;
+    image->recovery_brand = RECOVERY_BRAND_UNKNOWN;
+    image->recovery_version = RECOVERY_BRAND_UNKNOWN;
+    image->recovery_version_size = 0 ;
+        
+    image->entry_count = 0 ; 
+    image->entries = NULL ;
+    return 0;
+}
+
 int get_recovery_version_number(ramdisk_image* image, char * version_number_offset){
     
     // check for a digit and a dot -- A bit of future proofing in case the version gets into double figures
@@ -362,27 +377,62 @@ int load_ramdisk_image_from_cpio_memory(char* ramdisk_addr,unsigned ramdisk_size
     
     return 0;
 }
+
+// get_archive_compression_type_and_offset - search the memory from ramdisk_addr for known compression magic 
+// numbers. returns the offset to the start of the archive or NULL if no known archive is found 
+// image->compression_type is also updated
+int get_archive_compression_type_and_offset(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image){
+    
+    D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
+    unsigned char * archive_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
+    if(archive_magic_offset_p){
+	D("compression_type=GZIP\n");
+	image->compression_type = RAMDISK_COMPRESSION_GZIP ;
+	return archive_magic_offset_p;
+    }
+    
+    archive_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,LZOP_MAGIC, LZOP_MAGIC_SIZE);
+    if(archive_magic_offset_p){
+	D("compression_type=LZO\n");
+	image->compression_type = RAMDISK_COMPRESSION_LZO ;
+	return archive_magic_offset_p;
+    }
+    D("compression_type=NOT FOUND\n");
+    return NULL;
+}
+
 int load_ramdisk_image_from_archive_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
     D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
-  
+   
     errno = 0;
     // look for a gzip magic to make sure the ramdisk is the correct type
-    unsigned char * gzip_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
-    if(!gzip_magic_offset_p){
+    unsigned char * archive_magic_offset_p = get_archive_compression_type_and_offset(ramdisk_addr,ramdisk_size,image);
+    if(!archive_magic_offset_p){
 	errno = ENOEXEC ;
 	return ENOEXEC;
-	
-	
     }
-        
-    image->compression_type = RAMDISK_COMPRESSION_GZIP ;
+    
     
     unsigned char *uncompressed_ramdisk_data = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ;
+    unsigned uncompressed_ramdisk_size = 0;
+    switch(image->compression_type){
+	case RAMDISK_COMPRESSION_GZIP:
+	   uncompressed_ramdisk_size = uncompress_gzip_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+	   break ;
+	case RAMDISK_COMPRESSION_LZO:{
+	    
+	    return 0;
+	}
+	    //uncompressed_ramdisk_size = uncompress_lzo_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+	    //break ;
+	default:
+	    break;
+	
+    }
+     
     
-    
-    
-    unsigned uncompressed_ramdisk_size = uncompress_gzip_memory(gzip_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+     
    
     if(!uncompressed_ramdisk_size){
 	D("uncompressed_ramdisk_size error\n");
@@ -638,13 +688,13 @@ int print_ramdisk_info(ramdisk_image* rimage){
 	if(rimage->recovery_version && rimage->recovery_brand != RECOVERY_BRAND_UNKNOWN){
 	    fprintf(stderr,"  recovery version  :%.*s",rimage->recovery_version_size,rimage->recovery_version);
 	    // Do we need a new line
-	    D("rimage->recovery_version_size=%d rimage->recovery_version[%d]='%d'\n",rimage->recovery_version_size,rimage->recovery_version_size-1,rimage->recovery_version[rimage->recovery_version_size-1]);
 	    if(rimage->recovery_version[rimage->recovery_version_size-1]!='\n'){
 		fprintf(stderr,"\n");
 	    }
+	    D("rimage->recovery_version_size=%d rimage->recovery_version[%d]='%d'\n",
+		    rimage->recovery_version_size,rimage->recovery_version_size-1,rimage->recovery_version[rimage->recovery_version_size-1]);
 	}
     }
-    
     fprintf(stderr,"  entry_count       :%u\n",rimage->entry_count);
     
     

@@ -118,6 +118,7 @@ cleanup_bootimage:
 // over codesize ...... Ask me in 3 months time whether it was
 // a good idea.
 int process_create_action(int argc,char ** argv,global_action* gaction){
+    
     // Initialize the action struct with NULL values
     create_action action;
     action.bootimage_filename 	= NULL 	;

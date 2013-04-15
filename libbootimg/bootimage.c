@@ -25,7 +25,7 @@ static size_t calculate_padding(size_t size,unsigned page_size){
 // set_boot_image_defaults - when creating a new boot image
 int set_boot_image_defaults(boot_image* image){
 	
-	fprintf(stderr,"set_boot_image_defaults\n") ;
+	D("set_boot_image_defaults\n") ;
 	
 	image->header = calloc(1,sizeof(boot_img_hdr));
 	
@@ -126,10 +126,10 @@ int set_boot_image_content_hash(boot_image* image)
 {
 	SHA_CTX ctx;
     SHA_init(&ctx);
-    fprintf(stderr,"hash:kaddr %p ksize:%u\n",image->kernel_addr,image->header->kernel_size);
+    D("hash:kaddr %p ksize:%u\n",image->kernel_addr,image->header->kernel_size);
     SHA_update(&ctx, image->kernel_addr, image->header->kernel_size);
     SHA_update(&ctx, &image->header->kernel_size, sizeof(image->header->kernel_size));
-    fprintf(stderr,"hash:raddr %p rsize:%u\n",image->ramdisk_addr,image->header->ramdisk_size);
+    D("hash:raddr %p rsize:%u\n",image->ramdisk_addr,image->header->ramdisk_size);
     SHA_update(&ctx, image->ramdisk_addr, image->header->ramdisk_size);
     SHA_update(&ctx, &image->header->ramdisk_size, sizeof(image->header->ramdisk_size));
     SHA_update(&ctx, image->second_addr, image->header->second_size);
@@ -341,8 +341,8 @@ int write_boot_image(char *filename,boot_image* image){
 	if(!boot_image_file_fp)
 		return errno;
 	//memcpy(image->magic,"TWAT", 4);
-	fprintf(stderr,"writing boot image %s header_size %u\n",filename,image->header_size);
-	fprintf(stderr,"writing boot image %p\n",image->header);
+	D("writing boot image %s header_size %u\n",filename,image->header_size);
+	D("writing boot image %p\n",image->header);
 	//boot_img_hdr hdr;
 	
 	//memcpy(&hdr,image->header,sizeof(boot_img_hdr));
@@ -350,7 +350,7 @@ int write_boot_image(char *filename,boot_image* image){
 //	fprintf(stderr,"writing boot image %s header_size %u\n  ",filename,image->header->kernel_size);
 	
 	if(fwrite(image->header,1,image->header_size,boot_image_file_fp) !=  image->header_size) goto fail;
-	fprintf(stderr,"writing boot image %p\n",image->header);
+	D("writing boot image %p\n",image->header);
 	//fclose(boot_image_file_fp);
 	//return 0;
 	
@@ -379,7 +379,7 @@ int write_boot_image(char *filename,boot_image* image){
 	fclose(boot_image_file_fp);
 	return 0;
 fail:
-	fprintf(stderr,"write_boot_image failed %d\n",errno);
+	D("write_boot_image failed %d\n",errno);
 	fclose(boot_image_file_fp);
 	return errno;	
 }

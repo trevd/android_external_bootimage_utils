@@ -1,7 +1,35 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <utils.h>
 #include <zlib.h>
+#include <minilzo.h>
+#include <string.h>
+long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,unsigned uncompressed_max_size){
+    
+    
+    int lzo_result = lzo_init() ;
+    D("uncompress_lzo_memory %d\n",lzo_result);
+    if(lzo_result != LZO_E_OK){
+	errno = lzo_result;
+	return -1;
+    }
+    
+    lzo_uint uncompressed_size = uncompressed_max_size ;
+    
+    lzo_voidp workp ;
+    lzo_memset(workp,0,uncompressed_size);
+    D("lzo1x_decompress compressed_data=%p compressed_data_size=%u uncompressed_max_size=%d\n",compressed_data,compressed_data_size,uncompressed_max_size);
+    lzo_result = lzo1x_decompress( compressed_data ,  compressed_data_size,  uncompressed_data, &uncompressed_size,workp);
+    if(lzo_result != LZO_E_OK){
+	D("lzo_result=%d %s %u\n",lzo_result,strerror(lzo_result),uncompressed_size);
+	errno = lzo_result;
+	return -1;
+    }
+    D("uncompressed_size=%l\n",uncompressed_size);
+    return uncompressed_size;
+}
+
 long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
 {
 	
