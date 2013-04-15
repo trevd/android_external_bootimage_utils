@@ -203,52 +203,52 @@ int process_create_action(int argc,char ** argv,global_action* gaction){
 		}
 		fprintf(stderr,"action.second_filename:%s\n",action.second_filename);
 		
-	}else if (!ramdisk_set){
-    
-	    if(!strlcmp(argv[0],"--cpio") || !strlcmp(argv[0],"-C")) {
-		    
-		// use the default filename if this is the last token
-		// or if the next token is a switch
-		if(argc == 1 || (argv[1][0]=='-')){
-		    action.ramdisk_cpioname = "ramdisk.cpio";
-		}else{
-		    action.ramdisk_cpioname = argv[1];
-		    --argc; ++argv;
-		}
-		ramdisk_set = 1 ;
-		fprintf(stderr,"action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
+    }else if (!ramdisk_set){
+
+	if(!strlcmp(argv[0],"--cpio") || !strlcmp(argv[0],"-C")) {
 		
-	    }else if(!strlcmp(argv[0],"--directory") || !strlcmp(argv[0],"-d")) {
-		    
-		// use the default filename if this is the last token
-		// or if the next token is a switch
-		if(argc == 1 || (argv[1][0]=='-')){
-		    action.ramdisk_directory = "ramdisk";
-		}else{
-		    action.ramdisk_directory = argv[1];
-		    --argc; ++argv;
-		}
-		ramdisk_set = 1 ;
-		fprintf(stderr,"action.ramdisk_directory:%s\n",action.ramdisk_directory);
-		    
-	    }else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i")) {
-		    
-		// the ramdisk image as it is in the boot.img
-		// this is normally a cpio.gz file but we need to 
-		// check that later on.
+	    // use the default filename if this is the last token
+	    // or if the next token is a switch
+	    if(argc == 1 || (argv[1][0]=='-')){
+		action.ramdisk_cpioname = "ramdisk.cpio";
+	    }else{
+		action.ramdisk_cpioname = argv[1];
+		--argc; ++argv;
+	    }
+	    ramdisk_set = 1 ;
+	    fprintf(stderr,"action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
+	    
+	}else if(!strlcmp(argv[0],"--directory") || !strlcmp(argv[0],"-d")) {
 		
-		// use the default filename if this is the last token
-		// or if the next token is a switch
-		if(argc == 1 || (argv[1][0]=='-')){
-		    action.ramdisk_imagename = "ramdisk.img";
-		}else{
-		    action.ramdisk_imagename = argv[1];
-		    --argc; ++argv;
-		}
-		ramdisk_set = 1 ;
-		fprintf(stderr,"action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
+	    // use the default filename if this is the last token
+	    // or if the next token is a switch
+	    if(argc == 1 || (argv[1][0]=='-')){
+		action.ramdisk_directory = "ramdisk";
+	    }else{
+		action.ramdisk_directory = argv[1];
+		--argc; ++argv;
+	    }
+	    ramdisk_set = 1 ;
+	    fprintf(stderr,"action.ramdisk_directory:%s\n",action.ramdisk_directory);
 		
-	    } else if(!strlcmp(argv[0],"--files") || !strlcmp(argv[0],"-f")) {
+	}else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i")) {
+		
+	    // the ramdisk image as it is in the boot.img
+	    // this is normally a cpio.gz file but we need to 
+	    // check that later on.
+	    
+	    // use the default filename if this is the last token
+	    // or if the next token is a switch
+	    if(argc == 1 || (argv[1][0]=='-')){
+		action.ramdisk_imagename = "ramdisk.img";
+	    }else{
+		action.ramdisk_imagename = argv[1];
+		--argc; ++argv;
+	    }
+	    ramdisk_set = 1 ;
+	    fprintf(stderr,"action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
+	    
+	} else if(!strlcmp(argv[0],"--files") || !strlcmp(argv[0],"-f")) {
 		
 		// ramdisk files. This is a variable length char array
 		// containing a list of file to extract from the ramdisk

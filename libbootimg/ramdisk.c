@@ -739,6 +739,37 @@ char *str_ramdisk_compression(int compression_type){
     return "unknown";
     
 }
+int int_ramdisk_compression(char * compression_type){
+    
+    D("compression_type=%s\n",compression_type);
+    int compression_index = RAMDISK_COMPRESSION_UNKNOWN;
+    if(!compression_type){
+	return compression_index;
+    }
+    D("compression_type[0]=%c\n",compression_type[0]);
+    switch(compression_type[0]){
+	case 'g':	 compression_index = RAMDISK_COMPRESSION_GZIP;	break;		
+	case 'l':{
+	    D("compression_type[2]=%c\n",compression_type[2]);
+	    if(compression_type[1]=='z' && compression_type[2]){
+		if(compression_type[2]=='m')
+		    compression_index = RAMDISK_COMPRESSION_LZMA;
+		if(compression_type[2]=='o')
+		    compression_index = RAMDISK_COMPRESSION_LZO;
+		if(compression_type[2]=='4')
+		    compression_index = RAMDISK_COMPRESSION_LZ4;
+	    }
+	    break;	    
+	}    
+	case 'b':	 compression_index = RAMDISK_COMPRESSION_BZIP;	break;
+	case 'x':	 compression_index = RAMDISK_COMPRESSION_XZ;	break;
+	default: break;
+    }
+    D("compression_index=%d\n",compression_index);
+    return compression_index;
+    
+}
+
 int update_ramdisk_header(unsigned char*entry_addr){
     
     unsigned char filesize_string[8];

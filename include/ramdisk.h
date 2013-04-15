@@ -9,6 +9,8 @@
 #define RAMDISK_COMPRESSION_LZO 2
 #define RAMDISK_COMPRESSION_LZMA 3
 #define RAMDISK_COMPRESSION_BZIP 4
+#define RAMDISK_COMPRESSION_XZ 5
+#define RAMDISK_COMPRESSION_LZ4 6
 
 #define RAMDISK_TYPE_UNKNOWN -1
 #define RAMDISK_TYPE_NORMAL 1
@@ -87,6 +89,8 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 int print_ramdisk_info(ramdisk_image* rimage);
 
 char *str_ramdisk_compression(int compression_type);
+
+int int_ramdisk_compression(char * compression_type);
 
 char *str_ramdisk_type(int type);
 
