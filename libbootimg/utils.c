@@ -9,12 +9,9 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <utils.h>
-#include <linux/fs.h>
 
 
-#ifndef BOOT_IMAGE_SIZE_MAX
-#define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
-#endif
+
 int  utils_debug;
 
 void init_debug() {
@@ -22,6 +19,7 @@ void init_debug() {
 
 }
 
+// find_in_memory - This is essentially a lightweight implementation on memmem becuase memmem is not portable
 unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len){
 	
 	size_t begin=0;
@@ -97,34 +95,6 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 	
 		
 	
-}
-unsigned char* read_from_block_device(const char *name, unsigned* data_size){
-    
-    
-    D("read_from_block_device data %s\n",name);
-    unsigned char *data =NULL;
-    unsigned long numblocks=0;
-    unsigned size =0;
-    int fd = open(name, O_RDONLY);
-    if(!fd){
-	D("read_from_block_device data faile %d\n",numblocks);
-	return NULL ;
-    }
-    ioctl(fd, BLKGETSIZE64, &numblocks);
-    D("read_from_block_device data numblocks %d\n",numblocks);
-    if (numblocks) size =numblocks;
-    if(numblocks > (BOOT_IMAGE_SIZE_MAX)){
-	errno = EFBIG;
-	return NULL;
-    }
-    data = calloc(size,sizeof(char));
-    if ((*data_size = read(fd, data, size)) != size) goto oops;
-    close(fd);
-    return data;
-oops:
-    close(fd);
-    //printf("Number of blocks: %lu, this makes %.3f GB\n",numblocks, (double)numblocks * 512.0 / (1024 * 1024 * 1024));
-    return NULL;
 }
 
 unsigned char* read_regular_file_from_disk(const char *name, unsigned* data_size, unsigned size ){

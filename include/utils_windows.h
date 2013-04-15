@@ -11,5 +11,6 @@
 #define S_IWGRP 00020
 #define CONVERT_LINE_ENDINGS 1==1
 #define EOL WINDOWS_EOL
-
+#define BLKGETSIZE64 0
+#define ENODATA 61
 #endif

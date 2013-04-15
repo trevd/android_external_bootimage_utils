@@ -9,6 +9,10 @@
     #include <utils_linux.h>
 #endif
 
+#ifndef BOOT_IMAGE_SIZE_MAX
+#define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
+#endif
+
 // Debug Functionality. use the init_debug() function to turn on debug messages
 
 extern int   utils_debug;
@@ -28,8 +32,10 @@ void init_debug() ;
     unsigned strlcmp(const  char *s1, const  char *s2);
     unsigned strulcmp(const unsigned char *s1, const unsigned char *s2);
     int symlink_os(const unsigned char *source, unsigned size,const char *path);
+    int readlink_os(const char *path, char *buf, size_t bufsiz);
     unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size);
     unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,char* name);
     unsigned char* read_item_from_disk(const char *name, unsigned* data_size);
+    unsigned char* read_from_block_device(const char *name, unsigned* data_size);
 
 #endif

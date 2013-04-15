@@ -606,7 +606,7 @@ static unsigned char* append_file_contents_to_stream(struct stat s,char *filenam
 	    fclose(fp);
 	}else if(S_ISLNK(s.st_mode)){
 	    
-	    readlink(filename,output_header,PATH_MAX);
+	    readlink_os(filename,output_header,PATH_MAX);
 	    
 	    output_header+=s.st_size;
 	}

@@ -6,6 +6,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utils_windows.h>
+
+unsigned char* read_from_block_device(const char *name, unsigned* data_size){
+    return NULL;
+}
+
 void mkdir_and_parents(const unsigned char *path,unsigned mode)
 {
         char opath[256];
@@ -28,7 +33,10 @@ void mkdir_and_parents(const unsigned char *path,unsigned mode)
 }
 int symlink_os(const unsigned char *source, unsigned size,const char *path){
     
-	FILE *output_file_fp = fopen(path, "wb");
+	
+    //CreateSymbolicLink(nativeSymLinkName, nativeTargetName, 0);
+    
+    FILE *output_file_fp = fopen(path, "wb");
     if (output_file_fp != NULL)
     {
 		fwrite("LNK:",4,1,output_file_fp);
@@ -36,5 +44,8 @@ int symlink_os(const unsigned char *source, unsigned size,const char *path){
         fwrite("\0",1,1,output_file_fp);
         fclose(output_file_fp);
     }
+    return 0;
+}
+int readlink_os(const char *path, char *buf, size_t bufsiz){
     return 0;
 }

@@ -20,6 +20,7 @@ include $(CLEAR_VARS)
 
 
 
+
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
 					system/core/mkbootimg \
 					system/core/include/mincrypt \
@@ -37,6 +38,7 @@ include $(CLEAR_VARS)
 
 
 
+
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
 					system/core/mkbootimg \
 					system/core/include/mincrypt \
@@ -50,7 +52,7 @@ LOCAL_STATIC_LIBRARIES := libz libminilzo
 LOCAL_MODULE := libbootimage
  
 #include $(BUILD_HOST_SHARED_LIBRARY)
-
+ifneq ($(HOST_OS),windows)
 include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/../include \
@@ -65,8 +67,9 @@ LOCAL_STATIC_LIBRARIES := libz libminilzo
 LOCAL_MODULE := libbootimage
  
 include $(BUILD_STATIC_LIBRARY)
-
+endif
 #### Shared library
+ifneq ($(HOST_OS),windows)
 
 include $(CLEAR_VARS)
 
@@ -89,4 +92,4 @@ LOCAL_MODULE := libbootimage
 include $(BUILD_SHARED_LIBRARY)
 
 #include $(LOCAL_PATH)/test.mk
-
+endif
