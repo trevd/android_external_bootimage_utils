@@ -5,13 +5,14 @@
 #include <string.h>	
 #include <utils.h>
 #include <actions.h>
+#include <help.h>
 
 int get_action(int argc,char ** argv,global_action* gaction){
 
 	D("argv[0]=%s\n",argv[0]);
 	switch(gaction->process_action){				
-		case ACTION_INFO:				process_info_action(--argc,++argv,gaction);				break;				
-		case ACTION_UPDATE:				process_update_action(--argc,++argv,gaction);			break;			
+		case ACTION_INFO:				process_info_action( --argc, ++argv, gaction);				break;				
+		case ACTION_UPDATE:				process_update_action( --argc, ++argv, gaction);			break;			
 		case ACTION_UPDATE_KERNEL:		break;
 		case ACTION_UPDATE_RAMDISK:		break;
 		case ACTION_UPDATE_PROPERTIES:	break;
@@ -32,14 +33,23 @@ int get_action(int argc,char ** argv,global_action* gaction){
 	return  0 ;
 
 }
-
 int main(int argc,char ** argv){
 
 	
+	// initalize our global actions, these include
+	// program name,  the action to process and whether 
+	// the program was called using on of the many multicall 
+	// binary shortcut commands
+	
 	global_action gaction ;
 	init_global_action(argc,argv,&gaction);
+	
+	// only on argument past and that can only be
+	// the filename, print some nice help to guide
+	// the users on their way ;
 	if(argc==1){
 		
+		print_help_message(	&gaction ) ;	
 		return 0;
 	}
 	// look for global actions first as this effects output

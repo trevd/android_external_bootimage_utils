@@ -10,6 +10,7 @@
 #include <utils.h>
 #include <bootimage.h>
 #include <program.h>
+#include <help.h>
 
 typedef struct info_action info_action;
 
@@ -158,38 +159,7 @@ int info_file(info_action* action,global_action* gaction ){
     
     return 0;
 }
-int print_info_action_help_usage(global_action* gaction){
-    fprintf(stderr," Usage: %s ",gaction->program_name);
-    if(!gaction->multicall){
-	fprintf(stderr," [i|info] ");
-    }
-    return 0;
-}
-int print_info_action_help(global_action* gaction){
-    
-    
-    print_program_title();
-  
-    fprintf(stderr," %s ",gaction->program_name);
-    if(!gaction->multicall){
-	fprintf(stderr,"info ");
-		
-    }
-    fprintf(stderr,"- prints information for the specified boot image, kernel file or ramdisk\n\n");
-    
-    print_info_action_help_usage(gaction);
-    
-    fprintf(stderr," <filename> [ < directory > ]\n\n");
-    
-    print_info_action_help_usage(gaction);
-    
-    fprintf(stderr," <filename> [ <switches> ]\n\n");
-    fprintf(stderr," filename: The file specified by <filename> must be one of the following types:\n");
-    fprintf(stderr,"           Android Boot Image, Linux Kernel zImage, ASCII cpio archive,\n");
-    fprintf(stderr,"           Compressed gzipped cpio archive. block device\n\n");
-    
-    return 0; 
-}
+
 
 int process_info_action(int argc,char ** argv,global_action* gaction){
     
@@ -207,6 +177,7 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     action.ramdisk	= 0 	;
     action.second	= 0 	;
     action.additional	= 0 	;
+    
     // a variable for the file check
     FILE*file; 
        

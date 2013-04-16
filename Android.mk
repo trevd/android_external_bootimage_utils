@@ -6,6 +6,7 @@ LOCAL_PATH := $(MAIN_PATH)
 
 	
 src_files :=  main.c \
+			  help.c \
 			  program.c \
 			  actions/extract.c \
 			  actions/create.c \

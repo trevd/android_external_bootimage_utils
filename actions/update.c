@@ -34,7 +34,7 @@ struct update_action{
 	char * 		output_filename 	;
 	unsigned	ramdisk_filenames_count	;
 	char ** 	property_names 	;
-	unsigned property_count ;
+	unsigned 	property_count ;
 };
 
 int update_ramdisk_files(update_action* action,ramdisk_image* rimage){
@@ -302,7 +302,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		
 		fclose(file);
 		action.bootimage_filename = argv[0];
-		fprintf(stderr,"action.bootimage_filename:%s\n",action.bootimage_filename);
+		D("action.bootimage_filename:%s\n",action.bootimage_filename);
 		// set full extract if this is the last token 
 		// or if the next token is NOT a switch. 
 		
@@ -466,7 +466,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		// work out how much memory is required
 		int targc = 0 ; 
 		for(targc=0; targc < argc-1 ; targc++ ){
-		    fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
+		   D("argv[%d] %s\n",targc,argv[targc]);
 		    if(argv[targc+1] && argv[targc+1][0]=='-')
 		      break;
 		    else
