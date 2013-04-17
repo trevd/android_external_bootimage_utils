@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <utils.h>
 #include <zlib.h>
-#include <minilzo.h>
 #include <string.h>
 long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,unsigned uncompressed_max_size){
 
@@ -11,11 +10,12 @@ long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_d
 }
 long compress_lzo_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size){
     
-    lzo_bytep wrkmem = (lzo_bytep) calloc(LZO1X_1_MEM_COMPRESS,sizeof(char));
+    /*lzo_bytep wrkmem = (lzo_bytep) calloc(LZO1X_1_MEM_COMPRESS,sizeof(char));
     long compressed_len = 0;
     lzo1x_1_compress(uncompressed_data,uncompressed_data_size,compressed_data,&compressed_len,wrkmem);
     free(wrkmem);
-    return compressed_len;
+    return compressed_len;*/
+    return 0;
 }
 long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
 {
