@@ -3,8 +3,6 @@
 
 #include <program.h>
 
-#define PROGRAM_TITLE "Android
-
 #define PROGRAM_TITLE "Android Boot Image Utilities"
 #define PROGRAM_VERSION "x.xx Alpha Release"
 
