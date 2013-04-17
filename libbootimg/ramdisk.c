@@ -460,7 +460,7 @@ int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_n
     }
     
     unsigned i = 0;
-    fprintf(stderr,"ramdisk_entry_count %u\n", image->entry_count);
+    D("ramdisk_entry_count %u\n", image->entry_count);
     for(i = 0 ; i < image->entry_count ; i++){
 	int is_dir = S_ISDIR(image->entries[i]->mode);
 	//fprintf(stderr,"%u:  %s %u %d\n", i,image->entries[i]->name_addr,image->entries[i]->mode,is_dir);

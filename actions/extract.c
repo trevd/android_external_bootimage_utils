@@ -14,6 +14,7 @@
 
 // internal program headers
 #include <actions.h>
+#include <program.h>
 
 #define DEFAULT_BOOTIMAGE_NAME "boot"
 
@@ -21,84 +22,151 @@ typedef struct extract_action extract_action;
 
 struct extract_action{
 	
-	char *		filename	;
-	char *  	header_filename 	;
-	char *  	kernel_filename 	;
-	char ** 	ramdisk_filenames 	;
-	char *  	ramdisk_cpioname 	;
-	char *  	ramdisk_imagename 	;
-	unsigned char * ramdisk_directory 	;
-	char *		second_filename		;
-	unsigned char * output_directory 	;
-	unsigned	ramdisk_filenames_count	;
+	char *		filename			;
+	char *  	header_filename 		;
+	char *  	kernel_filename 		;
+	char ** 	ramdisk_filenames 		;
+	char *  	ramdisk_cpioname 		;
+	char *  	ramdisk_imagename 		;
+	unsigned char * ramdisk_directory 		;
+	char *		second_filename			;
+	unsigned char * output_directory 		;
+	unsigned	ramdisk_filenames_count		;
+	char* 	current_working_directory	;
 };
 
-int extract_ramdisk(extract_action* action,ramdisk_image* rimage){
+int extract_ramdisk_file(extract_action* action, global_action* gaction, ramdisk_image* rimage){
     
-    fprintf(stderr,"extract_ramdisk %d\n",rimage->size);
-    if(action->ramdisk_cpioname){
-	   
-	if(write_item_to_disk(rimage->start_addr,rimage->size,33188,action->ramdisk_cpioname))
-		fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_cpioname,errno,strerror(errno));
-	    
-	}
-	if(action->ramdisk_directory)
-	    save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory);
+    // extract a single file from the ramdisk 
+    int entry_index = 0 ; int filename_index = 0 ; 
+    
+    // search the ramdisk
+    for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
 	
-	// extract a single file from the ramdisk 
-	int entry_index = 0 ; int filename_index = 0 ; 
-	for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
-	    for (entry_index = 0 ; entry_index < rimage->entry_count ; entry_index ++){
-		if(!strlcmp(rimage->entries[entry_index]->name_addr,action->ramdisk_filenames[filename_index])){
-		    fprintf(stderr,"%s\n",rimage->entries[entry_index]->name_addr);
-		    //FILE* ramdiskfile_fp = fopen(action->ramdisk_filenames[filename_index],"w+b");
-		    if(write_item_to_disk_extended(rimage->entries[entry_index]->data_addr,rimage->entries[entry_index]->data_size,
-			rimage->entries[entry_index]->mode,action->ramdisk_filenames[filename_index],rimage->entries[entry_index]->name_size)){
-			
-			fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
-		    }
-		    break;
+	for (entry_index = 0 ; entry_index < rimage->entry_count ; entry_index ++){
+	    
+	    if(!strlcmp(rimage->entries[entry_index]->name_addr,action->ramdisk_filenames[filename_index])){
+		
+		D("\s%s\n",rimage->entries[entry_index]->name_addr);
+		//FILE* ramdiskfile_fp = fopen(action->ramdisk_filenames[filename_index],"w+b");
+		if(write_item_to_disk_extended(rimage->entries[entry_index]->data_addr,rimage->entries[entry_index]->data_size,
+		    rimage->entries[entry_index]->mode,action->ramdisk_filenames[filename_index],rimage->entries[entry_index]->name_size)){
+		    
+		    fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
 		}
+		break;
 	    }
 	}
-	
+    }
+    return 0;
+}
+/* extract_ramdisk_image - expects rimage to be a prointer to the start of a cpio archive*/
+int extract_ramdisk_image(extract_action* action, global_action* gaction,ramdisk_image* rimage){
+    
+    D("rimage_size %d\n",rimage->size);
+    
+    // save the compress cpio file to disk
+    if(action->ramdisk_cpioname){
+	   
+	if(write_item_to_disk(rimage->start_addr,rimage->size,33188,action->ramdisk_cpioname)){
+	    fprintf(stderr,"error writing cpio archive%s %d %s\n",action->ramdisk_cpioname,errno,strerror(errno));
+	}else{
+	    fprintf(stderr," cpio archive extracted to \"%s\"\n",action->ramdisk_cpioname);
+	}
+	//fprintf(stderr,"\n");
+	errno = 0;
+	    
+    }
+    
+    // extract and save the cpio file contents to disc  
+    if(action->ramdisk_directory){
+	if(save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory)){
+	 fprintf(stderr," error unpacking cpio archive to %s %d %s\n",action->ramdisk_directory,errno,strerror(errno));
+	}else{
+	    fprintf(stderr," cpio archive unpacked to \"%s\"\n",action->ramdisk_directory);
+	}
+	//fprintf(stderr,"\n");
+	errno = 0;
+    }
     
     return 0 ; 
 }
 
-int extract_bootimage(extract_action* action,boot_image* bimage){
+int extract_bootimage(extract_action* action, global_action* gaction,boot_image* bimage){
     
+    errno = 0;
     int return_value=0;
-    if(action->header_filename)
-	write_boot_image_header_to_disk(action->header_filename,bimage);
-	
+    
+    print_program_title();
+    
+    // Write the header contents
+    fprintf(stderr," Extracting boot image components from \"%s\"\n",action->filename);
+    
+    errno = 0;
+    if(action->header_filename){
+	fprintf(stderr," Header");
+	if(bimage->header_size != sizeof(boot_img_hdr)){
+	    errno = EINVAL ; 
+	    fprintf(stderr," error boot image header is corrupt\n");
+	}
+	if(write_boot_image_header_to_disk(action->header_filename,bimage)){
+	    fprintf(stderr," error writing %s %d %s\n",action->header_filename,errno,strerror(errno));
+	}else{
+	    fprintf(stderr," extracted to \"%s\"\n",action->header_filename);
+	}
+	//fprintf(stderr,"\n");
+	errno = 0;
+    }
+     
+    // Write the kernel file to disk
     if(action->kernel_filename){
-	if(write_item_to_disk(bimage->kernel_addr,bimage->header->kernel_size,33188,action->kernel_filename))
-	    fprintf(stderr,"error writing %s %d %s\n",action->kernel_filename,errno,strerror(errno));
+	fprintf(stderr," Kernel");
+	if(write_item_to_disk(bimage->kernel_addr,bimage->header->kernel_size,33188,action->kernel_filename)){
+	    fprintf(stderr," error writing %s %d %s\n",action->kernel_filename,errno,strerror(errno));
+	}else{
+	    fprintf(stderr," extracted to \"%s\"\n",action->kernel_filename);
+	}
+	//fprintf(stderr,"\n");
+	errno = 0;
     }
     
+    // Write the second file to disk
     if(action->second_filename && bimage->header->second_size > 0){
-	if(write_item_to_disk(bimage->second_addr,bimage->header->second_size,33188,action->second_filename))
-		fprintf(stderr,"error writing %s %d %s\n",action->second_filename,errno,strerror(errno));
+	fprintf(stderr," Second");
+	if(write_item_to_disk(bimage->second_addr,bimage->header->second_size,33188,action->second_filename)){
+		fprintf(stderr," error writing %s %d %s\n",action->second_filename,errno,strerror(errno));
+	}else{
+	    fprintf(stderr," extracted to \"%s\"\n",action->second_filename);
+	}
+	//fprintf(stderr,"\n");
+	errno = 0;
     }
     
+    // Write the compressed ramdisk to disk
     if(action->ramdisk_imagename){
-	if(write_item_to_disk(bimage->ramdisk_addr,bimage->header->ramdisk_size,33188,action->ramdisk_imagename))
-	    fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_imagename,errno,strerror(errno));
+	fprintf(stderr," Ramdisk");
+	if(write_item_to_disk(bimage->ramdisk_addr,bimage->header->ramdisk_size,33188,action->ramdisk_imagename)){
+	    fprintf(stderr, "error writing archive %s %d %s\n",action->ramdisk_imagename,errno,strerror(errno));
+	}else{
+	    fprintf(stderr," archive extracted to \"%s\"\n",action->ramdisk_imagename);
+	}
+	//fprintf(stderr,"\n");
+	errno = 0;
     }
     
+    // check to see if we need to do any additional extraction on
+    // the compressed ramdisk image
     if(action->ramdisk_cpioname || action->ramdisk_directory || action->ramdisk_filenames_count > 0){
 	
 	ramdisk_image rimage; 
 	return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
-	//fprintf(stderr,"load_ramdisk_image function returns %d %s\n",return_value,strerror(return_value));
 	if(return_value != 0){
 	    if(rimage.start_addr != NULL  ) {
 		free(rimage.start_addr);
 	    }
 	    return return_value;
 	}
-	extract_ramdisk(action,&rimage);
+	extract_ramdisk_image(action,gaction,&rimage);
 	free(rimage.start_addr);
     }
     return 0;
@@ -106,25 +174,31 @@ int extract_bootimage(extract_action* action,boot_image* bimage){
 }
 /* extract_file - determines the file type we are dealing with and branches
 		  accordingly */
-int extract_file(extract_action* action){
+int extract_file(extract_action* action, global_action* gaction){
 
-    char* current_working_directory = NULL; 
+    
     int return_value=0;
-    unsigned action_size;     
-    getcwd(current_working_directory,PATH_MAX);
+    unsigned action_size=0;     
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
-    
+    if(!action_data && errno){
+	//  file too large error. no point in contining
+	print_program_title();
+	fprintf(stderr," Cannot process \"%s\" - error : %d %s\n\n",action->filename,errno,strerror(errno));
+	return 0;    
+    }
+
     if(action->output_directory){
-	fprintf(stderr,"action->output_directory:%s\n",action->output_directory);
+	D("action->output_directory:%s\n",action->output_directory);
 	mkdir_and_parents(action->output_directory,0755);
 	chdir((char*)action->output_directory);
     }
     
     boot_image bimage;
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
-	return_value = extract_bootimage(action, &bimage);
+	return_value = extract_bootimage(action, gaction,&bimage);
 	free(bimage.start_addr); 
+	fprintf(stderr,"\n");
 	return return_value;   
     
     }else{
@@ -135,14 +209,18 @@ int extract_file(extract_action* action){
     return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
     
     if(!return_value){
-	fprintf(stderr,"load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
-	return_value = extract_ramdisk(action, &rimage);
+	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
+	return_value = extract_ramdisk_image(action,gaction, &rimage);
+	fprintf(stderr,"\n");
 	free(rimage.start_addr); 
 	return return_value;
     }
     
-     if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
-	return_value = extract_ramdisk(action, &rimage);
+    // The target file was a cpio file. we can only step down to
+    if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
+	D("cpio file rimage.entry_count=%d\n",rimage.entry_count);
+	return_value = extract_ramdisk_image(action,gaction, &rimage);
+	fprintf(stderr,"\n");
 	free(rimage.start_addr); 
 	return return_value;
     }
@@ -168,7 +246,11 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
     action.second_filename  	= NULL 	;
     action.output_directory  	= NULL 	;
     action.ramdisk_filenames_count	= 0	;
-
+    action.current_working_directory = calloc(PATH_MAX,sizeof(char)); 
+    
+    getcwd(action.current_working_directory,PATH_MAX);
+    D("current_working_directory:%s\n",action.current_working_directory);
+    
     FILE*file;
       
     while(argc > 0){
@@ -178,20 +260,22 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 		
 		fclose(file);
 		action.filename = argv[0];
-		fprintf(stderr,"action.filename:%s\n",action.filename);
+		D("action.filename:%s\n",action.filename);
 		// set full extract if this is the last token 
 		// or if the next token is NOT a switch. 
 		
 		if(argc == 1 || ( argv[1][0]=='-' && argv[1][1]=='o') ||argv[1][0]!='-'){ 
-		    fprintf(stderr,"extract all\n");
-		    action.header_filename 	= "header";
-		    action.kernel_filename 	= "kernel";
-		    action.ramdisk_cpioname 	= "ramdisk.cpio";
-		    action.ramdisk_imagename 	= "ramdisk.img";
-		    action.ramdisk_directory 	= "ramdisk";
-		    action.second_filename 	= "second";
-		    // do we have an impiled output directory
-		    if (argv[1] && argv[1][0]!='-') action.output_directory = argv[1];
+		    D("extract all\n");
+		    action.header_filename 	= (char*)"header";
+		    action.kernel_filename 	= (char*)"kernel";
+		    action.ramdisk_cpioname 	= (char*)"ramdisk.cpio";
+		    action.ramdisk_imagename 	= (char*)"ramdisk.img";
+		    action.ramdisk_directory 	= (char*)"ramdisk";
+		    action.second_filename 	= (char*)"second";
+		    // do we have an impiled, output directory
+		    if (argv[1] && argv[1][0]!='-') {
+			action.output_directory = argv[1];
+		    }
 
 		}
 		
@@ -335,7 +419,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 	    return EINVAL;
     }
     
-    extract_file(&action);
+    extract_file(&action,gaction);
        
     return 0;
 }

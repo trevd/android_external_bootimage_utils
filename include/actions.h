@@ -34,6 +34,7 @@ struct global_action{
 	int 	verbose ;
 	int 	multicall ;
 	int		process_action;
+	int		current_working_directory;
 };
 
 int init_global_action(int argc,char ** argv,global_action* action);

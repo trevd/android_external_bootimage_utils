@@ -32,10 +32,6 @@ int print_info_action_help(global_action* gaction){
     
     print_action_help_usage(gaction,'i',"info");
     
-    fprintf(stderr," <filename> [ < directory > ]\n\n");
-    
-    print_action_help_usage(gaction,'i',"info");
-    
     fprintf(stderr," <filename> [ <switches> ]\n\n");
     fprintf(stderr," filename: The file specified by <filename> must be one of the following types:\n");
     fprintf(stderr,"           Android Boot Image, Linux Kernel zImage, ASCII cpio archive,\n");
@@ -53,9 +49,25 @@ int print_info_action_help(global_action* gaction){
 
 int print_standard_help(global_action* gaction){
 	
-	print_program_title();
-	fprintf(stderr," Usage: %s <action> <filename> [ <switches> ]\n\n",gaction->program_name);
+	print_program_title_and_description();
 	
+	fprintf(stderr," Usage: %s <action> [ ... ]\n\n",gaction->program_name);
+	fprintf(stderr," actions:\n\n");
+	fprintf(stderr," install             install actions as a standalone commands\n\n");
+	
+	fprintf(stderr," i, info             prints detailed information for boot images and related components\n");
+	fprintf(stderr," x, extract          extract the components contained in boot images, ramdisks or kernels\n\n");
+		
+	fprintf(stderr," u, update                      update the components contained in boot images, ramdisks or kernels\n");
+	fprintf(stderr," R, update-ramdisk              update the contents contained in boot images, ramdisks or kernels\n");
+	fprintf(stderr," R, update-ramdisk-cpio         update the contents contained in boot images, ramdisks or kernels\n");
+	fprintf(stderr," R, update-ramdisk-archive      update the contents contained in boot images, ramdisks or kernels\n");
+	
+	fprintf(stderr," s, scan             extract the components contained in boot images, ramdisks or kernels\n");
+	
+	fprintf(stderr," c, create           creates an android boot image\n");
+	fprintf(stderr," r, create-ramdisk   extract the components contained in boot images, ramdisks or kernels\n");
+	fprintf(stderr,"\n");
 	return 0;
 	
 }

@@ -101,7 +101,6 @@ int info_file(info_action* action,global_action* gaction ){
     
     char* action_data = read_item_from_disk(action->filename , &action_size);
     if(!action_data && errno){
-	
 	    //  file too large error. no point in contining
 	    print_program_title();
 	    fprintf(stderr," Cannot process \"%s\" - error : %d %s\n\n",action->filename,errno,strerror(errno));

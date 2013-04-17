@@ -41,6 +41,7 @@ oops:
 
 void mkdir_and_parents(const unsigned char *path,unsigned mode)
 {
+        errno;
         char opath[256];
         char *p;
         size_t len;

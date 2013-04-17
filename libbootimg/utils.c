@@ -52,8 +52,8 @@ unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,cha
 	
 	errno = 0 ;
 	if(!name){
-		errno = EINVAL ;
-		return errno;
+	    errno = EINVAL ;
+	    return errno;
 	}
 	return write_item_to_disk_extended(data,data_size,mode,name,strlen(name));
 }
@@ -64,15 +64,15 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 	
 	errno = 0; 
 	
-	//fprintf(stderr,"mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
-	//fprintf(stderr,"is dir %s\n",name);
+	D("mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
+	D("is dir %s\n",name);
 	if(S_ISDIR(mode)){
 	    
 		mkdir_and_parents(name,mode);
 	}else{
 
 	    char * directory_seperator = strrchr(name,'/');
-	    //fprintf(stderr,"directory_seperator %p\n",directory_seperator);
+	    D("directory_seperator %p\n",directory_seperator);
 	    if(directory_seperator){
 		    // a cheeky bit of string manipulation to create a directory
 		    (*directory_seperator) ='\0';
@@ -92,15 +92,12 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 			    
 	}
 	return errno;
-	
-		
-	
 }
 
 unsigned char* read_regular_file_from_disk(const char *name, unsigned* data_size, unsigned size ){
     
     unsigned char *data =NULL;
-     D("name=%s data_size=%u size=%u\n",name,*data_size,size);    
+    D("name=%s data_size=%u size=%u\n",name,*data_size,size);    
 	
     data = 0;
     errno = 0;

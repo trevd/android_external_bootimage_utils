@@ -23,7 +23,7 @@ typedef struct update_action update_action;
 
 struct update_action{
 	
-	char *		bootimage_filename	;
+	char *		filename	;
 	char *  	header_filename 	;
 	char *  	kernel_filename 	;
 	char ** 	ramdisk_filenames 	;
@@ -64,22 +64,29 @@ int update_ramdisk_files(update_action* action,ramdisk_image* rimage){
     
     return 0 ; 
 }
+int update_ramdisk_cpio(update_action* action,global_action* gaction,kernel_image* kimage){
+    
+    return 0;
 
-int update_bootimage(update_action* action){
+}
+int update_ramdisk_archive(update_action* action,global_action* gaction,kernel_image* kimage){
+    
+    return 0;
+
+}
+int update_kernel_image(update_action* action,global_action* gaction,kernel_image* kimage){
+    
+    return 0;
+
+}
+int update_boot_image(update_action* action,global_action* gaction,boot_image* bimage){
     
     errno = 0 ;
-    boot_image* bimage = calloc(1,sizeof(boot_image));
-    
+   
     char* current_working_directory = NULL; 
     getcwd(current_working_directory,PATH_MAX);
-    int return_value = load_boot_image_from_file(action->bootimage_filename,bimage);
 
-    fprintf(stderr,"load_boot_image_from_file:%d\n",return_value); 
-    if(return_value != 0){
-        if(bimage->start_addr != NULL  ) free(bimage->start_addr);
-        return return_value;
-    }
-    
+        
     if(action->kernel_filename){
 	fprintf(stderr,"doing action->kernel_filename\n");
 	fprintf(stderr,"bimage.header->kernel_size:%u\n",bimage->header->kernel_size);
@@ -90,7 +97,8 @@ int update_bootimage(update_action* action){
     set_boot_image_padding(bimage);
     set_boot_image_content_hash(bimage);
     set_boot_image_offsets(bimage);
-    fprintf(stderr,"writing action->output_filename %s\n",action->output_filename);
+    
+    D("writing action->output_filename %s\n",action->output_filename);
     write_boot_image(action->output_filename,bimage);
     
     free(bimage->start_addr) ;
@@ -275,12 +283,87 @@ cleanup_bootimage:
     
     
 }*/
+
+
+int update_file(update_action* action,global_action* gaction ){
+
+   
+    char* current_working_directory = NULL; 
+    errno = 0 ; 
+    int saved_error = 0 ;
+    int return_value=0;
+    unsigned action_size = 0;     
+    getcwd(current_working_directory,PATH_MAX);
+    
+    char* action_data = read_item_from_disk(action->filename , &action_size);
+    if(!action_data && errno){
+	
+	    //  file too large error. no point in contining
+	    print_program_title();
+	    fprintf(stderr," Cannot process \"%s\" - error : %d %s\n\n",action->filename,errno,strerror(errno));
+	    return 0;    
+	}
+
+    
+    D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
+    boot_image bimage;
+    if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
+	D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
+	return_value = update_boot_image(action, gaction,&bimage);
+	D("update_boot_image returned %d\n",return_value);
+	if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+	return return_value;   
+    
+    }else{
+	if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+	
+	
+    }
+    
+
+    kernel_image kimage;
+    errno = 0 ; 
+    if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
+	D("load_kernel_image_from_memory returns:%d\n", return_value); 
+	
+	return_value = update_kernel_image(&kimage,action,1);
+	if(kimage.start_addr != NULL  )  free(kimage.start_addr);
+        return return_value;
+    }
+    
+    
+    ramdisk_image rimage;
+    init_ramdisk_image(&rimage);
+    return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
+    
+    if(!return_value){
+	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
+	return_value = update_ramdisk_archive(&rimage,action,1);
+	free(rimage.start_addr); 
+	return return_value;
+    }
+    
+     if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
+	return_value = update_ramdisk_cpio(&rimage,action,1);
+	free(rimage.start_addr); 
+	return return_value;
+    }
+    
+    
+    print_program_title();
+    fprintf(stderr," Cannot process \"%s\" - file type not a recognized\n\n",action->filename);    
+    
+    return 0;
+}
+
+
+
 int process_update_action(int argc,char ** argv,global_action* gaction){
 
 	
     // Initialize the action struct with NULL values
     update_action action;
-    action.bootimage_filename 	= NULL 	;
+    action.filename 	= NULL 	;
     action.header_filename  	= NULL 	;
     action.kernel_filename  	= NULL 	;
     action.ramdisk_filenames  	= NULL 	;
@@ -298,16 +381,16 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
     while(argc > 0){
 	    
 	// check for a valid file name
-	if(!action.bootimage_filename && (file=fopen(argv[0],"r+b"))){
+	if(!action.filename && (file=fopen(argv[0],"r+b"))){
 		
 		fclose(file);
-		action.bootimage_filename = argv[0];
-		D("action.bootimage_filename:%s\n",action.bootimage_filename);
+		action.filename = argv[0];
+		D("action.bootimage_filename:%s\n",action.filename);
 		// set full extract if this is the last token 
 		// or if the next token is NOT a switch. 
 		
 		if(argc == 1 || ( argv[1][0]=='-' && argv[1][1]=='o') ||argv[1][0]!='-'){ 
-		    fprintf(stderr,"extract all\n");
+		    D("extract all\n");
 		    action.header_filename 	= "header";
 		    action.kernel_filename 	= "kernel";
 		    action.ramdisk_cpioname 	= "ramdisk.cpio";
@@ -488,18 +571,18 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
         argc--; argv++ ;
     }
     // we must have at least a boot image to process
-    if(!action.bootimage_filename){
-	    fprintf(stderr,"no boot image:%s\n",action.bootimage_filename);
+    if(!action.filename){
+	    fprintf(stderr,"no boot image:%s\n",action.filename);
 	    return EINVAL;
     }
     // output_file not set. use the bootimage filename
     if(!action.output_filename){
-	fprintf(stderr,"no output set using bootimage_filename:%s\n",action.bootimage_filename);
-	action.output_filename = action.bootimage_filename;
+	D("no output set using bootimage_filename:%s\n",action.filename);
+	action.output_filename = action.filename;
     }
 	
     
-    update_bootimage(&action);
+    update_file(&action,gaction);
        
     return 0;
 }
