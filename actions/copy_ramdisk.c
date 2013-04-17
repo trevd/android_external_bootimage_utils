@@ -51,13 +51,13 @@ int copy_ramdisk(copy_ramdisk_action* action){
     // load the source ramdisk details 
     return_value = load_ramdisk_image_from_archive_memory(bimage_source.ramdisk_addr,bimage_source.header->ramdisk_size,&rimage_source);
     if(errno){
-	fprintf(stderr," cannot get ramdisk information in \"%s\" as boot image - error %d - %s\n",action->source ,errno , strerror(errno));
+	fprintf(stderr," cannot get ramdisk information in \"%s\" - error %d - %s\n",action->source ,errno , strerror(errno));
 	goto fail_hard;
     }
     // load the source ramdisk details 
     return_value = load_ramdisk_image_from_archive_memory(bimage_dest.ramdisk_addr,bimage_dest.header->ramdisk_size,&rimage_dest);
     if(errno){
-	fprintf(stderr," cannot get ramdisk information in \"%s\" as boot image - error %d - %s\n",action->destination ,errno , strerror(errno));
+	fprintf(stderr," cannot get ramdisk information in \"%s\" - error %d - %s\n",action->destination ,errno , strerror(errno));
 	goto fail_hard;
     }
     

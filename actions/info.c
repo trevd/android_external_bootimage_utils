@@ -53,7 +53,6 @@ int info_ramdisk(ramdisk_image* rimage,info_action* action,int print_title){
 
 int info_boot_image(info_action* action,global_action* gaction ,boot_image* bimage){
        
-    D("\n");
     
     print_program_title();
     
@@ -153,8 +152,7 @@ int info_file(info_action* action,global_action* gaction ){
     }
     
     
-    print_program_title();
-    fprintf(stderr," Cannot process \"%s\" - file type not a recognized\n\n",action->filename);    
+    print_program_error_file_type_not_recognized(action->filename); 
     
     return 0;
 }
@@ -250,14 +248,9 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
 	argc--; argv++ ;
     }
     // we must have at least a boot image to process
-    if(!action.filename){
-	    print_program_title();
-	    if(!possible_filename){ 
-		fprintf(stderr," no file specified!\n\n");
-	    }else
-		fprintf(stderr," %s - file not found!\n\n",possible_filename);
-	    return EINVAL;
-    }
+   if(!action.filename) 
+	return print_program_error_file_name_not_found(action.filename);
+    
     
     
     info_file(&action,gaction);

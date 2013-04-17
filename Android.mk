@@ -18,6 +18,8 @@ src_files :=  main.c \
 			  actions/create_ramdisk.c \
 			  actions/global.c \
 			  libbootimg/utils.c \
+			  libbootimg/md5.c \
+			  
 			 
 			  
 			

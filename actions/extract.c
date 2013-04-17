@@ -209,6 +209,7 @@ int extract_file(extract_action* action, global_action* gaction){
     return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
     
     if(!return_value){
+	fprintf(stderr,"Extracting Ramdisk components from \"%s\"\n",action->filename);
 	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
 	return_value = extract_ramdisk_image(action,gaction, &rimage);
 	fprintf(stderr,"\n");
@@ -218,14 +219,15 @@ int extract_file(extract_action* action, global_action* gaction){
     
     // The target file was a cpio file. we can only step down to
     if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
+	fprintf(stderr,"Extracting Ramdisk components from \"%s\"\n",action->filename);
 	D("cpio file rimage.entry_count=%d\n",rimage.entry_count);
 	return_value = extract_ramdisk_image(action,gaction, &rimage);
 	fprintf(stderr,"\n");
 	free(rimage.start_addr); 
 	return return_value;
     }
-    fprintf(stderr,"file type not a recognized\n");
-    return 0;
+    
+    return print_program_error_file_type_not_recognized(action->filename);
 }
 
 // process_extract_action - parse the command line switches
@@ -250,6 +252,20 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
     
     getcwd(action.current_working_directory,PATH_MAX);
     D("current_working_directory:%s\n",action.current_working_directory);
+    
+        // work out a possible file name just in case we need it for 
+    // error reporting , the possible filename should be at position zero 
+    // but it maybe elsewhere, as info printing doesn't require any require 
+    // filenames for switches we can look for the first argv that doesn't begin with "-"
+    unsigned char* possible_filename = NULL;
+    int i = 0 ;
+    for(i = 0 ; i < argc ; i++){
+    	if(argv[i][0]!='-'){
+	     possible_filename = argv[i];
+	     D("possible_filename at position %d - %s %s\n",i,argv[i],possible_filename);
+	     break ;
+	 }
+    }
     
     FILE*file;
       
@@ -292,7 +308,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			action.header_filename = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.header_filename:%s\n",action.header_filename);
+		D("action.header_filename:%s\n",action.header_filename);
 		
 	}else if(!strlcmp(argv[0],"--kernel") || !strlcmp(argv[0],"-k")){
 		
@@ -306,7 +322,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			action.kernel_filename = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.kernel_filename:%s\n",action.kernel_filename);
+		D("action.kernel_filename:%s\n",action.kernel_filename);
 		
 	}else if(!strlcmp(argv[0],"--cpio") || !strlcmp(argv[0],"-C")) {
 		
@@ -318,7 +334,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			action.ramdisk_cpioname = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
+		D("action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
 		
 	}else if(!strlcmp(argv[0],"--directory") || !strlcmp(argv[0],"-d")) {
 		
@@ -330,7 +346,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			action.ramdisk_directory = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.ramdisk_directory:%s\n",action.ramdisk_directory);
+		D("action.ramdisk_directory:%s\n",action.ramdisk_directory);
 		
 	}else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i")) {
 		
@@ -346,7 +362,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			action.ramdisk_imagename = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
+		D("action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
 	
 	}else if(!strlcmp(argv[0],"--output") || !strlcmp(argv[0],"-o")) {
 		
@@ -365,7 +381,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			--argc; ++argv;
 		}
 
-	    fprintf(stderr,"action.output_directory:%s\n",action.output_directory);
+	    D("action.output_directory:%s\n",action.output_directory);
 		
 	}else if(!strlcmp(argv[0],"--second") || !strlcmp(argv[0],"-s")) {
 		
@@ -380,7 +396,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			action.second_filename = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.second_filename:%s\n",action.second_filename);
+		D("action.second_filename:%s\n",action.second_filename);
 		
 	}else if(!strlcmp(argv[0],"--files") || !strlcmp(argv[0],"-f")) {
 		
@@ -400,24 +416,22 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 			action.ramdisk_filenames_count++;		
 			
 		}
-		fprintf(stderr,"action.ramdisk_filenames_count %d argc %d\n",action.ramdisk_filenames_count,argc);
+		D("action.ramdisk_filenames_count %d argc %d\n",action.ramdisk_filenames_count,argc);
 		// allocate the memory and assign null to the end of the array
 		action.ramdisk_filenames = calloc(action.ramdisk_filenames_count,sizeof(unsigned char*)) ;
 		// populate the array with the values 
 		for(targc =0 ; targc < action.ramdisk_filenames_count; targc++) {
 		    argc--; argv++;
 		    action.ramdisk_filenames[targc] = argv[0]; 
-		    fprintf(stderr,"action.ramdisk_filenames[%d]:%s\n",targc,action.ramdisk_filenames[targc] );
+		    D("action.ramdisk_filenames[%d]:%s\n",targc,action.ramdisk_filenames[targc] );
 		}
 	}
 	argc--; argv++ ;
     }
 	
-    // we must have at least a file to process
-    if(!action.filename){
-	    fprintf(stderr,"no filename:%s\n",action.filename);
-	    return EINVAL;
-    }
+    // we must have at least a boot image to process
+    if(!action.filename) 
+	return print_program_error_file_name_not_found(action.filename);
     
     extract_file(&action,gaction);
        

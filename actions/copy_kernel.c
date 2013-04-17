@@ -44,6 +44,9 @@ int copy_kernel(copy_kernel_action* action){
 
     // check to see if kernels matchs 
     if(bimage_source.header->kernel_size==bimage_dest.header->kernel_size){
+	
+	
+	
 	fprintf(stderr," nothing to update, source and destination kernels are the same\n\n");
 	goto fail_hard;
 	
@@ -51,13 +54,13 @@ int copy_kernel(copy_kernel_action* action){
     // load the source kernel details 
     return_value = load_kernel_image_from_memory(bimage_source.kernel_addr,bimage_source.header->kernel_size,&kimage_source);
     if(errno){
-	fprintf(stderr," cannot get kernel information in \"%s\" as boot image - error %d - %s\n",action->source ,errno , strerror(errno));
+	fprintf(stderr," cannot get kernel information in \"%s\" - error %d - %s\n",action->source ,errno , strerror(errno));
 	goto fail_hard;
     }
     // load the source kernel details 
     return_value = load_kernel_image_from_memory(bimage_dest.kernel_addr,bimage_dest.header->kernel_size,&kimage_dest);
     if(errno){
-	fprintf(stderr," cannot get kernel information in \"%s\" as boot image - error %d - %s\n",action->destination ,errno , strerror(errno));
+	fprintf(stderr," cannot get kernel information in \"%s\" - error %d - %s\n",action->destination ,errno , strerror(errno));
 	goto fail_hard;
     }
     

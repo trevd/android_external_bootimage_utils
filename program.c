@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <errno.h>
 
 #include <program.h>
 
@@ -19,5 +20,23 @@ int print_program_title_and_description(){
     fprintf(stderr,"\n %s \n\n",PROGRAM_DESCRIPTON);
     return 0 ;
     
+}
+
+int print_program_error_file_type_not_recognized(char* filename){
     
+    print_program_title();
+    fprintf(stderr," Cannot process \"%s\" - file type not a recognized\n\n",filename);
+    errno = EINVAL ;
+    return errno ;
+}
+int print_program_error_file_name_not_found(char * filename){
+    
+    print_program_title();
+    if(!filename)
+        fprintf(stderr," no file specified!\n\n");
+    else
+        fprintf(stderr," %s - file not found!\n\n",filename);
+    
+    errno = EINVAL ;
+    return errno;
 }

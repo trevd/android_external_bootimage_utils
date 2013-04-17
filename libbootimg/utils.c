@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <utils.h>
+#include <md5.h>
 
 
 
@@ -146,9 +147,7 @@ unsigned char* read_item_from_disk(const char *name, unsigned* data_size){
        default:       printf("unknown?\n");                break;
            }
     return NULL;
-
-    
-    
+   
 	
 }
 unsigned long  get_long_from_hex_field(char * header_field_value){
@@ -183,4 +182,31 @@ unsigned strulcmp(const unsigned char *s1, const unsigned char *s2){
 	return strncmp((const char*)s1,(const char*)s2,compare_length); 
 								
 }
+unsigned char* get_md5_sum(unsigned char* data ,unsigned size) {
+    int i, ret;
+    struct MD5Context ctx;
+    unsigned char* digest = calloc(MD5LENGTH,sizeof(unsigned char));
+    unsigned char buf[BUFSIZ];
 
+    MD5Init( &ctx );
+
+    MD5Update( &ctx, data, size );
+
+    MD5Final( digest, &ctx );
+
+    D( "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x\n", 
+	digest[0],digest[1],digest[2],digest[3],
+	digest[4],digest[5],digest[6],digest[7],
+	digest[8],digest[9],digest[10],digest[11],
+	digest[12],digest[13],digest[14],digest[15] );
+
+    return digest;
+}
+int is_md5_match(unsigned char* data_a ,unsigned size_a,unsigned char* data_b ,unsigned size_b) {
+
+    
+    unsigned char * digest_a =get_md5_sum(data_a,size_a);
+    unsigned char * digest_b =get_md5_sum(data_b,size_b);
+    return !strncmp(digest_a,digest_b,MD5LENGTH);
+    
+}

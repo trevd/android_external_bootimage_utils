@@ -3,5 +3,6 @@
 
 int print_program_title();
 int print_program_title_and_description();
-
+int print_program_error_file_type_not_recognized(char * filename);
+int print_program_error_file_name_not_found(char * filename);
 #endif

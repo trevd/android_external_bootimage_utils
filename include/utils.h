@@ -37,5 +37,6 @@ void init_debug() ;
     unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,char* name);
     unsigned char* read_item_from_disk(const char *name, unsigned* data_size);
     unsigned char* read_from_block_device(const char *name, unsigned* data_size);
-
+    unsigned char* get_md5_sum(unsigned char* data ,unsigned size) ;
+    int is_md5_match(unsigned char* data_a ,unsigned size_a,unsigned char* data_b ,unsigned size_b);
 #endif

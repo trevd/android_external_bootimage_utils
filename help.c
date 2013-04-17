@@ -74,8 +74,8 @@ int print_standard_help(global_action* gaction){
 
 int print_help_message(global_action* gaction){
 		
-	D("gaction->multicall\n",gaction->multicall);
-	D("gaction->process_action\n",gaction->multicall);
+	D("gaction->multicall=%d\n",gaction->multicall);
+	D("gaction->process_action=%d\n",gaction->process_action);
 	
 	if(!gaction->multicall &&  gaction->process_action==ACTION_NONE ) {
 		return print_standard_help(gaction);

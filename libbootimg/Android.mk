@@ -5,6 +5,7 @@ src_files := bootimage.c \
 			kernel.c \
 			ramdisk.c\
 			utils.c \
+			md5.c \
 			../../../system/core/libmincrypt/sha.c 
 			
 ifeq ($(HOST_OS),windows)

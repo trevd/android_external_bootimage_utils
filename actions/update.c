@@ -14,6 +14,7 @@
 #include <utils.h>
 #include <bootimage.h>
 #include <ramdisk.h>
+#include <program.h>
 #include <compression.h>
 
 // internal program headers
@@ -79,7 +80,56 @@ int update_kernel_image(update_action* action,global_action* gaction,kernel_imag
     return 0;
 
 }
+
+inline int update_boot_image_kernel_from_file(update_action* action,global_action* gaction,boot_image* bimage){
+    
+    
+    D("action->kernel_addr=%p bimage->header->kernel_size=%u\n",action->kernel_filename,bimage->header->kernel_size);
+    D("updating kernel from file action->kernel_filename=%s\n", action->kernel_filename);
+    
+    errno = 0; 
+    unsigned new_size = 0 ;
+    unsigned char* new_addr = read_item_from_disk(action->kernel_filename,&new_size );
+    if(errno){
+	bimage->kernel_addr = NULL ;
+	bimage->header->kernel_size = 0 ;
+	return errno;
+    }
+    
+    
+    if(bimage->header->kernel_size == new_size){
+	
+	// The Kernel Sizes Match, Check it's not coincidence
+	if(is_md5_match(bimage->kernel_addr,bimage->header->kernel_size,new_addr, new_size)){
+	    free(new_addr);
+	    fprintf(stderr," updating kernel image skipped , files are the same.\n");
+	    return 1;
+	}
+    }
+    
+    // Tell 'em how it's going down
+    kernel_image kimage_current, kimage_new ;
+    
+    load_kernel_image_from_memory(new_addr,new_size,&kimage_new);
+    load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage_current);
+    int version_length = kimage_dest.version_number_length > kimage_new.version_number_length ? kimage_dest.version_number_length : kimage_source.version_number_length ;
+    
+    fprintf(stderr," copying kernel from %s to %s\n\n",action->source,action->destination);
+    
+    fprintf(stderr," old kernel %-*.*s %u\n",version_length,kimage_dest.version_number_length,kimage_dest.version_number,bimage_dest.header->kernel_size);
+    fprintf(stderr," new kernel %-*.*s %u\n\n",version_length,kimage_source.version_number_length,kimage_source.version_number,bimage_source.header->kernel_size);
+    	
+    D("action->kernel_addr=%p bimage->header->kernel_size=%u\n",action->kernel_filename,bimage->header->kernel_size);
+    
+    return 0;
+
+}
+
 int update_boot_image(update_action* action,global_action* gaction,boot_image* bimage){
+    
+    
+    print_program_title();
+    fprintf(stderr," Updating boot image \"%s\"\n\n",action->filename);
     
     errno = 0 ;
    
@@ -88,10 +138,7 @@ int update_boot_image(update_action* action,global_action* gaction,boot_image* b
 
         
     if(action->kernel_filename){
-	fprintf(stderr,"doing action->kernel_filename\n");
-	fprintf(stderr,"bimage.header->kernel_size:%u\n",bimage->header->kernel_size);
-	bimage->kernel_addr = read_item_from_disk(action->kernel_filename,&bimage->header->kernel_size);
-	fprintf(stderr,"bimage.header->kernel_size:%u\n",bimage->header->kernel_size);
+	update_boot_image_kernel_from_file(action,gaction,bimage);
     }
     
     set_boot_image_padding(bimage);
@@ -101,189 +148,8 @@ int update_boot_image(update_action* action,global_action* gaction,boot_image* b
     D("writing action->output_filename %s\n",action->output_filename);
     write_boot_image(action->output_filename,bimage);
     
-    free(bimage->start_addr) ;
     return 0;
 }
-
-/*int update_bootimage1(update_action* action){
-    
-    errno = 0 ;
-    boot_image bimage ;
-    
-    char* current_working_directory = NULL; 
-    getcwd(current_working_directory,PATH_MAX);
-    int return_value = load_boot_image_from_file(action->bootimage_filename,&bimage);
-    print_boot_image_info(&bimage);
-    
-    fprintf(stderr,"load_boot_image_from_file:%d\n",return_value); 
-    if(return_value != 0){
-        if(bimage.start_addr != NULL  ) free(bimage.start_addr);
-        return return_value;
-    }
-    fprintf(stderr,"bimage.start_addr:%p %d %d\n",bimage.start_addr,sizeof(boot_image),sizeof(bimage));
-    // setup a new boot_image_struct to receive the modified information
-    boot_image bni; 
-    //memset(&bni,0,sizeof(boot_image));
-    boot_image* bnewimage = &bni;
-      fprintf(stderr,"bimage.start_addr:%p %d %d\n",bimage.start_addr,sizeof(bni),sizeof(bnewimage));
-    set_boot_image_defaults(bnewimage);
-    //print_boot_image_info(&bni);
-    copy_boot_image_header_info(&bni,&bimage);
-    unsigned new_ramdisk_data;
-   
-    
-    int ramdisk_processed = 0;
-    
-    if(action->kernel_filename){
-	fprintf(stderr,"doing action->kernel_filename %p\n",bnewimage->kernel_size);
-	bnewimage->kernel_addr = read_item_from_disk(action->kernel_filename,&bni.kernel_size);
-    }else{
-	write_item_to_disk(bimage.kernel_addr,bimage.kernel_size,33188,"tk");
-	fprintf(stderr,"doing action->kernel_filename not set bimage.kernel_addr :%p %u\n",bnewimage->kernel_addr,bnewimage->kernel_size);
-	   fprintf(stderr,"bimage.kernel_addr size:%u %u\n",sizeof(bimage.kernel_addr),sizeof(bnewimage->kernel_addr));
-	
-	///bnewimage->kernel_addr =  calloc(bimage.kernel_size,sizeof(char));
-	//memcpy(bni.kernel_addr , bimage.kernel_addr,bimage.kernel_size);
-	bnewimage->kernel_addr = bimage.kernel_addr;
-	bni.kernel_size = bimage.kernel_size;
-	//	write_item_to_disk(bimage.kernel_addr, bimage.kernel_size,33188,"testkernel");
-	fprintf(stderr,"bimage.kernel_addr size:%u %u\n",sizeof(bimage.kernel_addr),sizeof(bnewimage->kernel_addr));
-	fprintf(stderr,"doing action->kernel_filename not set bimage.kernel_addr :%p %u\n",bnewimage->kernel_addr,bnewimage->kernel_size);
-    }
-    print_boot_image_info(&bni);
-    if(action->ramdisk_directory){
-	fprintf(stderr,"doing action->ramdisk_directory\n");
-	unsigned cpio_ramdisk_size = 0; 
-	
-	
-	unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
-	if(cpio_data){
-	
-	    fprintf(stderr,"Packed Ramdisk\n");
-	    new_ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
-	    bnewimage->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,new_ramdisk_data,cpio_ramdisk_size);
-	    fprintf(stderr,"Compressed Ramdisk\n");
-	    bnewimage->ramdisk_addr = new_ramdisk_data;
-	    free(cpio_data);
-	    ramdisk_processed = 1; 
-	}
-	    
-    }
-    
-    if(action->ramdisk_cpioname && !ramdisk_processed){
-    
-	fprintf(stderr,"doing action->ramdisk_cpioname\n");
-	unsigned cpio_ramdisk_size = 0; 
-	unsigned char* cpio_data =  read_item_from_disk(action->ramdisk_cpioname,&cpio_ramdisk_size);
-	
-	new_ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
-	bnewimage->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,new_ramdisk_data,cpio_ramdisk_size);
-	bnewimage->ramdisk_addr = new_ramdisk_data;
-	
-	free(cpio_data);
-	ramdisk_processed = 1;
-    }    
-    if(action->ramdisk_imagename && !ramdisk_processed){
-    
-	fprintf(stderr,"doing action->ramdisk_imagename bnewimage->ramdisk_size %u\n",bnewimage->ramdisk_size);
-	
-	bnewimage->ramdisk_addr =  read_item_from_disk(action->ramdisk_imagename,bnewimage->ramdisk_size);
-	if(bnewimage->ramdisk_size == 0 ) bnewimage->ramdisk_addr = NULL;
-	
-    }
-    
-    if(action->second_filename){
-    
-	
-	fprintf(stderr,"doing action->second_filename\n");
-	 bnewimage->second_addr  =  read_item_from_disk(action->second_filename,bnewimage->second_size);
-	if(bimage.second_size == 0 )  bnewimage->second_addr  = NULL;
-   
-	
-    }
-    if(action->ramdisk_filenames_count > 0){
-	
-	fprintf(stderr,"doing action->ramdisk_filenames_count\n");
-	ramdisk_image rimage ;
-	
-	rimage.start_addr=NULL;
-	errno = 0 ;
-	fprintf(stderr,"load_ramdisk_image_from_archive_memory 1:%d %p\n",bimage.ramdisk_addr); 
-	if(!load_ramdisk_image_from_archive_memory(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage)){
-	    
-	   update_ramdisk_files(action,&rimage); 
-	}
-	if(rimage.start_addr) free(rimage.start_addr);
-	
-    }
-    if(!ramdisk_processed){
-	fprintf(stderr,"ramdisk not processed\n");
-	fprintf(stderr,"newimage.ramdisk_addr:%p %u\n",bnewimage->ramdisk_addr,bnewimage->ramdisk_size);
-	bnewimage->ramdisk_addr = bimage.ramdisk_addr;
-	bnewimage->ramdisk_size = bimage.ramdisk_size;
-	fprintf(stderr,"newimage.ramdisk_addr:%p %u\n",bnewimage->ramdisk_addr,bnewimage->ramdisk_size);
-    }
-    
-    if(action->property_names){
-	fprintf(stderr,"doing action->property_names\n");
-	
-	ramdisk_image rimage ;
-	if(!load_ramdisk_image_from_archive_memory(bimage.ramdisk_addr,bimage.ramdisk_size,&rimage)){
-	    
-	    int i = 0;
-	    for(i = 0 ; i < rimage.entry_count ; i ++ ){
-		if(!strlcmp(rimage.entries[i]->name_addr,"default.prop")){
-		    fprintf(stderr,"default prop:\n");
-		}
-	    }
-	    
-	    
-	    
-	    for(i = 0 ; i < action->property_count ; i++){
-		
-		fprintf(stderr,"prop:%s\n", action->property_names[i]);
-	    } 
-	    free(rimage.start_addr);
-	}
-    }
-    
-    
-    fprintf(stderr,"bnewimage->kernel_addr:%p %u\n",bnewimage->kernel_addr,bnewimage->kernel_size);
-    fprintf(stderr,"newimage.ramdisk_addr:%p %u\n",bnewimage->ramdisk_addr,bnewimage->ramdisk_size);
-    fprintf(stderr,"bnewimage->second_addr:%p\n",bnewimage->second_addr);
-     fprintf(stderr,"bimage.start_addr:%p\n",bimage.start_addr);
-    
-    set_boot_image_padding(bnewimage);
-    fprintf(stderr,"set_boot_image_padding:%s\n",bnewimage->magic);
-    set_boot_image_offsets(bnewimage);
-    fprintf(stderr,"set_boot_image_offsets:%p\n",bnewimage->second_addr);
-    //set_boot_image_content_hash(bnewimage); 
-    fprintf(stderr,"set_boot_image_padding:%p\n",bnewimage->second_addr);
-     
-    fprintf(stderr,"write_boot_image failed %s\n",action->output_filename);
-   if(write_boot_image(action->output_filename,bnewimage)){
-	fprintf(stderr,"write_boot_image failed %d\n",errno);
-    }
-    
-   
-    
-
-cleanup_bootimage:
-    fprintf(stderr,"kernel_addr free\n");
-    if(action->kernel_filename) free(bnewimage->kernel_addr);
-    fprintf(stderr,"ramdisk_addr free\n");
-    if(ramdisk_processed) free(bnewimage->ramdisk_addr);
-    fprintf(stderr,"second_addr free\n");
-    if(bnewimage->second_addr) free(bnewimage->second_addr);
-    fprintf(stderr,"bimage free\n");
-    //free(bimage.start_addr);
-    //fprintf(stderr,"bimage free\n");
-    return errno;
-    
-    
-    
-}*/
-
 
 int update_file(update_action* action,global_action* gaction ){
 
@@ -350,8 +216,7 @@ int update_file(update_action* action,global_action* gaction ){
     }
     
     
-    print_program_title();
-    fprintf(stderr," Cannot process \"%s\" - file type not a recognized\n\n",action->filename);    
+    print_program_error_file_type_not_recognized(action->filename);
     
     return 0;
 }
@@ -391,7 +256,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		
 		if(argc == 1 || ( argv[1][0]=='-' && argv[1][1]=='o') ||argv[1][0]!='-'){ 
 		    D("extract all\n");
-		    action.header_filename 	= "header";
+		    action.header_filename 	= (char*)"header";
 		    action.kernel_filename 	= "kernel";
 		    action.ramdisk_cpioname 	= "ramdisk.cpio";
 		    action.ramdisk_imagename 	= "ramdisk.img";
@@ -571,10 +436,8 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
         argc--; argv++ ;
     }
     // we must have at least a boot image to process
-    if(!action.filename){
-	    fprintf(stderr,"no boot image:%s\n",action.filename);
-	    return EINVAL;
-    }
+    if(!action.filename) 
+	return print_program_error_file_name_not_found(action.filename);
     // output_file not set. use the bootimage filename
     if(!action.output_filename){
 	D("no output set using bootimage_filename:%s\n",action.filename);
