@@ -48,7 +48,7 @@ int create_ramdisk(create_ramdisk_action* action){
     return 0;
     
 }
-int process_create_ramdisk_action(int argc,char ** argv,global_action* gaction){
+int process_create_ramdisk_action(unsigned argc,char ** argv,global_action* gaction){
     
 
     

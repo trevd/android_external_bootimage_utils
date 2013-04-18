@@ -77,7 +77,7 @@ int copy_kernel(copy_kernel_action* action){
     
     D("bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
     bimage_dest.header->kernel_size = bimage_source.header->kernel_size ;
-    bimage_dest.kernel_addr = bimage_source.ramdisk_addr;
+    bimage_dest.kernel_addr = bimage_source.kernel_addr;
     D("bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
     set_boot_image_padding(&bimage_dest);
     set_boot_image_content_hash(&bimage_dest);
@@ -86,7 +86,8 @@ int copy_kernel(copy_kernel_action* action){
     //print_boot_image_info(&bimage_dest);
     
     write_boot_image(action->destination,&bimage_dest);
-    
+    if(kimage_source.start_addr != NULL  ) free(kimage_source.start_addr);
+    if(kimage_dest.start_addr != NULL  ) free(kimage_dest.start_addr);
 fail_hard:
     if(bimage_source.start_addr != NULL  ) free(bimage_source.start_addr);
     if(bimage_dest.start_addr != NULL  ) free(bimage_dest.start_addr);
@@ -100,7 +101,7 @@ fail_hard:
 
     
 }
-int process_copy_kernel_action(int argc,char ** argv,global_action* gaction){
+int process_copy_kernel_action(unsigned argc,char ** argv,global_action* gaction){
     
     copy_kernel_action action;
     action.source 	= NULL 	;

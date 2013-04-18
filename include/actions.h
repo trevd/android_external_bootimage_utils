@@ -37,25 +37,25 @@ struct global_action{
 	int		current_working_directory;
 };
 
-int init_global_action(int argc,char ** argv,global_action* action);
-int only_global_actions(int argc,char ** argv,global_action* action);
+int init_global_action(unsigned argc,char ** argv,global_action* action);
+int only_global_actions(unsigned argc,char ** argv,global_action* action);
 
-int process_global_action(int argc,char ** argv,global_action* action);
+int process_global_action(unsigned argc,char ** argv,global_action* action);
 
-int process_extract_action(int argc,char ** argv,global_action* gaction);
+int process_extract_action(unsigned argc,char ** argv,global_action* gaction);
 
-int process_update_action(int argc,char ** argv,global_action* gaction);
+int process_update_action(unsigned argc,char ** argv,global_action* gaction);
 
-int process_info_action(int argc,char ** argv,global_action* gaction);
+int process_info_action(unsigned argc,char ** argv,global_action* gaction);
 
-int process_scan_action(int argc,char ** argv,global_action* gaction);
+int process_scan_action(unsigned argc,char ** argv,global_action* gaction);
 
-int process_copy_kernel_action(int argc,char ** argv,global_action* gaction);
-int process_copy_ramdisk_action(int argc,char ** argv,global_action* gaction);
+int process_copy_kernel_action(unsigned argc,char ** argv,global_action* gaction);
+int process_copy_ramdisk_action(unsigned argc,char ** argv,global_action* gaction);
 
-int process_create_action(int argc,char ** argv,global_action* gaction);
-int process_create_kernel_action(int argc,char ** argv,global_action* gaction);
-int process_create_ramdisk_action(int argc,char ** argv,global_action* gaction);
+int process_create_action(unsigned argc,char ** argv,global_action* gaction);
+int process_create_kernel_action(unsigned argc,char ** argv,global_action* gaction);
+int process_create_ramdisk_action(unsigned argc,char ** argv,global_action* gaction);
 
 
 

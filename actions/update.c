@@ -30,7 +30,7 @@ struct update_action{
 	char ** 	ramdisk_filenames 	;
 	char *  	ramdisk_cpioname 	;
 	char *  	ramdisk_imagename 	;
-	unsigned char * ramdisk_directory 	;
+	char * 		ramdisk_directory 	;
 	char *		second_filename		;
 	char * 		output_filename 	;
 	unsigned	ramdisk_filenames_count	;
@@ -42,18 +42,24 @@ int update_ramdisk_files(update_action* action,ramdisk_image* rimage){
     
     fprintf(stderr,"update_ramdisk_files %d\n",rimage->size);	
     // extract a single file from the ramdisk 
-    int entry_index = 0 ; int filename_index = 0 ; 
+    unsigned entry_index = 0 ; unsigned filename_index = 0 ; 
     for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
 	for (entry_index = 0 ; entry_index < rimage->entry_count ; entry_index ++){
-	    if(!strlcmp(rimage->entries[entry_index]->name_addr,action->ramdisk_filenames[filename_index])){
-		    fprintf(stderr,"%s\n",rimage->entries[entry_index]->name_addr);
-		    rimage->entries[entry_index]->data_addr = read_item_from_disk( rimage->entries[entry_index]->name_size, &rimage->entries[entry_index]->data_size);
-		    update_ramdisk_header(rimage->entries[entry_index]->start_addr);
+	    
+	    ramdisk_entry* entry = rimage->entries[entry_index];
+	    
+	    if(!strlcmp((char*)entry->name_addr,
+			    action->ramdisk_filenames[filename_index])){
+		    
+		    fprintf(stderr,"%s\n",entry->name_addr);
 		    
 		    
-		    //FILE* ramdiskfile_fp = fopen(action->ramdisk_filenames[filename_index],"w+b");
-		    if(write_item_to_disk_extended(rimage->entries[entry_index]->data_addr,rimage->entries[entry_index]->data_size,
-			rimage->entries[entry_index]->mode,action->ramdisk_filenames[filename_index],rimage->entries[entry_index]->name_size)){
+		    entry->data_addr = read_item_from_disk((char*) entry->name_addr, &entry->data_size);
+								     
+		    update_ramdisk_header(entry->start_addr);
+		    
+		    if(write_item_to_disk_extended(entry->data_addr,entry->data_size,
+			entry->mode,action->ramdisk_filenames[filename_index],entry->name_size)){
 			
 			fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
 		    }
@@ -65,12 +71,12 @@ int update_ramdisk_files(update_action* action,ramdisk_image* rimage){
     
     return 0 ; 
 }
-int update_ramdisk_cpio(update_action* action,global_action* gaction,kernel_image* kimage){
+int update_ramdisk_cpio(update_action* action,global_action* gaction,ramdisk_image* rimage){
     
     return 0;
 
 }
-int update_ramdisk_archive(update_action* action,global_action* gaction,kernel_image* kimage){
+int update_ramdisk_archive(update_action* action,global_action* gaction,ramdisk_image* rimage){
     
     return 0;
 
@@ -80,7 +86,97 @@ int update_kernel_image(update_action* action,global_action* gaction,kernel_imag
     return 0;
 
 }
+inline int update_boot_image_ramdisk_from_imagename(update_action* action,global_action* gaction,boot_image* bimage){
+    
+    D("action->ramdisk_imagename=%s\n",action->ramdisk_imagename);
+    errno = 0 ;
+    unsigned ramdisk_size = 0; 
+    unsigned char* ramdisk_data = read_item_from_disk(action->ramdisk_imagename,&ramdisk_size);
+    if(errno){
+	fprintf(stderr," Updating ramdisk image skipped - error %d %s\n",errno,strerror(errno));
+	return errno ;
+    }
+    if( bimage->header->ramdisk_size == ramdisk_size ) {
+	// The ramdisk sizes match, Check it's not coincidence
+	if(is_md5_match(bimage->ramdisk_addr,bimage->header->ramdisk_size,ramdisk_data, ramdisk_size)){
+	    free(ramdisk_data);
+	    fprintf(stderr," Updating ramdisk image skipped, files are the same.\n");
+	    return 1;
+	}
+    }
+    
+    D("ramdisk_data=%p\n",ramdisk_data);
+    D("ramdisk_size=%u\n",ramdisk_size);
+    bimage->header->ramdisk_size = ramdisk_size;
+    bimage->ramdisk_addr = ramdisk_data;
+    fprintf(stderr," Updating ramdisk from archive \"%s\"\n",action->ramdisk_imagename);
+    return 0 ;
+    
+    
+}
+inline int update_boot_image_ramdisk_from_cpio(update_action* action,global_action* gaction,boot_image* bimage){
+    
+    D("action->ramdisk_cpioname=%s\n",action->ramdisk_cpioname);
+    errno = 0 ;
+    unsigned cpio_ramdisk_size = 0; 
+    unsigned char* cpio_data = read_item_from_disk(action->ramdisk_cpioname,&cpio_ramdisk_size);
+    if(errno){
+	fprintf(stderr," Update ramdisk image skipped - error %d %s\n",errno,strerror(errno));
+	return errno ;
+    }
+    
+    D("cpio_ramdisk_size=%u\n",cpio_ramdisk_size);
+    
+    errno = 0;
+    unsigned char *ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+    
+    if(errno){
+	fprintf(stderr," Update ramdisk image skipped - error %d %s\n",errno,strerror(errno));
+	free(cpio_data) ;
+	return errno ;
+    }
+    D("ramdisk_data=%p\n",ramdisk_data);
+    
+    unsigned ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+    if(errno){
+	fprintf(stderr," Update ramdisk image skipped - error %d %s\n",errno,strerror(errno));
+	free(ramdisk_data);
+	free(cpio_data) ;
+	return errno ;
+    }
+    D("ramdisk_size=%u\n",ramdisk_size);
+    bimage->header->ramdisk_size = ramdisk_size;
+    bimage->ramdisk_addr = ramdisk_data;
+    fprintf(stderr," Updating ramdisk from cpio archive \"%s\"\n",action->ramdisk_cpioname);
+    	
+    free(cpio_data);
+    return 0 ;
+    
+}
 
+inline int update_boot_image_ramdisk_from_directory(update_action* action,global_action* gaction,boot_image* bimage){
+    
+    errno = 0;
+    unsigned cpio_ramdisk_size = 0; 
+    D("action->ramdisk_directory=%s\n",action->ramdisk_directory);
+    unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
+    D("cpio_ramdisk_size=%u\n",cpio_ramdisk_size);
+    
+    if(errno){
+	fprintf(stderr," Update ramdisk image skipped - error %d %s\n",errno,strerror(errno));
+	return errno;
+    }
+    
+    
+    unsigned char* ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+    bimage->header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+    bimage->ramdisk_addr = ramdisk_data;
+    
+    free(cpio_data);
+    fprintf(stderr," Updating ramdisk from \"%s\"\n",action->ramdisk_directory);
+
+    return 0;
+}
 inline int update_boot_image_kernel_from_file(update_action* action,global_action* gaction,boot_image* bimage){
     
     
@@ -91,9 +187,8 @@ inline int update_boot_image_kernel_from_file(update_action* action,global_actio
     unsigned new_size = 0 ;
     unsigned char* new_addr = read_item_from_disk(action->kernel_filename,&new_size );
     if(errno){
-	bimage->kernel_addr = NULL ;
-	bimage->header->kernel_size = 0 ;
-	return errno;
+	fprintf(stderr," Updating ramdisk image skipped - error %d %s\n",errno,strerror(errno));
+	return errno ;
     }
     
     
@@ -102,8 +197,9 @@ inline int update_boot_image_kernel_from_file(update_action* action,global_actio
 	// The Kernel Sizes Match, Check it's not coincidence
 	if(is_md5_match(bimage->kernel_addr,bimage->header->kernel_size,new_addr, new_size)){
 	    free(new_addr);
-	    fprintf(stderr," updating kernel image skipped , files are the same.\n");
-	    return 1;
+	    fprintf(stderr," Updating kernel image skipped , files are the same.\n");
+	    errno =EINVAL;
+	    return errno;
 	}
     }
     
@@ -112,14 +208,24 @@ inline int update_boot_image_kernel_from_file(update_action* action,global_actio
     
     load_kernel_image_from_memory(new_addr,new_size,&kimage_new);
     load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage_current);
-    int version_length = kimage_dest.version_number_length > kimage_new.version_number_length ? kimage_dest.version_number_length : kimage_source.version_number_length ;
     
-    fprintf(stderr," copying kernel from %s to %s\n\n",action->source,action->destination);
     
-    fprintf(stderr," old kernel %-*.*s %u\n",version_length,kimage_dest.version_number_length,kimage_dest.version_number,bimage_dest.header->kernel_size);
-    fprintf(stderr," new kernel %-*.*s %u\n\n",version_length,kimage_source.version_number_length,kimage_source.version_number,bimage_source.header->kernel_size);
-    	
-    D("action->kernel_addr=%p bimage->header->kernel_size=%u\n",action->kernel_filename,bimage->header->kernel_size);
+        
+    
+    fprintf(stderr," Updating kernel with  \"%s\" - %.*s -> %.*s\n",
+			    action->kernel_filename ,
+			    kimage_current.version_number_length,
+			    kimage_current.version_number,
+			    kimage_new.version_number_length,
+			    kimage_new.version_number
+			    );    
+    
+    
+    if(kimage_current.start_addr != NULL  ) free(kimage_current.start_addr);
+    if(kimage_new.start_addr != NULL  ) free(kimage_new.start_addr);
+    
+    bimage->kernel_addr = new_addr ; 
+    bimage->header->kernel_size = new_size ;   
     
     return 0;
 
@@ -129,16 +235,27 @@ int update_boot_image(update_action* action,global_action* gaction,boot_image* b
     
     
     print_program_title();
-    fprintf(stderr," Updating boot image \"%s\"\n\n",action->filename);
+    fprintf(stderr," Updating boot image \"%s\"\n",action->filename);
     
     errno = 0 ;
    
     char* current_working_directory = NULL; 
     getcwd(current_working_directory,PATH_MAX);
 
-        
+    int kernel_processed = 1 ; int ramdisk_processed = 1 ;    
     if(action->kernel_filename){
-	update_boot_image_kernel_from_file(action,gaction,bimage);
+	kernel_processed = update_boot_image_kernel_from_file(action,gaction,bimage);
+    }
+    
+    if(action->ramdisk_directory){
+	D("action->ramdisk_directory=%s\n",action->ramdisk_directory);
+	ramdisk_processed = update_boot_image_ramdisk_from_directory(action,gaction,bimage);
+    }else if(action->ramdisk_cpioname){
+	D("action->ramdisk_cpioname=%s\n",action->ramdisk_cpioname);
+	ramdisk_processed = update_boot_image_ramdisk_from_cpio(action,gaction,bimage);
+    }else if(action->ramdisk_imagename){
+	D("action->ramdisk_imagename=%s\n",action->ramdisk_imagename);
+	ramdisk_processed = update_boot_image_ramdisk_from_imagename(action,gaction,bimage);
     }
     
     set_boot_image_padding(bimage);
@@ -148,6 +265,14 @@ int update_boot_image(update_action* action,global_action* gaction,boot_image* b
     D("writing action->output_filename %s\n",action->output_filename);
     write_boot_image(action->output_filename,bimage);
     
+    D("kernel_processed=%d %p\n",kernel_processed,bimage->kernel_addr);
+    if(!kernel_processed)
+	free(bimage->kernel_addr);
+    
+    if(!ramdisk_processed)
+	free(bimage->ramdisk_addr);
+	
+    fprintf(stderr,"\n");
     return 0;
 }
 
@@ -161,7 +286,7 @@ int update_file(update_action* action,global_action* gaction ){
     unsigned action_size = 0;     
     getcwd(current_working_directory,PATH_MAX);
     
-    char* action_data = read_item_from_disk(action->filename , &action_size);
+    unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
     if(!action_data && errno){
 	
 	    //  file too large error. no point in contining
@@ -192,7 +317,7 @@ int update_file(update_action* action,global_action* gaction ){
     if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
 	D("load_kernel_image_from_memory returns:%d\n", return_value); 
 	
-	return_value = update_kernel_image(&kimage,action,1);
+	return_value = update_kernel_image(action,gaction,&kimage);
 	if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         return return_value;
     }
@@ -204,13 +329,13 @@ int update_file(update_action* action,global_action* gaction ){
     
     if(!return_value){
 	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
-	return_value = update_ramdisk_archive(&rimage,action,1);
+	return_value = update_ramdisk_archive(action,gaction,&rimage);
 	free(rimage.start_addr); 
 	return return_value;
     }
     
      if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
-	return_value = update_ramdisk_cpio(&rimage,action,1);
+	return_value = update_ramdisk_cpio(action,gaction,&rimage);
 	free(rimage.start_addr); 
 	return return_value;
     }
@@ -223,7 +348,7 @@ int update_file(update_action* action,global_action* gaction ){
 
 
 
-int process_update_action(int argc,char ** argv,global_action* gaction){
+int process_update_action(unsigned argc,char ** argv,global_action* gaction){
 
 	
     // Initialize the action struct with NULL values
@@ -280,7 +405,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 			action.header_filename = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.header_filename:%s\n",action.header_filename);
+		D("action.header_filename:%s\n",action.header_filename);
 		
 	}else if(!strlcmp(argv[0],"--kernel") || !strlcmp(argv[0],"-k")){
 		
@@ -294,7 +419,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 			action.kernel_filename = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.kernel_filename:%s\n",action.kernel_filename);
+		D("action.kernel_filename:%s\n",action.kernel_filename);
 		
 	}else if(!strlcmp(argv[0],"--output") || !strlcmp(argv[0],"-o")) {
 		
@@ -313,7 +438,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 			--argc; ++argv;
 		}
 
-	    fprintf(stderr,"action.output_filename:%s\n",action.output_filename);
+	    D("action.output_filename:%s\n",action.output_filename);
 		
 	}else if(!strlcmp(argv[0],"--second") || !strlcmp(argv[0],"-s")) {
 		
@@ -328,7 +453,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 			action.second_filename = argv[1];
 			--argc; ++argv;
 		}
-		fprintf(stderr,"action.second_filename:%s\n",action.second_filename);
+		D("action.second_filename:%s\n",action.second_filename);
 		
 	} else if(!strlcmp(argv[0],"--properties") || !strlcmp(argv[0],"-p")) {
 		
@@ -338,9 +463,9 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
                     
             // if this is the last token or if the next token is a switch
             // we need to create an array with 1 entry 
-              fprintf(stderr,"action.property\n");
+              D("action.property\n");
             // work out how much memory is required
-            int targc = 0 ; 
+            unsigned targc = 0 ; 
             for(targc=0; targc < argc-1 ; targc++ ){
                 fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
                 if(argv[targc+1] && argv[targc+1][0]=='-')
@@ -349,14 +474,14 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
                 action.property_count++;		
                 
             }
-            fprintf(stderr,"action.property_count %d argc %d\n",action.property_count,argc);
+            D("action.property_count %d argc %d\n",action.property_count,argc);
             // allocate the memory and assign null to the end of the array
             action.property_names = calloc(action.property_count,sizeof(unsigned char*)) ;
             // populate the array with the values 
             for(targc =0 ; targc < action.property_count; targc++) {
                 argc--; argv++;
                 action.property_names[targc] = argv[0]; 
-                fprintf(stderr,"action.property_names[%d]:%s\n",targc,action.property_names[targc] );
+                D("action.property_names[%d]:%s\n",targc,action.property_names[targc] );
             }
         }else if (!ramdisk_set){
     
@@ -371,7 +496,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		    --argc; ++argv;
 		}
 		ramdisk_set = 1 ;
-		fprintf(stderr,"action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
+		D("action.ramdisk_cpioname:%s\n",action.ramdisk_cpioname);
 		
 	    }else if(!strlcmp(argv[0],"--directory") || !strlcmp(argv[0],"-d")) {
 		    
@@ -384,7 +509,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		    --argc; ++argv;
 		}
 		ramdisk_set = 1 ;
-		fprintf(stderr,"action.ramdisk_directory:%s\n",action.ramdisk_directory);
+		D("action.ramdisk_directory:%s\n",action.ramdisk_directory);
 		    
 	    }else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i")) {
 		    
@@ -401,7 +526,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		    --argc; ++argv;
 		}
 		ramdisk_set = 1 ;
-		fprintf(stderr,"action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
+		D("action.ramdisk_imagename:%s\n",action.ramdisk_imagename);
 		
 	    } else if(!strlcmp(argv[0],"--files") || !strlcmp(argv[0],"-f")) {
 		
@@ -412,7 +537,7 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		// we need to create an array with 1 entry 
 		
 		// work out how much memory is required
-		int targc = 0 ; 
+		unsigned targc = 0 ; 
 		for(targc=0; targc < argc-1 ; targc++ ){
 		   D("argv[%d] %s\n",targc,argv[targc]);
 		    if(argv[targc+1] && argv[targc+1][0]=='-')
@@ -421,14 +546,14 @@ int process_update_action(int argc,char ** argv,global_action* gaction){
 		    action.ramdisk_filenames_count++;		
 		    
 		}
-		fprintf(stderr,"action.ramdisk_filenames_count %d argc %d\n",action.ramdisk_filenames_count,argc);
+		D("action.ramdisk_filenames_count %d argc %d\n",action.ramdisk_filenames_count,argc);
 		// allocate the memory and assign null to the end of the array
 		action.ramdisk_filenames = calloc(action.ramdisk_filenames_count,sizeof(unsigned char*)) ;
 		// populate the array with the values 
 		for(targc =0 ; targc < action.ramdisk_filenames_count; targc++) {
 		    argc--; argv++;
 		    action.ramdisk_filenames[targc] = argv[0]; 
-		    fprintf(stderr,"action.ramdisk_filenames[%d]:%s\n",targc,action.ramdisk_filenames[targc] );
+		    D("action.ramdisk_filenames[%d]:%s\n",targc,action.ramdisk_filenames[targc] );
 		}
 		ramdisk_set = 1 ;
 	    }        

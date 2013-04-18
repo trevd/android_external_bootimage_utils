@@ -28,9 +28,9 @@ struct extract_action{
 	char ** 	ramdisk_filenames 		;
 	char *  	ramdisk_cpioname 		;
 	char *  	ramdisk_imagename 		;
-	unsigned char * ramdisk_directory 		;
+	char * 		ramdisk_directory 		;
 	char *		second_filename			;
-	unsigned char * output_directory 		;
+	char * 		output_directory 		;
 	unsigned	ramdisk_filenames_count		;
 	char* 	current_working_directory	;
 };
@@ -38,16 +38,16 @@ struct extract_action{
 int extract_ramdisk_file(extract_action* action, global_action* gaction, ramdisk_image* rimage){
     
     // extract a single file from the ramdisk 
-    int entry_index = 0 ; int filename_index = 0 ; 
+    unsigned entry_index = 0 ; unsigned filename_index = 0 ; 
     
     // search the ramdisk
     for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
 	
 	for (entry_index = 0 ; entry_index < rimage->entry_count ; entry_index ++){
 	    
-	    if(!strlcmp(rimage->entries[entry_index]->name_addr,action->ramdisk_filenames[filename_index])){
+	    if(!strlcmp((char*)rimage->entries[entry_index]->name_addr,action->ramdisk_filenames[filename_index])){
 		
-		D("\s%s\n",rimage->entries[entry_index]->name_addr);
+		D("\%s\n",(char*)rimage->entries[entry_index]->name_addr);
 		//FILE* ramdiskfile_fp = fopen(action->ramdisk_filenames[filename_index],"w+b");
 		if(write_item_to_disk_extended(rimage->entries[entry_index]->data_addr,rimage->entries[entry_index]->data_size,
 		    rimage->entries[entry_index]->mode,action->ramdisk_filenames[filename_index],rimage->entries[entry_index]->name_size)){
@@ -100,7 +100,10 @@ int extract_bootimage(extract_action* action, global_action* gaction,boot_image*
     print_program_title();
     
     // Write the header contents
-    fprintf(stderr," Extracting boot image components from \"%s\"\n",action->filename);
+    fprintf(stderr," Extracting boot image components from \"%s\"",action->filename);
+    if(action->output_directory)
+	fprintf(stderr," to \"%s\"",action->output_directory);
+    fprintf(stderr,"\n");
     
     errno = 0;
     if(action->header_filename){
@@ -234,7 +237,7 @@ int extract_file(extract_action* action, global_action* gaction){
 // although this code is repetitive we will favour readability
 // over codesize ...... Ask me in 3 months time whether it was
 // a good idea.
-int process_extract_action(int argc,char ** argv,global_action* gaction){
+int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
 	
     // Initialize the action struct with NULL values
     extract_action action;
@@ -257,8 +260,8 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
     // error reporting , the possible filename should be at position zero 
     // but it maybe elsewhere, as info printing doesn't require any require 
     // filenames for switches we can look for the first argv that doesn't begin with "-"
-    unsigned char* possible_filename = NULL;
-    int i = 0 ;
+    char* possible_filename = NULL;
+    unsigned i = 0 ;
     for(i = 0 ; i < argc ; i++){
     	if(argv[i][0]!='-'){
 	     possible_filename = argv[i];
@@ -407,7 +410,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
 		// we need to create an array with 1 entry 
 	    
 		// work out how much memory is required
-		int targc = 0 ; 
+		unsigned targc = 0 ; 
 		for(targc=0; targc < argc-1 ; targc++ ){
 		    fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
 		    if(argv[targc+1] && argv[targc+1][0]=='-')
@@ -430,6 +433,7 @@ int process_extract_action(int argc,char ** argv,global_action* gaction){
     }
 	
     // we must have at least a boot image to process
+    
     if(!action.filename) 
 	return print_program_error_file_name_not_found(action.filename);
     

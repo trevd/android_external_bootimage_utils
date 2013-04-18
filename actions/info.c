@@ -98,7 +98,7 @@ int info_file(info_action* action,global_action* gaction ){
     unsigned action_size = 0;     
     getcwd(current_working_directory,PATH_MAX);
     
-    char* action_data = read_item_from_disk(action->filename , &action_size);
+    unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
     if(!action_data && errno){
 	    //  file too large error. no point in contining
 	    print_program_title();
@@ -158,7 +158,7 @@ int info_file(info_action* action,global_action* gaction ){
 }
 
 
-int process_info_action(int argc,char ** argv,global_action* gaction){
+int process_info_action(unsigned argc,char ** argv,global_action* gaction){
     
     
     D("argc=%d argv[0]=%s\n",argc,argv[0]);
@@ -182,8 +182,8 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     // error reporting , the possible filename should be at position zero 
     // but it maybe elsewhere, as info printing doesn't require any require 
     // filenames for switches we can look for the first argv that doesn't begin with "-"
-    unsigned char* possible_filename = NULL;
-    int i = 0 ;
+    char* possible_filename = NULL;
+    unsigned i = 0 ;
     for(i = 0 ; i < argc ; i++){
     	if(argv[i][0]!='-'){
 	     possible_filename = argv[i];
@@ -194,7 +194,7 @@ int process_info_action(int argc,char ** argv,global_action* gaction){
     
     
     // this is set to 1 if any action item has been set
-    int action_set = 0 ; 
+    unsigned action_set = 0 ; 
       
     while(argc > 0){
 	

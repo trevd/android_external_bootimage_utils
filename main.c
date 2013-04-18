@@ -7,7 +7,7 @@
 #include <actions.h>
 #include <help.h>
 
-int get_action(int argc,char ** argv,global_action* gaction){
+int get_action(unsigned argc,char ** argv,global_action* gaction){
 
 	D("argv[0]=%s\n",argv[0]);
 	switch(gaction->process_action){				
@@ -35,6 +35,12 @@ int get_action(int argc,char ** argv,global_action* gaction){
 }
 int main(int argc,char ** argv){
 
+
+	// this should never happen but as we are
+	// narrowing the variable we may aswell check
+	if(argc < 0) return -1;
+	
+	unsigned uargc = argc ;
 	
 	// initalize our global actions, these include
 	// program name,  the action to process and whether 
@@ -57,8 +63,8 @@ int main(int argc,char ** argv){
 
     D("gaction.debug:%d argc:%d\n",gaction.debug,argc);
     if(gaction.debug){
-		int i = 0 ;
-		for(i = 0 ; i < argc ; i ++ ){
+		unsigned  i = 0 ;
+		for(i = 0 ; i < uargc ; i ++ ){
 			D("argv[%d]=%s\n",i,argv[i]);
 		}
 	}

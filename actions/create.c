@@ -19,9 +19,9 @@ struct create_action{
 	char ** 	ramdisk_filenames 	;
 	char *  	ramdisk_cpioname 	;
 	char *  	ramdisk_imagename 	;
-	unsigned char * ramdisk_directory 	;
+	char * ramdisk_directory 	;
 	char *		second_filename		;
-	unsigned char * output_directory 	;
+	char * output_directory 	;
 	unsigned	ramdisk_filenames_count	;
 };
 
@@ -61,11 +61,8 @@ int create_bootimage(create_action* action, global_action* gaction){
 	    
 	    free(cpio_data);
 	    fprintf(stderr,"ramdisk_directory:%s\n",action->ramdisk_directory);
-	    ramdisk_processed = 1;
 	}
-    }
-    
-    if(action->ramdisk_cpioname && !ramdisk_processed){
+    }else if(action->ramdisk_cpioname ){
 	
 	unsigned cpio_ramdisk_size = 0;     
 	unsigned char* cpio_data = read_item_from_disk(action->ramdisk_cpioname,&cpio_ramdisk_size);
@@ -76,10 +73,8 @@ int create_bootimage(create_action* action, global_action* gaction){
 	bimage.ramdisk_addr = ramdisk_data;
 	
 	free(cpio_data);
-	ramdisk_processed = 1;
 	
-    }    
-    if(action->ramdisk_imagename && !ramdisk_processed ){
+    }else if(action->ramdisk_imagename ){
 
 	  bimage.ramdisk_addr =  read_item_from_disk(action->ramdisk_imagename,&bimage.header->ramdisk_size);
 	  
@@ -117,7 +112,7 @@ cleanup_bootimage:
 // although this code is repetitive we will favour readability
 // over codesize ...... Ask me in 3 months time whether it was
 // a good idea.
-int process_create_action(int argc,char ** argv,global_action* gaction){
+int process_create_action(unsigned argc,char ** argv,global_action* gaction){
     
     // Initialize the action struct with NULL values
     create_action action;
@@ -257,7 +252,7 @@ int process_create_action(int argc,char ** argv,global_action* gaction){
 		// we need to create an array with 1 entry 
 		
 		// work out how much memory is required
-		int targc = 0 ; 
+		unsigned targc = 0 ; 
 		for(targc=0; targc < argc-1 ; targc++ ){
 		    fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
 		    if(argv[targc+1] && argv[targc+1][0]=='-')

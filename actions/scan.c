@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
-
+#include <string.h>
 #include <utils.h>
 #include <bootimg.h>
 #include <actions.h>	
@@ -79,7 +79,7 @@ int scan_for_boot_image(scan_action* action){
     return 0;
 }
 
-int process_scan_action(int argc,char ** argv,global_action* gaction){
+int process_scan_action(unsigned argc,char ** argv,global_action* gaction){
 
     scan_action action;
     action.target_directory 	= NULL 	;

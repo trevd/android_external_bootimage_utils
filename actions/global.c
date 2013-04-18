@@ -12,7 +12,7 @@
 #include <actions.h>
 #include <utils.h>
 
-int check_program_name(int argc,char ** argv, global_action* action){
+int check_program_name(unsigned argc,char ** argv, global_action* action){
 
     // switch multicall on, we can turn it back of if we don't find one
     // cheeky logic, saves on code.
@@ -83,7 +83,7 @@ int check_program_name(int argc,char ** argv, global_action* action){
 
 }
 
-int init_global_action(int argc,char ** argv, global_action* action){
+int init_global_action(unsigned argc,char ** argv, global_action* action){
     
     errno = 0;
     if(!action){
@@ -103,7 +103,7 @@ int init_global_action(int argc,char ** argv, global_action* action){
 //  only_global_actions will check the argument list for parameters other than global actions
 //  returns 0 if the list contains only global actions
 //  returns 1 if the list contains extra parameters
-int only_global_actions(int argc,char ** argv,global_action* action){
+int only_global_actions(unsigned argc,char ** argv,global_action* action){
     
     errno = 0;
     D("only_global_actions: debug=%d\n",action->debug);
@@ -122,7 +122,7 @@ int only_global_actions(int argc,char ** argv,global_action* action){
     return return_value;
 }
 
-int process_global_action(int argc,char ** argv,global_action* action){
+int process_global_action(unsigned argc,char ** argv,global_action* action){
     
     errno = 0;
     if(!action){

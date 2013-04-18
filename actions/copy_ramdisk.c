@@ -92,7 +92,7 @@ fail_hard:
 
     
 }
-int process_copy_ramdisk_action(int argc,char ** argv,global_action* gaction){
+int process_copy_ramdisk_action(unsigned argc,char ** argv,global_action* gaction){
     
     copy_ramdisk_action action;
     action.source 	= NULL 	;
