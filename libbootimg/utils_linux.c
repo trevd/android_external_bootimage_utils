@@ -19,11 +19,11 @@ unsigned char* read_from_block_device(const char *name, unsigned* data_size){
     unsigned size =0;
     int fd = open(name, O_RDONLY);
     if(!fd){
-	D("read_from_block_device data faile %d\n",numblocks);
+	D("read_from_block_device data faile %lu\n",numblocks);
 	return NULL ;
     }
     ioctl(fd, BLKGETSIZE64, &numblocks);
-    D("read_from_block_device data numblocks %d\n",numblocks);
+    D("read_from_block_device data numblocks %lu\n",numblocks);
     if (numblocks) size =numblocks;
     if(numblocks > (BOOT_IMAGE_SIZE_MAX)){
 	errno = EFBIG;
@@ -39,7 +39,7 @@ oops:
     return NULL;
 }
 
-void mkdir_and_parents(const unsigned char *path,unsigned mode)
+int mkdir_and_parents(const char *path,unsigned mode)
 {
         errno;
         char opath[256];
@@ -60,8 +60,9 @@ void mkdir_and_parents(const unsigned char *path,unsigned mode)
             }
         if(access(opath, F_OK))         /* if path is not terminated with / */
                 mkdir(opath, mode);
+        return 0 ;
 }
-int symlink_os(const unsigned char *source, unsigned size,const char *path){
+int symlink_os(const char *source, size_t size,const char *path){
     
     
     char symlink_src[size+1];

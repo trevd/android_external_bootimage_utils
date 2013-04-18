@@ -29,6 +29,8 @@ int set_boot_image_defaults(boot_image* image){
 	
 	image->header = calloc(1,sizeof(boot_img_hdr));
 	
+	
+	
 	memcpy(image->header->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
 	
 	image->header->kernel_addr = 0x10008000;
@@ -44,7 +46,7 @@ int set_boot_image_defaults(boot_image* image){
 	image->header_offset = 0;
 	//image->header = image->header->magic;
 	
-	image->start_addr = image->header;
+	image->start_addr = (unsigned char *) image->header;
 	
 	image->header_size = sizeof(boot_img_hdr);
 	image->header_padding = calculate_padding(image->header_size,image->header->page_size);
@@ -277,16 +279,14 @@ int load_boot_image_from_file(const char *filename, boot_image* image){
 	
 	// Look for the Android Boot Magic
 }
-int load_boot_image_from_memory(char* boot_image_addr,unsigned boot_image_size, boot_image* image){
+int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image){
 
 
-	char * magic_offset_p = find_in_memory(boot_image_addr,boot_image_size,BOOT_MAGIC, BOOT_MAGIC_SIZE );
+	unsigned char * magic_offset_p = find_in_memory(boot_image_addr,boot_image_size,BOOT_MAGIC, BOOT_MAGIC_SIZE );
 	if(!magic_offset_p){
 		image->start_addr = NULL;
 		errno = ENOEXEC;
 		return ENOEXEC;
-		
-		
 	}
 	
 	// set the image start to be a pointer to the data buffer in memory
@@ -297,28 +297,11 @@ int load_boot_image_from_memory(char* boot_image_addr,unsigned boot_image_size, 
 	
 	// Populate the AOSP boot_img_hdr struct from the magic offset
 	// then we can jiggery pokery the start of the header to the image magic
-	//boot_img_hdr* header = (boot_img_hdr*)magic_offset_p;
-	//unsigned char **magic_pp = image->magic	;
-	//fprintf(stderr,"magicpp :%p",&header->magic[0] );
-	//magic_pp = &header->magic[0]; //,sizeof(boot_img_hdr));
-	//magic_pp =
-	//(*magic_pp[1])=image->start_addr[1];
-	
-	
-	/*(*image).magic[1] = header->magic[1];
-	(*image).magic[2] = header->magic[2];
-	(*image).magic[3] = header->magic[3];
-	(*image).magic[4] = header->magic[4];
-	(*image).magic[5] = header->magic[5];
-	(*image).magic[6] = header->magic[6];
-	(*image).magic[7] = header->magic[7];
-	(*image).magic[8] = header->magic[8];
-	*/
-	
 	// Work out the header values
 	image->header_size = sizeof(boot_img_hdr);
 	image->header_offset = magic_offset_p - boot_image_addr; 
-	image->header = boot_image_addr + image->header_offset;
+	 
+	image->header =(boot_img_hdr*) boot_image_addr + image->header_offset;
 	image->header_padding = calculate_padding(image->header_size,image->header->page_size);	
 	
 	// Work out the kernel values	

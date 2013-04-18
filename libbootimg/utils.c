@@ -20,11 +20,40 @@ void init_debug() {
 
 }
 
-// find_in_memory - This is essentially a lightweight implementation on memmem becuase memmem is not portable
+/* NAME
+	find_in_memory - locate a substring
+
+ SYNOPSIS
+      #include <utils.h>
+
+      unsigned char * find_in_memory(unsigned char *haystack, size_t haystacklen,
+					char *needle, size_t needlelen);
+
+ DESCRIPTION
+       The find_in_memory() function finds the start of the first occurrence of the substring needle of length needlelen in the memory area haystack of length haystacklen.
+
+ RETURN VALUE
+       The find_in_memory() function returns a pointer to the beginning of the substring, or NULL if the substring is not found.
+       
+       If an error occurs er 
+       
+*/
 unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len){
 	
+	
+	if(!haystack)
+	    errno = ENOMEM ;
+	else if(!needle)
+	    errno = ENOMEM ;
+	else if(haystack_len < needle_len || !haystack_len || !needle_len)
+	    errno = EINVAL ;
+	
+	if(errno) return NULL ;
+	
+	
+	
 	size_t begin=0;
-	unsigned char* uneedle = needle ;
+	unsigned char* uneedle = (unsigned char *)needle ;
 	 D("find_in_memory haystack=%p haystack_len=%u needle=%p needle_len=%u\n",haystack,haystack_len,needle,needle_len);
 	//fprintf(stderr,"Memory HS:%p HL:%u\n",haystack,	haystack_len);
 	D("haystack[0]='%x' needle[0]='%x'\n",haystack[0],uneedle[0]);
@@ -33,7 +62,7 @@ unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, ch
 		if(haystack[begin]==uneedle[0]){
 			
 			 if(!memcmp(uneedle,haystack+begin,needle_len)){
-			     D("haystack[%d]='%x'\n",begin,haystack[begin]);
+			     //D("haystack[%d]='%x'\n",begin,haystack[begin]);
 			  return haystack+begin;
 		      }
 		}
@@ -49,7 +78,7 @@ unsigned char *find_in_memory_start_at(unsigned char *haystack, unsigned haystac
 }
 // a simple wrapper to handle filename with out discovered lengths, keeps strlen all in one place
 
-unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,char* name){
+unsigned long write_item_to_disk(unsigned char *data,unsigned data_size,unsigned mode,char* name){
 	
 	errno = 0 ;
 	if(!name){
@@ -61,10 +90,9 @@ unsigned long write_item_to_disk(char *data,unsigned data_size,unsigned mode,cha
 
 
 // write_file_to_disk - handles the extraction of the parent path creation if required 
-unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size){
+unsigned long write_item_to_disk_extended(unsigned char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size){
 	
 	errno = 0; 
-	
 	D("mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
 	D("is dir %s\n",name);
 	if(S_ISDIR(mode)){
@@ -88,7 +116,7 @@ unsigned long write_item_to_disk_extended(char *data,unsigned data_size,unsigned
 		    fclose(filefp);
 		    chmod(name,mode);
 	    }else if(S_ISLNK(mode)){
-		    symlink_os(data, data_size ,name);			
+		    symlink_os(	(const char*)data, data_size ,name);			
 	    }
 			    
 	}
@@ -182,11 +210,10 @@ unsigned strulcmp(const unsigned char *s1, const unsigned char *s2){
 	return strncmp((const char*)s1,(const char*)s2,compare_length); 
 								
 }
-unsigned char* get_md5_sum(unsigned char* data ,unsigned size) {
-    int i, ret;
+char* get_md5_sum(unsigned char* data ,unsigned size) {
+    
     struct MD5Context ctx;
-    unsigned char* digest = calloc(MD5LENGTH,sizeof(unsigned char));
-    unsigned char buf[BUFSIZ];
+    unsigned char* digest = calloc(MD5LENGTH,sizeof(char));
 
     MD5Init( &ctx );
 
@@ -200,13 +227,13 @@ unsigned char* get_md5_sum(unsigned char* data ,unsigned size) {
 	digest[8],digest[9],digest[10],digest[11],
 	digest[12],digest[13],digest[14],digest[15] );
 
-    return digest;
+    return (char*)digest;
 }
 int is_md5_match(unsigned char* data_a ,unsigned size_a,unsigned char* data_b ,unsigned size_b) {
 
     
-    unsigned char * digest_a =get_md5_sum(data_a,size_a);
-    unsigned char * digest_b =get_md5_sum(data_b,size_b);
+    char * digest_a =get_md5_sum(data_a,size_a);
+    char * digest_b =get_md5_sum(data_b,size_b);
     return !strncmp(digest_a,digest_b,MD5LENGTH);
     
 }

@@ -26,6 +26,8 @@
 #define RECOVERY_BRAND_TWRP 5
 #define RECOVERY_BRAND_4EXT 6
 
+#define RECOVERY_VERSION_UNKNOWN -1
+
 typedef struct ramdisk_image ramdisk_image;
 
 typedef struct ramdisk_entry ramdisk_entry;
@@ -38,7 +40,7 @@ struct ramdisk_entry{
 
     unsigned long mode;    
     
-    char* name_addr ;
+    unsigned char* name_addr ;
     unsigned name_size ;
     unsigned name_offset ;
     unsigned name_padding ;
@@ -62,7 +64,7 @@ struct ramdisk_image {
     unsigned size;
     int type;
     int recovery_brand;   
-    unsigned char *recovery_version;
+    char *recovery_version;
     int recovery_version_size;
         
     unsigned entry_count;
@@ -78,11 +80,11 @@ int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image
 
 int init_ramdisk_image(ramdisk_image* image);
 
-int load_ramdisk_image_from_cpio_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
+int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
-int load_ramdisk_image_from_archive_memory(char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
+int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
-int save_ramdisk_entries_to_disk(ramdisk_image* image,unsigned char *directory_name);
+int save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name);
 
 unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size);
 

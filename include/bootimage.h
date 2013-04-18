@@ -4,11 +4,20 @@
 #include <ramdisk.h>
 #include <bootimg.h>
 typedef struct boot_image boot_image;
-
+typedef union boot_image_header boot_image_header;
 
 #define BOOT_MAGIC_SIZE 8
 #define BOOT_NAME_SIZE 16
 #define BOOT_ARGS_SIZE 512
+
+
+// boot_image_header at times need either it's members
+// or the pointer
+union boot_image_header{
+    unsigned char* addr;
+    boot_img_hdr* members;
+};
+
 
 struct boot_image
 {
@@ -17,10 +26,9 @@ struct boot_image
                                     for freeing the memory specified at this location */
     
     /* The addresses within the boot image memory to find the specific parts */
-    
-    boot_img_hdr*  header; 
+    boot_img_hdr* header;
     unsigned char* kernel_addr;
-    char* ramdisk_addr;
+    unsigned char* ramdisk_addr;
     unsigned char* second_addr;   
     
     
@@ -46,7 +54,7 @@ struct boot_image
    
     
 };
-int load_boot_image_from_memory(char* boot_image_addr,unsigned boot_image_size, boot_image* image);
+int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
 int load_boot_image_from_file(const char *filename, boot_image* image);
 int write_boot_image(char *filename, boot_image* image);
 int write_boot_image_header_to_disk(const char *filename, boot_image* image);

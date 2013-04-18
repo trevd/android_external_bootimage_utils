@@ -19,7 +19,8 @@ long compress_lzo_memory( unsigned char* uncompressed_data , size_t uncompressed
 }
 long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
 {
-	
+
+    errno = 0 ;
     z_stream zInfo = {0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 
     zInfo.avail_in=  compressed_data_size;
     zInfo.total_in=  compressed_data_size;  
@@ -29,12 +30,12 @@ long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_
     zInfo.next_out= uncompressed_data;
     size_t return_value= 0;
     long err= inflateInit2( &zInfo,16+MAX_WBITS );               // zlib function
-    
+
     if ( err == Z_OK ) {
-        err= inflate( &zInfo, Z_FINISH );     // zlib function
-        if ( err == Z_STREAM_END ) {
-            return_value= zInfo.total_out;
-        }else{ 
+	err= inflate( &zInfo, Z_FINISH );     // zlib function
+	if ( err == Z_STREAM_END ) {
+	    return_value= zInfo.total_out;
+	}else{ 
 	    errno=err;
 	    return_value =-1;
 	}

@@ -11,11 +11,14 @@ typedef struct kernel_image kernel_image;
 
 struct kernel_image {
     
+    //
     unsigned char* start_addr ;
     unsigned char* ramdisk_addr ;
     unsigned char* config_addr ;
-    unsigned char* version ;
-    unsigned char* version_number ;
+    
+    
+    char* version ;
+    char* version_number ;
     int version_number_length ;
     
     unsigned compression_type;
