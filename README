@@ -1,19 +1,23 @@
+ Android Boot Image Utilities x.xx Alpha Release
 
-Notes on boot images - There have the magic.
+ A collection of utilities to manipulate every aspect of android boot images 
 
-http://www.simtec.co.uk/products/SWLINUX/files/booting_article.html
+ Usage: bootimage-utils <action> [ ... ]
 
+ actions:
 
+ install                        install actions as a standalone commands
 
-Usage:  bootimg-tools [actions] <switches>
-Actions:
-unpack		unpack a boot image into it's constituent parts
-pack		pack seperate files into a boot image
-list		print boot image header details or ramdisk fileinfo
-extract   	extract a single file from a boot image ramdisk
-update    	update the boot image ramdisk and header property
-help		print the help information for the specificed actionn
-See bootimg-tools help <action> for detailed informationn"
+ i, info                        prints detailed information for boot images and related components
+ x, extract                     extract the components contained in boot images, ramdisks or kernels
+
+ u, update                      update the components contained in boot images, ramdisks or kernels
+ R, update-ramdisk              update the contents contained in boot images, ramdisks or kernels
+ R, update-ramdisk-cpio         update the contents contained in boot images, ramdisks or kernels
+ R, update-ramdisk-archive      update the contents contained in boot images, ramdisks or kernels
+ s, scan                        extract the components contained in boot images, ramdisks or kernels
+ c, create                      create an android boot image
+ r, create-ramdisk              create a compressed rootfs ramdisk
 
 
 Unpack: unpacks a boot image into it's constituent parts
