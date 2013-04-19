@@ -228,11 +228,11 @@ unsigned carve_out_entry_space(ramdisk_image* image){
     errno = 0;
     if(!image){
 	errno = ENOEXEC;
-	return -1;
+	return errno;
     }
     if(!image->entry_count){
 	errno = EINVAL ;
-	return -1;
+	return errno;
     }
     //fprintf(stderr,"DEBUG:carve_out_entry_space\n") ;   
     unsigned i; image->entries = calloc(image->entry_count, sizeof(ramdisk_entry*));
@@ -252,11 +252,11 @@ unsigned populate_ramdisk_entries(ramdisk_image* image){
      errno = 0;
      if(!image){
 	errno = ENOEXEC;
-	return -1;
+	return errno;
     }
     if(!image->entry_count){
 	errno = EINVAL ;
-	return -1;
+	return errno;
     }
 
     unsigned counter = 0;
@@ -281,7 +281,7 @@ unsigned populate_ramdisk_entries(ramdisk_image* image){
 	    image->entries[counter]->data_size = get_long_from_hex_field(header->c_filesize);
 	    image->entries[counter]->data_padding = ((4 - ((image->entries[counter]->data_size ) % 4)) % 4);
 	    image->entries[counter]->next_addr = image->entries[counter]->data_addr + (image->entries[counter]->data_size + image->entries[counter]->data_padding);
-	    
+	    D("name=%s data_size=%u padding=%u\n",image->entries[counter]->name_addr ,image->entries[counter]->data_size,image->entries[counter]->data_padding);
 	    
 	    counter += 1 ;
 	}
@@ -322,6 +322,7 @@ int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* im
     unsigned char* ramdisk_addr = read_item_from_disk(filename,&data_size);
     if(!ramdisk_addr){
 	fprintf(stderr,"Error %d\n",errno);
+	
 	return errno;
 
     }
@@ -347,27 +348,37 @@ int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image
 }
 int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
     
+    errno = 0 ; 
+    if(!ramdisk_addr || !ramdisk_size ){
+	errno = EINVAL ;
+	if(image) image->start_addr = NULL ; 
+    }else if(!image)
+	errno = ENOMEM ;
+    
+    if(errno) return errno ;
+	
     
     D("ramdisk_size %u\n", ramdisk_size);
     // now we have uncompressed data check we have a cpio file look for the magic
     if(memcmp(ramdisk_addr,CPIO_HEADER_MAGIC,CPIO_HEADER_MAGIC_SIZE)){
-	 D("CPIO_HEADER_MAGIC not found\n");
-	return ENOEXEC;
+	D("CPIO_HEADER_MAGIC not found\n");
+	goto error_cpio_magic;
     }
 	
     // and also look for the trailer
     if(!find_in_memory(ramdisk_addr,ramdisk_size,CPIO_TRAILER_MAGIC,CPIO_TRAILER_MAGIC_SIZE)){
 	D("CPIO_TRAILER_MAGIC not found\n");
-	return ENOEXEC;
+	goto error_cpio_magic;
     }
 	
     image->size = ramdisk_size;
     image->start_addr = ramdisk_addr ;
     
     image->entry_count = count_ramdisk_archive_entries(image);
+    D("image->entry_count %u\n", image->entry_count);
     
     if(!image->entry_count){
-	D("image->entry_count %u\n", image->entry_count);
+	errno = EINVAL;
 	return EINVAL;
     }
     
@@ -379,6 +390,11 @@ int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ram
     get_ramdisk_type(image);
     
     return 0;
+
+error_cpio_magic:
+    image->start_addr = NULL;
+    errno = ENOEXEC;
+    return ENOEXEC;
 }
 
 // get_archive_compression_type_and_offset - search the memory from ramdisk_addr for known compression magic 
@@ -415,8 +431,7 @@ int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned 
 	errno = ENOEXEC ;
 	return ENOEXEC;
     }
-    
-    
+       
     unsigned char *uncompressed_ramdisk_data = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ;
     unsigned uncompressed_ramdisk_size = 0;
     switch(image->compression_type){
@@ -439,17 +454,24 @@ int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned 
    
     if(!uncompressed_ramdisk_size){
 	D("uncompressed_ramdisk_size error\n");
-	free(uncompressed_ramdisk_data);
-	return  EINVAL;
+	goto error_uncompressed;
     }
+    
+    
+    
     if(load_ramdisk_image_from_cpio_memory(uncompressed_ramdisk_data,uncompressed_ramdisk_size,image)){
 	D("load_ramdisk_image_from_cpio_memory error\n");
-	free(uncompressed_ramdisk_data);
-	return  EINVAL;
+	goto error_uncompressed;
     }
+    
     D("image->entry_count %u\n", image->entry_count);
-    //free(uncompressed_ramdisk_data);
     return 0;
+    
+error_uncompressed:
+    image->start_addr = NULL ;
+    free(uncompressed_ramdisk_data);
+    errno = EINVAL;
+    return  EINVAL;
 
 }
 int save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name){
@@ -787,16 +809,72 @@ int int_ramdisk_compression(char * compression_type){
     
 }
 
-int update_ramdisk_header(unsigned char*entry_addr){
+unsigned update_ramdisk_header(ramdisk_entry* entry){
     
     char filesize_string[8];
-    ramdisk_entry *entry = (ramdisk_entry*)entry_addr;
+    
     sprintf(filesize_string,"%08x",entry->data_size);
+
+    D("old data_padding:%u\n",entry->data_padding);
+    entry->data_padding = ((4 - ((entry->data_size ) % 4)) % 4);
     
     
-    cpio_newc_header* head = (cpio_newc_header*)entry_addr;
-    fprintf(stderr,"update_header_filesize: old:%s",head->c_filesize);
+    cpio_newc_header* head = (cpio_newc_header*)entry->start_addr;
+    
+    D("new data_padding:%u\n",entry->data_padding);
+    D("old filesize:%.*s new filesize:%.*s\n",8,head->c_filesize,8,filesize_string);
     memmove(head->c_filesize,filesize_string,8);
-    fprintf(stderr,"new:%s\n",head->c_filesize);
     return 0;
+}
+unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage){
+    
+    unsigned i = 0;
+    unsigned char* data = calloc(rimage->size , sizeof(unsigned char));
+    
+    unsigned char* data_start = data;
+    unsigned cpio_size = 0;
+    D("cpio_size:%u %p %p\n",cpio_size,data ,data_start);
+    for ( i = 0 ; i < rimage->entry_count ; i++ ){
+	ramdisk_entry* entry = rimage->entries[i];	
+	//D("%d %.*s\n",sizeof(cpio_newc_header),sizeof(cpio_newc_header),entry->start_addr);	
+	//D("name_size:%u name:%.*s name_pad:%u data_size:%u data_pad:%u\n",entry->name_size,entry->name_size,entry->name_addr,
+	//			    entry->name_padding,
+	//			    entry->data_size,
+	//			    entry->data_padding);	
+	//
+	memcpy(data,entry->start_addr,sizeof(cpio_newc_header));
+	
+	cpio_size += sizeof(cpio_newc_header);
+	data += sizeof(cpio_newc_header);
+	
+	memcpy(data,entry->name_addr,entry->name_size);
+	
+	cpio_size += entry->name_size;
+	data += entry->name_size;
+	
+	memcpy(data,"\0\0\0\0",entry->name_padding);
+	cpio_size += entry->name_padding;
+	data += entry->name_padding;
+	
+	memcpy(data,entry->data_addr,entry->data_size);
+	cpio_size += entry->data_size;
+	data += entry->data_size;
+	
+	memcpy(data,"\0\0\0\0",entry->data_padding);
+	cpio_size += entry->data_padding;
+	data += entry->data_padding;
+	
+	
+	
+	
+    } 
+    D("cpio_size:%u %p %p\n",cpio_size,data ,data_start);
+    // align the file size to the next 256 boundary
+    while(cpio_size & 0xff)
+       cpio_size++;
+        
+   
+    
+    
+    return data_start ;
 }

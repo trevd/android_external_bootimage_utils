@@ -35,29 +35,57 @@ struct extract_action{
 	char* 	current_working_directory	;
 };
 
-int extract_ramdisk_file(extract_action* action, global_action* gaction, ramdisk_image* rimage){
+int extract_ramdisk_files(extract_action* action, global_action* gaction, boot_image* bimage){
     
-    // extract a single file from the ramdisk 
-    unsigned entry_index = 0 ; unsigned filename_index = 0 ; 
+    D("action->ramdisk_filenames_count=%d\n",action->ramdisk_filenames_count);
+    errno = 0;
     
-    // search the ramdisk
+    int return_value ; 
+    ramdisk_image rimage; 
+    return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
+    
+    unsigned entry_index = 0 ; 
+    unsigned filename_index = 0 ; 
+    
     for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
 	
-	for (entry_index = 0 ; entry_index < rimage->entry_count ; entry_index ++){
+	D("action->ramdisk_filenames[%d]=%s\n",filename_index,action->ramdisk_filenames[filename_index]);
+	unsigned found = 0 ;
+	errno = 0 ;
+	for (entry_index = 0 ; entry_index < rimage.entry_count ; entry_index ++){
 	    
-	    if(!strlcmp((char*)rimage->entries[entry_index]->name_addr,action->ramdisk_filenames[filename_index])){
-		
-		D("\%s\n",(char*)rimage->entries[entry_index]->name_addr);
-		//FILE* ramdiskfile_fp = fopen(action->ramdisk_filenames[filename_index],"w+b");
-		if(write_item_to_disk_extended(rimage->entries[entry_index]->data_addr,rimage->entries[entry_index]->data_size,
-		    rimage->entries[entry_index]->mode,action->ramdisk_filenames[filename_index],rimage->entries[entry_index]->name_size)){
+	    ramdisk_entry* entry = rimage.entries[entry_index];
+	    
+	    if(!strlcmp((char*)entry->name_addr,
+			    action->ramdisk_filenames[filename_index])){
 		    
-		    fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
+		    D("entry[%u]->name_addr=%s\n",entry_index,entry->name_addr);
+		    
+		    
+		    if(write_item_to_disk_extended(entry->data_addr,entry->data_size,
+			entry->mode,action->ramdisk_filenames[filename_index],entry->name_size)){
+			
+			fprintf(stderr," ramdisk file extracting %s : error #%d - %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
+		    }else{
+			if(!action->output_directory)
+			    fprintf(stderr," ramdisk file \"%s\" extracted to \"%s\"\n",entry->name_addr,action->ramdisk_filenames[filename_index]);
+			else
+			    fprintf(stderr," ramdisk file \"%s\" extracted to \"%s/%s\"\n",entry->name_addr,action->output_directory, action->ramdisk_filenames[filename_index]);
+			
+		    }
+		    found = 1 ;
+		    break;
 		}
-		break;
 	    }
+	    if(!found){
+		errno = ENOENT ;
+		fprintf(stderr," ramdisk file extracting %s : error #%d - %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
+		
+	    }
+	    
 	}
-    }
+    
+    
     return 0;
 }
 /* extract_ramdisk_image - expects rimage to be a prointer to the start of a cpio archive*/
@@ -144,34 +172,33 @@ int extract_bootimage(extract_action* action, global_action* gaction,boot_image*
 	//fprintf(stderr,"\n");
 	errno = 0;
     }
-    
-    // Write the compressed ramdisk to disk
-    if(action->ramdisk_imagename){
-	fprintf(stderr," Ramdisk");
-	if(write_item_to_disk(bimage->ramdisk_addr,bimage->header->ramdisk_size,33188,action->ramdisk_imagename)){
-	    fprintf(stderr, "error writing archive %s %d %s\n",action->ramdisk_imagename,errno,strerror(errno));
-	}else{
-	    fprintf(stderr," archive extracted to \"%s\"\n",action->ramdisk_imagename);
-	}
-	//fprintf(stderr,"\n");
-	errno = 0;
-    }
-    
-    // check to see if we need to do any additional extraction on
-    // the compressed ramdisk image
-    if(action->ramdisk_cpioname || action->ramdisk_directory || action->ramdisk_filenames_count > 0){
+    if( action->ramdisk_filenames_count ) {
 	
-	ramdisk_image rimage; 
-	return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
-	if(return_value != 0){
-	    if(rimage.start_addr != NULL  ) {
-		free(rimage.start_addr);
+	extract_ramdisk_files(action,gaction,bimage);
+	
+    }else {
+	
+	// Write the compressed ramdisk to disk
+	if(action->ramdisk_imagename){
+	    fprintf(stderr," Ramdisk");
+	    if(write_item_to_disk(bimage->ramdisk_addr,bimage->header->ramdisk_size,33188,action->ramdisk_imagename)){
+		fprintf(stderr, "error writing archive %s %d %s\n",action->ramdisk_imagename,errno,strerror(errno));
+	    }else{
+		fprintf(stderr," archive extracted to \"%s\"\n",action->ramdisk_imagename);
 	    }
-	    return return_value;
+	    //fprintf(stderr,"\n");
+	    errno = 0;
+	}else if(action->ramdisk_cpioname || action->ramdisk_directory ){
+	    
+	    ramdisk_image rimage; 
+	    
+	    return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
+	    
+	    if(!rimage.start_addr) return return_value;
+	
 	}
-	extract_ramdisk_image(action,gaction,&rimage);
-	free(rimage.start_addr);
     }
+
     return 0;
     
 }
@@ -210,7 +237,6 @@ int extract_file(extract_action* action, global_action* gaction){
     
     ramdisk_image rimage;
     return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
-    
     if(!return_value){
 	fprintf(stderr,"Extracting Ramdisk components from \"%s\"\n",action->filename);
 	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
@@ -412,7 +438,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
 		// work out how much memory is required
 		unsigned targc = 0 ; 
 		for(targc=0; targc < argc-1 ; targc++ ){
-		    fprintf(stderr,"argv[%d] %s\n",targc,argv[targc]);
+		    D("argv[%d] %s\n",targc,argv[targc]);
 		    if(argv[targc+1] && argv[targc+1][0]=='-')
 		      break;
 		    else
@@ -436,6 +462,8 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
     
     if(!action.filename) 
 	return print_program_error_file_name_not_found(action.filename);
+	
+    
     
     extract_file(&action,gaction);
        

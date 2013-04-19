@@ -54,9 +54,9 @@ unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, ch
 	
 	size_t begin=0;
 	unsigned char* uneedle = (unsigned char *)needle ;
-	 D("find_in_memory haystack=%p haystack_len=%u needle=%p needle_len=%u\n",haystack,haystack_len,needle,needle_len);
+	//D("find_in_memory haystack=%p haystack_len=%u needle=%p needle_len=%u\n",haystack,haystack_len,needle,needle_len);
 	//fprintf(stderr,"Memory HS:%p HL:%u\n",haystack,	haystack_len);
-	D("haystack[0]='%x' needle[0]='%x'\n",haystack[0],uneedle[0]);
+	//D("haystack[0]='%x' needle[0]='%x'\n",haystack[0],uneedle[0]);
 	for(begin=0 ; begin < haystack_len; begin++){
 		// make sure we are comparing apples with apples
 		if(haystack[begin]==uneedle[0]){

@@ -226,7 +226,7 @@ int process_create_action(unsigned argc,char ** argv,global_action* gaction){
 	    ramdisk_set = 1 ;
 	    D("action.ramdisk_directory:%s\n",action.ramdisk_directory);
 		
-	}else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i")) {
+	}else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i") || !strlcmp(argv[0],"-r")) {
 		
 	    // the ramdisk image as it is in the boot.img
 	    // this is normally a cpio.gz file but we need to 

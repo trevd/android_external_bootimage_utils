@@ -98,6 +98,8 @@ char *str_ramdisk_type(int type);
 
 char *str_recovery_brand(int ramdisk_brand);
 
-int update_ramdisk_header(unsigned char*entry_addr);
+unsigned update_ramdisk_header(ramdisk_entry* entry);
+
+unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage);
 
 #endif

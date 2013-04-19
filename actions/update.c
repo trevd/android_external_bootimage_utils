@@ -38,39 +38,7 @@ struct update_action{
 	unsigned 	property_count ;
 };
 
-int update_ramdisk_files(update_action* action,ramdisk_image* rimage){
-    
-    fprintf(stderr,"update_ramdisk_files %d\n",rimage->size);	
-    // extract a single file from the ramdisk 
-    unsigned entry_index = 0 ; unsigned filename_index = 0 ; 
-    for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
-	for (entry_index = 0 ; entry_index < rimage->entry_count ; entry_index ++){
-	    
-	    ramdisk_entry* entry = rimage->entries[entry_index];
-	    
-	    if(!strlcmp((char*)entry->name_addr,
-			    action->ramdisk_filenames[filename_index])){
-		    
-		    fprintf(stderr,"%s\n",entry->name_addr);
-		    
-		    
-		    entry->data_addr = read_item_from_disk((char*) entry->name_addr, &entry->data_size);
-								     
-		    update_ramdisk_header(entry->start_addr);
-		    
-		    if(write_item_to_disk_extended(entry->data_addr,entry->data_size,
-			entry->mode,action->ramdisk_filenames[filename_index],entry->name_size)){
-			
-			fprintf(stderr,"error writing %s %d %s\n",action->ramdisk_filenames[filename_index],errno,strerror(errno));
-		    }
-		    break;
-		}
-	    }
-	}
-	
-    
-    return 0 ; 
-}
+
 int update_ramdisk_cpio(update_action* action,global_action* gaction,ramdisk_image* rimage){
     
     return 0;
@@ -86,8 +54,73 @@ int update_kernel_image(update_action* action,global_action* gaction,kernel_imag
     return 0;
 
 }
-inline int update_boot_image_ramdisk_from_imagename(update_action* action,global_action* gaction,boot_image* bimage){
+inline int update_boot_image_ramdisk_from_files(update_action* action,global_action* gaction,boot_image** pbimage){
     
+    D("action->ramdisk_filenames_count=%d\n",action->ramdisk_filenames_count);
+    errno = 0;
+    boot_image* bimage = (*pbimage);
+    int return_value ; 
+    ramdisk_image rimage; 
+    return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
+    
+    unsigned entry_index = 0 ; 
+    unsigned filename_index = 0 ; 
+    
+    for (filename_index = 0 ; filename_index < action->ramdisk_filenames_count ; filename_index ++){
+	
+	D("action->ramdisk_filenames[%d]=%s\n",filename_index,action->ramdisk_filenames[filename_index]);
+	for (entry_index = 0 ; entry_index < rimage.entry_count ; entry_index ++){
+	    
+	    ramdisk_entry* entry = rimage.entries[entry_index];
+	    
+	    if(!strlcmp((char*)entry->name_addr,
+			    action->ramdisk_filenames[filename_index])){
+		    
+		    D("entry[%u]->name_addr=%s\n",entry_index,entry->name_addr);
+		    
+		    unsigned old_data_size = entry->data_size ; 
+		    unsigned new_data_size = 0 ;
+		    
+		    entry->data_addr = read_item_from_disk((char*) entry->name_addr, &new_data_size);
+		    D("old data_padding:%u\n",entry->data_padding);
+		    D("old: rimage.size=%u %u\n",rimage.size,old_data_size);
+		    entry->data_size = new_data_size;
+		    rimage.size -= old_data_size ;
+		    rimage.size += entry->data_size ;
+		    D("new data_padding:%u\n",entry->data_padding);
+		    D("new: rimage.size=%u %u\n",rimage.size, entry->data_size);
+		    update_ramdisk_header(entry);
+		    	    
+		    break;
+		}
+	    }
+	}
+    
+    
+    
+    unsigned cpio_ramdisk_size = rimage.size; 
+	
+    unsigned char* cpio_data =  pack_noncontiguous_ramdisk_entries(&rimage);
+    unsigned char* ramdisk_data = NULL;
+    D("cpio_size:%u %p\n",cpio_ramdisk_size,cpio_data );
+    write_item_to_disk(cpio_data,cpio_ramdisk_size,33188,"test.cpio");
+    
+    if(cpio_data){
+	ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+	bimage->header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+	bimage->ramdisk_addr = ramdisk_data;
+
+	free(cpio_data);
+	D("bimage->header->ramdisk_size :%u\n",bimage->header->ramdisk_size );
+
+    }
+    return 0;
+    
+}
+
+inline int update_boot_image_ramdisk_from_imagename(update_action* action,global_action* gaction,boot_image** pbimage){
+    
+    boot_image* bimage = (*pbimage);
     D("action->ramdisk_imagename=%s\n",action->ramdisk_imagename);
     errno = 0 ;
     unsigned ramdisk_size = 0; 
@@ -114,8 +147,9 @@ inline int update_boot_image_ramdisk_from_imagename(update_action* action,global
     
     
 }
-inline int update_boot_image_ramdisk_from_cpio(update_action* action,global_action* gaction,boot_image* bimage){
+inline int update_boot_image_ramdisk_from_cpio(update_action* action,global_action* gaction,boot_image** pbimage){
     
+    boot_image* bimage = (*pbimage);
     D("action->ramdisk_cpioname=%s\n",action->ramdisk_cpioname);
     errno = 0 ;
     unsigned cpio_ramdisk_size = 0; 
@@ -154,9 +188,10 @@ inline int update_boot_image_ramdisk_from_cpio(update_action* action,global_acti
     
 }
 
-inline int update_boot_image_ramdisk_from_directory(update_action* action,global_action* gaction,boot_image* bimage){
+inline int update_boot_image_ramdisk_from_directory(update_action* action,global_action* gaction,boot_image** pbimage){
     
     errno = 0;
+    boot_image* bimage = (*pbimage);
     unsigned cpio_ramdisk_size = 0; 
     D("action->ramdisk_directory=%s\n",action->ramdisk_directory);
     unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
@@ -177,9 +212,9 @@ inline int update_boot_image_ramdisk_from_directory(update_action* action,global
 
     return 0;
 }
-inline int update_boot_image_kernel_from_file(update_action* action,global_action* gaction,boot_image* bimage){
+inline int update_boot_image_kernel_from_file(update_action* action,global_action* gaction,boot_image** pbimage){
     
-    
+    boot_image* bimage = (*pbimage);
     D("action->kernel_addr=%p bimage->header->kernel_size=%u\n",action->kernel_filename,bimage->header->kernel_size);
     D("updating kernel from file action->kernel_filename=%s\n", action->kernel_filename);
     
@@ -244,18 +279,23 @@ int update_boot_image(update_action* action,global_action* gaction,boot_image* b
 
     int kernel_processed = 1 ; int ramdisk_processed = 1 ;    
     if(action->kernel_filename){
-	kernel_processed = update_boot_image_kernel_from_file(action,gaction,bimage);
+	kernel_processed = update_boot_image_kernel_from_file(action,gaction,&bimage);
     }
     
     if(action->ramdisk_directory){
 	D("action->ramdisk_directory=%s\n",action->ramdisk_directory);
-	ramdisk_processed = update_boot_image_ramdisk_from_directory(action,gaction,bimage);
+	ramdisk_processed = update_boot_image_ramdisk_from_directory(action,gaction,&bimage);
     }else if(action->ramdisk_cpioname){
 	D("action->ramdisk_cpioname=%s\n",action->ramdisk_cpioname);
-	ramdisk_processed = update_boot_image_ramdisk_from_cpio(action,gaction,bimage);
+	ramdisk_processed = update_boot_image_ramdisk_from_cpio(action,gaction,&bimage);
     }else if(action->ramdisk_imagename){
 	D("action->ramdisk_imagename=%s\n",action->ramdisk_imagename);
-	ramdisk_processed = update_boot_image_ramdisk_from_imagename(action,gaction,bimage);
+	ramdisk_processed = update_boot_image_ramdisk_from_imagename(action,gaction,&bimage);
+    }else if(action->ramdisk_filenames_count){
+	D("action->ramdisk_filenames_count=%u\n",action->ramdisk_filenames_count);
+	unsigned char* ram_addr = bimage->ramdisk_addr;
+	update_boot_image_ramdisk_from_files(action,gaction,&bimage);
+	D("old ramdisk:%p new_ramdisk:%p\n",ram_addr,bimage->ramdisk_addr);
     }
     
     set_boot_image_padding(bimage);
@@ -511,7 +551,7 @@ int process_update_action(unsigned argc,char ** argv,global_action* gaction){
 		ramdisk_set = 1 ;
 		D("action.ramdisk_directory:%s\n",action.ramdisk_directory);
 		    
-	    }else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i")) {
+	    }else if(!strlcmp(argv[0],"--image") || !strlcmp(argv[0],"-i") || !strlcmp(argv[0],"-r")) {
 		    
 		// the ramdisk image as it is in the boot.img
 		// this is normally a cpio.gz file but we need to 
