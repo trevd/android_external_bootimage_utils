@@ -53,20 +53,20 @@ int print_standard_help(global_action* gaction){
 	
 	fprintf(stderr," Usage: %s <action> [ ... ]\n\n",gaction->program_name);
 	fprintf(stderr," actions:\n\n");
-	fprintf(stderr," install             install actions as a standalone commands\n\n");
+	fprintf(stderr," install                        install actions as a standalone commands\n\n");
 	
-	fprintf(stderr," i, info             prints detailed information for boot images and related components\n");
-	fprintf(stderr," x, extract          extract the components contained in boot images, ramdisks or kernels\n\n");
+	fprintf(stderr," i, info                        prints detailed information for boot images and related components\n");
+	fprintf(stderr," x, extract                     extract the components contained in boot images, ramdisks or kernels\n\n");
 		
 	fprintf(stderr," u, update                      update the components contained in boot images, ramdisks or kernels\n");
 	fprintf(stderr," R, update-ramdisk              update the contents contained in boot images, ramdisks or kernels\n");
 	fprintf(stderr," R, update-ramdisk-cpio         update the contents contained in boot images, ramdisks or kernels\n");
 	fprintf(stderr," R, update-ramdisk-archive      update the contents contained in boot images, ramdisks or kernels\n");
 	
-	fprintf(stderr," s, scan             extract the components contained in boot images, ramdisks or kernels\n");
+	fprintf(stderr," s, scan                        extract the components contained in boot images, ramdisks or kernels\n");
 	
-	fprintf(stderr," c, create           creates an android boot image\n");
-	fprintf(stderr," r, create-ramdisk   extract the components contained in boot images, ramdisks or kernels\n");
+	fprintf(stderr," c, create                      create an android boot image\n");
+	fprintf(stderr," r, create-ramdisk              create a compressed rootfs ramdisk\n");
 	fprintf(stderr,"\n");
 	return 0;
 	
@@ -83,7 +83,7 @@ int print_help_message(global_action* gaction){
 	}
 	
 	switch(gaction->process_action){				
-		case ACTION_INFO:				print_info_action_help(gaction); break;				
+		case ACTION_INFO:		print_info_action_help(gaction); break;				
 		case ACTION_UPDATE:				break;			
 		case ACTION_UPDATE_KERNEL:		break;
 		case ACTION_UPDATE_RAMDISK:		break;

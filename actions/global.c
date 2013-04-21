@@ -110,7 +110,7 @@ int only_global_actions(unsigned argc,char ** argv,global_action* action){
     int return_value = 0;
     while(argc > 0){
        D("only_global_actions argv[0]=%s\n",argv[0]);
-	if(!strlcmp(argv[0],"--debug") || !strlcmp(argv[0],"--verbose") || !strlcmp(argv[0],"--log")){
+	if(!(argv[0],"--verbose") || !strlcmp(argv[0],"--log")){
 	   return_value = 0 ;
 	}else{
 	    return_value =1 ;
@@ -133,7 +133,7 @@ int process_global_action(unsigned argc,char ** argv,global_action* action){
    
     while(argc > 0){
 		
-	if(!strlcmp(argv[0],"--debug")){
+	if(getenv("BITDEBUG")){
 	    action->debug = 1 ;
 	    // initialize debug printing for libbootimage
 	    init_debug();

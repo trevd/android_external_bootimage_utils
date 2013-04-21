@@ -37,11 +37,11 @@ long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_
 	    return_value= zInfo.total_out;
 	}else{ 
 	    errno=err;
-	    return_value =-1;
+	    return_value =0;
 	}
     }else{
 	    errno=err;
-	    return_value =-1;
+	    return_value =0;
     }
     inflateEnd( &zInfo );   
     return( return_value ); 

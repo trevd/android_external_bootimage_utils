@@ -41,25 +41,32 @@ oops:
 
 int mkdir_and_parents(const char *path,unsigned mode)
 {
-        errno;
+        errno = 0;
         char opath[256];
         char *p;
         size_t len;
-
+         
         strncpy(opath,(char*) path, sizeof(opath));
         len = strlen(opath);
         if(opath[len - 1] == '/')
                 opath[len - 1] = '\0';
         for(p = opath; *p; p++){
+           
                 if(*p == '/') {
                         *p = '\0';
-                        if(access(opath, F_OK))
+                        if(access(opath, F_OK)){
                                 mkdir(opath, mode);
+                            
+                        }
                         *p = '/';
+                        
                 }
             }
+            
+          
         if(access(opath, F_OK))         /* if path is not terminated with / */
                 mkdir(opath, mode);
+         D("errno=%u %s\n",errno,strerror(errno));
         return 0 ;
 }
 int symlink_os(const char *source, size_t size,const char *path){

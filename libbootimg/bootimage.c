@@ -23,7 +23,7 @@ static size_t calculate_padding(size_t size,unsigned page_size){
 	return padding ; 
 }
 // set_boot_image_defaults - when creating a new boot image
-int set_boot_image_defaults(boot_image* image){
+unsigned set_boot_image_defaults(boot_image* image){
 	
 	D("set_boot_image_defaults\n") ;
 	
@@ -68,7 +68,7 @@ int set_boot_image_defaults(boot_image* image){
 	return 0;	
 	
 } 
-int copy_boot_image_header_info(boot_image* dest,boot_image* source){
+unsigned copy_boot_image_header_info(boot_image* dest,boot_image* source){
 	
 	//dest->header->kernel_addr = source->header->kernel_addr;
     //dest->header->kernel_size = source->header->kernel_size;
@@ -95,7 +95,7 @@ int copy_boot_image_header_info(boot_image* dest,boot_image* source){
 
 // set_boot_image_padding - work out the padding for each section
 // Padding is required because boot images are page aligned 
-int set_boot_image_padding(boot_image* image){
+unsigned set_boot_image_padding(boot_image* image){
 	
 	image->ramdisk_padding = calculate_padding(image->header->ramdisk_size,image->header->page_size);
 	
@@ -110,7 +110,7 @@ int set_boot_image_padding(boot_image* image){
 }
 // set_boot_image_offsets - set the offsets in the image when creating a new image
 // Note: kernel size and ramdisk size need to be set prior to calling this function
-int set_boot_image_offsets(boot_image*image)
+unsigned set_boot_image_offsets(boot_image*image)
 {
 	
 	image->kernel_offset = image->header_offset + image->header->page_size;
@@ -124,7 +124,7 @@ int set_boot_image_offsets(boot_image*image)
 	return 0;
 }
 
-int set_boot_image_content_hash(boot_image* image)
+unsigned set_boot_image_content_hash(boot_image* image)
 {
 	SHA_CTX ctx;
     SHA_init(&ctx);
@@ -140,7 +140,7 @@ int set_boot_image_content_hash(boot_image* image)
 	memcpy(&image->header->id, sha, SHA_DIGEST_SIZE > sizeof(image->header->id) ? sizeof(image->header->id) : SHA_DIGEST_SIZE);
     return 0;
 }
-int print_boot_image_additional_info(boot_image* image){
+unsigned print_boot_image_additional_info(boot_image* image){
 	
 	
     fprintf(stderr,"  total_size       :%08u\n",image->total_size);
@@ -161,7 +161,7 @@ int print_boot_image_additional_info(boot_image* image){
 	}
     return 0;
 	}
-int print_boot_image_header_info(boot_image* image){
+unsigned print_boot_image_header_info(boot_image* image){
 
 	fprintf(stderr,"  kernel_size      :%u\n",image->header->kernel_size);
     fprintf(stderr,"  kernel_addr      :0x%08x\n",image->header->kernel_addr);
@@ -175,7 +175,7 @@ int print_boot_image_header_info(boot_image* image){
     fprintf(stderr,"  cmdline          :%s\n",image->header->cmdline);
     return 0;
 }
-int print_boot_image_header_hashes(boot_image* image){
+unsigned print_boot_image_header_hashes(boot_image* image){
 
     fprintf(stderr,"  id[0]            :%u\n",image->header->id[0]);
     fprintf(stderr,"  id[1]            :%u\n",image->header->id[1]);
@@ -190,7 +190,7 @@ int print_boot_image_header_hashes(boot_image* image){
 
 
 
-int write_boot_image_header_to_disk(const char *filename, boot_image* image){
+unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image){
 	
 	errno = 0 ;
 	FILE * header_file = fopen(filename,"w");
@@ -205,7 +205,7 @@ int write_boot_image_header_to_disk(const char *filename, boot_image* image){
 		image->header->kernel_size,image->header->kernel_addr,image->header->ramdisk_size,image->header->ramdisk_addr,
 		image->header->second_size,image->header->second_addr,image->header->tags_addr,image->header->page_size,image->header->name,image->header->cmdline);
 		
-		/*int fn = fileno(header_file);
+		/*unsigned fn = fileno(header_file);
 		
 		if ( fn == -1 ) return errno;
 				
@@ -216,8 +216,9 @@ int write_boot_image_header_to_disk(const char *filename, boot_image* image){
 	}
 	return errno;
 }
-int load_boot_image_header_from_disk(const char *filename, boot_image* image){
+unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image){
 	
+	D("filename=%s\n",filename);
 	FILE * header_file = fopen(filename,"r");
 	if(header_file){
 		char line[256];
@@ -227,6 +228,7 @@ int load_boot_image_header_from_disk(const char *filename, boot_image* image){
 				//fprintf(stderr,"%d %s\n",strlen(line+17),line+17);
 				char *value = line+17;
 				image->header->kernel_addr = strtol(value,NULL,16 ); /* write the line */
+				D("kernel address=x%08x\n",image->header->kernel_addr);
 			}
 			if(!memcmp("ramdisk_address:",line,16)){
 				image->header->ramdisk_addr = strtol(line+16,NULL,16 ); /* write the line */
@@ -262,26 +264,28 @@ int load_boot_image_header_from_disk(const char *filename, boot_image* image){
  * 
  * returns zero when successful, return errno on failure
  * */
-int load_boot_image_from_file(const char *filename, boot_image* image){
+unsigned load_boot_image_from_file(const char *filename, boot_image* image){
 
 	errno = 0;
 	unsigned boot_image_size = 0;
+	D("filename=%s\n",filename);
 	unsigned char* boot_image_addr = read_item_from_disk(filename,&boot_image_size);
 	if(!boot_image_addr){
 		return errno;
 		
 	}
 	D("boot_image_addr %p %u\n",boot_image_addr,boot_image_size);
-	int return_value = load_boot_image_from_memory(boot_image_addr,boot_image_size,image);
+	unsigned return_value = load_boot_image_from_memory(boot_image_addr,boot_image_size,image);
 	//free(boot_image_addr);
 	
 	return  return_value;
 	
 	// Look for the Android Boot Magic
 }
-int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image){
+unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image){
 
 
+	D("boot_image_size=%u\n",boot_image_size);
 	unsigned char * magic_offset_p = find_in_memory(boot_image_addr,boot_image_size,BOOT_MAGIC, BOOT_MAGIC_SIZE );
 	if(!magic_offset_p){
 		image->start_addr = NULL;
@@ -331,7 +335,7 @@ int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_ima
 }
 
 
-int write_boot_image(char *filename,boot_image* image){
+unsigned write_boot_image(char *filename,boot_image* image){
 	
 	errno = 0;
 	FILE* boot_image_file_fp = fopen(filename,"w+b");

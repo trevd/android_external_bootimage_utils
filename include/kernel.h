@@ -7,7 +7,8 @@ typedef struct kernel_image kernel_image;
 #define KERNEL_COMPRESSION_LZO 2
 #define KERNEL_COMPRESSION_LZMA 3
 
-
+#define KERNEL_ZIMAGE_MAGIC "\x18\x28\x6F\x01"
+#define KERNEL_ZIMAGE_MAGIC_SIZE 4 
 
 struct kernel_image {
     

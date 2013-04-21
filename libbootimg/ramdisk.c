@@ -11,6 +11,8 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <ctype.h>
+#include <kernel.h>
+
 #include <private/android_filesystem_config.h>
 
 #define CPIO_HEADER_MAGIC "070701"
@@ -58,7 +60,15 @@ struct cpio_newc_header {
 
 #define MAX_RAMDISK_SIZE (8192*1024)*4
 
-int init_ramdisk_image(ramdisk_image* image){
+ramdisk_image* get_initialized_ramdisk_image(){
+    
+    ramdisk_image* image = calloc(1,sizeof(ramdisk_image));
+    init_ramdisk_image(image);
+    return image;
+    
+}
+
+unsigned init_ramdisk_image(ramdisk_image* image){
     
     image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
     image->start_addr = NULL ;
@@ -281,7 +291,7 @@ unsigned populate_ramdisk_entries(ramdisk_image* image){
 	    image->entries[counter]->data_size = get_long_from_hex_field(header->c_filesize);
 	    image->entries[counter]->data_padding = ((4 - ((image->entries[counter]->data_size ) % 4)) % 4);
 	    image->entries[counter]->next_addr = image->entries[counter]->data_addr + (image->entries[counter]->data_size + image->entries[counter]->data_padding);
-	    D("name=%s data_size=%u padding=%u\n",image->entries[counter]->name_addr ,image->entries[counter]->data_size,image->entries[counter]->data_padding);
+	    //D("name=%s data_size=%u padding=%u\n",image->entries[counter]->name_addr ,image->entries[counter]->data_size,image->entries[counter]->data_padding);
 	    
 	    counter += 1 ;
 	}
@@ -315,7 +325,7 @@ unsigned count_ramdisk_archive_entries(ramdisk_image* image){
     
 }
 
-int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image){
+unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image){
      
     errno = 0;
     unsigned data_size = 0;
@@ -331,7 +341,7 @@ int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* im
 
     return  return_value; 
 }
-int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image){
+unsigned load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image){
     
     errno = 0;
     unsigned data_size = 0;
@@ -346,7 +356,7 @@ int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image
 
     return  return_value; 
 }
-int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
+unsigned load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
     
     errno = 0 ; 
     if(!ramdisk_addr || !ramdisk_size ){
@@ -402,6 +412,15 @@ error_cpio_magic:
 // image->compression_type is also updated
 unsigned char* get_archive_compression_type_and_offset(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image){
     
+    // First we need to make sure we have an actual ramdisk and not some thing else
+    // which can contain archives, such as a kernel image
+    unsigned char * kernel_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,KERNEL_ZIMAGE_MAGIC, KERNEL_ZIMAGE_MAGIC_SIZE );
+    if(kernel_magic_offset_p){
+	image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
+	return NULL ;
+    }
+    
+    
     D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
     unsigned char * archive_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
     if(archive_magic_offset_p){
@@ -420,7 +439,7 @@ unsigned char* get_archive_compression_type_and_offset(unsigned char* ramdisk_ad
     return NULL;
 }
 
-int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
+unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
     D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
    
@@ -471,10 +490,11 @@ error_uncompressed:
     image->start_addr = NULL ;
     free(uncompressed_ramdisk_data);
     errno = EINVAL;
+    D("error_uncompressed %s\n", strerror(errno));
     return  EINVAL;
 
 }
-int save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name){
+unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name){
 
     char cwd[PATH_MAX];
     errno = 0;
@@ -714,7 +734,7 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     
     
 }
-int print_ramdisk_info(ramdisk_image* rimage){
+unsigned print_ramdisk_info(ramdisk_image* rimage){
     
     //fprintf(stderr,"\nramdisk_image struct values:\n");
     D("start_addr=%p\n",rimage->start_addr);
@@ -778,10 +798,10 @@ char *str_ramdisk_compression(int compression_type){
     return "unknown";
     
 }
-int int_ramdisk_compression(char * compression_type){
+unsigned int_ramdisk_compression(char * compression_type){
     
     D("compression_type=%s\n",compression_type);
-    int compression_index = RAMDISK_COMPRESSION_UNKNOWN;
+    unsigned compression_index = RAMDISK_COMPRESSION_UNKNOWN;
     if(!compression_type){
 	return compression_index;
     }

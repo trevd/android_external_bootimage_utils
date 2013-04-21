@@ -57,27 +57,30 @@ unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, ch
 	//D("find_in_memory haystack=%p haystack_len=%u needle=%p needle_len=%u\n",haystack,haystack_len,needle,needle_len);
 	//fprintf(stderr,"Memory HS:%p HL:%u\n",haystack,	haystack_len);
 	//D("haystack[0]='%x' needle[0]='%x'\n",haystack[0],uneedle[0]);
+	
 	for(begin=0 ; begin < haystack_len; begin++){
 		// make sure we are comparing apples with apples
 		if(haystack[begin]==uneedle[0]){
 			
-			 if(!memcmp(uneedle,haystack+begin,needle_len)){
-			     //D("haystack[%d]='%x'\n",begin,haystack[begin]);
-			  return haystack+begin;
-		      }
+			if(!memcmp(uneedle,haystack+begin,needle_len)){
+			    //D("haystack[%d]='%x'\n",begin,haystack[begin]);
+			    return haystack+begin;
+			}
 		}
 	}
-	//fprintf(stderr,"Memory Not Found\n");
+	
+	D("INFO: needle Not Found In Memory\n");
 	return NULL;
 }
 unsigned char *find_in_memory_start_at(unsigned char *haystack, unsigned haystack_len,unsigned char *haystack_offset, char* needle, unsigned needle_len){
 	
+	
 	unsigned offset_difference = haystack_offset - haystack;
-	//fprintf(stderr,"offset_difference %u\n",offset_difference);
+	//D("offset_difference:%d\n",needle,offset_difference);
 	return find_in_memory(haystack_offset, haystack_len - offset_difference ,needle, needle_len);
 }
-// a simple wrapper to handle filename with out discovered lengths, keeps strlen all in one place
 
+// a simple wrapper to handle filename with out discovered lengths, keeps strlen all in one place
 unsigned long write_item_to_disk(unsigned char *data,unsigned data_size,unsigned mode,char* name){
 	
 	errno = 0 ;
@@ -94,28 +97,27 @@ unsigned long write_item_to_disk_extended(unsigned char *data,unsigned data_size
 	
 	errno = 0; 
 	D("mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
-	D("is dir %s\n",name);
 	if(S_ISDIR(mode)){
-	    
+		D("%s is a directory\n",name);
 		mkdir_and_parents(name,mode);
 	}else{
 
 	    char * directory_seperator = strrchr(name,'/');
-	    D("directory_seperator %p\n",directory_seperator);
 	    if(directory_seperator){
 		    // a cheeky bit of string manipulation to create a directory
 		    (*directory_seperator) ='\0';
-		    //fprintf(stderr,"directory: %s\n",name);
 		    mkdir_and_parents(name,0777);
 		    (*directory_seperator) ='/';
 	    }
 	    if(S_ISREG(mode)){
+		    D("%s is a regular file\n",name);
 		    FILE* filefp = fopen(name,"wb");
 		    if(!filefp)	return errno;
 		    fwrite(data,data_size,1,filefp);
 		    fclose(filefp);
 		    chmod(name,mode);
 	    }else if(S_ISLNK(mode)){
+		    D("%s is a symlink\n",name);
 		    symlink_os(	(const char*)data, data_size ,name);			
 	    }
 			    
@@ -140,7 +142,7 @@ unsigned char* read_regular_file_from_disk(const char *name, unsigned* data_size
     }
 	
     if(fread(data, 1,size, fp) != size)  goto oops;
-   // fprintf(stderr,"read_item_from_disk data %p\n",data);
+   
     fclose(fp);
 
     if(!(*data_size)) *data_size = size;
@@ -174,6 +176,7 @@ unsigned char* read_item_from_disk(const char *name, unsigned* data_size){
        case S_IFIFO:  printf("FIFO/pipe\n");               break;
        default:       printf("unknown?\n");                break;
            }
+    
     return NULL;
    
 	
@@ -229,6 +232,7 @@ char* get_md5_sum(unsigned char* data ,unsigned size) {
 
     return (char*)digest;
 }
+
 int is_md5_match(unsigned char* data_a ,unsigned size_a,unsigned char* data_b ,unsigned size_b) {
 
     

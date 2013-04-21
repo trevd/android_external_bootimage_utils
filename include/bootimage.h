@@ -54,18 +54,18 @@ struct boot_image
    
     
 };
-int load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
-int load_boot_image_from_file(const char *filename, boot_image* image);
-int write_boot_image(char *filename, boot_image* image);
-int write_boot_image_header_to_disk(const char *filename, boot_image* image);
-int load_boot_image_header_from_disk(const char *filename, boot_image* image);
-int set_boot_image_defaults(boot_image* image);
-int set_boot_image_content_hash(boot_image* image);
-int set_boot_image_padding(boot_image* image);
-int set_boot_image_offsets(boot_image* image);
-int print_boot_image_info(boot_image* image);
-int print_boot_image_header_info(boot_image* image);
-int print_boot_image_additional_info(boot_image* image);
-int print_boot_image_header_hashes(boot_image* image);
-int copy_boot_image_header_info(boot_image* dest,boot_image* source);
+unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
+unsigned load_boot_image_from_file(const char *filename, boot_image* image);
+unsigned write_boot_image(char *filename, boot_image* image);
+unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image);
+unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image);
+unsigned set_boot_image_defaults(boot_image* image);
+unsigned set_boot_image_content_hash(boot_image* image);
+unsigned set_boot_image_padding(boot_image* image);
+unsigned set_boot_image_offsets(boot_image* image);
+unsigned print_boot_image_info(boot_image* image);
+unsigned print_boot_image_header_info(boot_image* image);
+unsigned print_boot_image_additional_info(boot_image* image);
+unsigned print_boot_image_header_hashes(boot_image* image);
+unsigned copy_boot_image_header_info(boot_image* dest,boot_image* source);
 #endif

@@ -36,6 +36,8 @@ int get_action(unsigned argc,char ** argv,global_action* gaction){
 int main(int argc,char ** argv){
 
 
+	
+
 	// this should never happen but as we are
 	// narrowing the variable we may aswell check
 	if(argc < 0) return -1;
@@ -70,14 +72,19 @@ int main(int argc,char ** argv){
 	}
 	
 	// was this a multicall, if not then move the arg pointer along
+	D("action.multicall=%u %s\n",gaction.multicall,argv[2]);
 	if(!gaction.multicall){
 		// not a multicall
-		if(!strlcmp(argv[1],"-help") || !strlcmp(argv[1],"-h")){
+		if(!strlcmp(argv[1],"--help") || !strlcmp(argv[1],"-h")  || !strlcmp(argv[2],"help")  ){
 			 //standard help requested 
 			 D("Printing Standard Help\n");
+			 print_help_message(	&gaction ) ;	
+			 return 0;
 		 }
 		--argc ; ++argv	;
 	}
+	
+	
 	
 	get_action(argc , argv, &gaction );
 		

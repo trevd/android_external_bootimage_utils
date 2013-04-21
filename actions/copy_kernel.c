@@ -27,8 +27,8 @@ int copy_kernel(copy_kernel_action* action){
     // load the source boot image
     int return_value=load_boot_image_from_file(action->source,&bimage_source);
     if(errno){
-	return_value = errno;
-	fprintf(stderr," cannot open file \"%s\" as boot image - error %d - %s\n\n",action->source ,errno , strerror(errno));
+	return_value = print_program_error_file_not_boot_image(action->source);
+	
 	goto fail_hard;
     }
     // load the destination boot image

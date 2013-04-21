@@ -55,7 +55,6 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
        
     
     print_program_title();
-    
     fprintf(stderr," Printing boot image information for \"%s\"\n\n",action->filename);
     if(action->header){
 	
@@ -65,6 +64,7 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
     }
   
     if(action->additional){
+	
 	fprintf(stderr," File structure:\n");
 	print_boot_image_additional_info(bimage);
 	fprintf(stderr,"\n");
@@ -99,29 +99,46 @@ int info_file(info_action* action,global_action* gaction ){
     getcwd(current_working_directory,PATH_MAX);
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
+    
     if(!action_data && errno){
-	    //  file too large error. no point in contining
-	    print_program_title();
-	    fprintf(stderr," Cannot process \"%s\" - error : %d %s\n\n",action->filename,errno,strerror(errno));
+	    print_program_error_processing(action->filename);
 	    return 0;    
 	}
 
     
     D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
     boot_image bimage;
+    
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
+	
 	D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
 	return_value = info_boot_image(action, gaction,&bimage);
+	
 	D("info_boot_image returned %d\n",return_value);
 	if(bimage.start_addr != NULL ) free(bimage.start_addr); 
 	return return_value;   
     
     }else{
+	
 	if(bimage.start_addr != NULL ) free(bimage.start_addr); 
 	
-	
+    } 
+    // We will look for a ramdisk cpio first
+    ramdisk_image* rimage = get_initialized_ramdisk_image();
+    if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,rimage)){
+	return_value = info_ramdisk(rimage,action,1);
+	free(rimage->start_addr); 
+	return return_value;
     }
     
+    return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,rimage);
+    if(!return_value){
+	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage->entry_count); 
+	return_value = info_ramdisk(rimage,action,1);
+	free(rimage->start_addr); 
+	return return_value;
+    }
+    free(rimage);
 
     kernel_image kimage;
     errno = 0 ; 
@@ -132,25 +149,7 @@ int info_file(info_action* action,global_action* gaction ){
 	if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         return return_value;
     }
-    
-    
-    ramdisk_image rimage;
-    init_ramdisk_image(&rimage);
-    return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
-    
-    if(!return_value){
-	D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
-	return_value = info_ramdisk(&rimage,action,1);
-	free(rimage.start_addr); 
-	return return_value;
-    }
-    
-     if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
-	return_value = info_ramdisk(&rimage,action,1);
-	free(rimage.start_addr); 
-	return return_value;
-    }
-    
+        
     
     print_program_error_file_type_not_recognized(action->filename); 
     
@@ -247,8 +246,9 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
 	
 	argc--; argv++ ;
     }
+    
     // we must have at least a boot image to process
-   if(!action.filename) 
+    if(!action.filename) 
 	return print_program_error_file_name_not_found(action.filename);
     
     

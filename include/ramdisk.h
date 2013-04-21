@@ -73,26 +73,25 @@ struct ramdisk_image {
 
     };
 
-int load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image);
+unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image);
 
-int load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image);
+unsigned load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image);
 
+unsigned init_ramdisk_image(ramdisk_image* image);
 
-int init_ramdisk_image(ramdisk_image* image);
+unsigned load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
-int load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
+unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
-int load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
-
-int save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name);
+unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name);
 
 unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size);
 
-int print_ramdisk_info(ramdisk_image* rimage);
+unsigned print_ramdisk_info(ramdisk_image* rimage);
 
 char *str_ramdisk_compression(int compression_type);
 
-int int_ramdisk_compression(char * compression_type);
+unsigned int_ramdisk_compression(char * compression_type);
 
 char *str_ramdisk_type(int type);
 
@@ -101,5 +100,7 @@ char *str_recovery_brand(int ramdisk_brand);
 unsigned update_ramdisk_header(ramdisk_entry* entry);
 
 unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage);
+
+ramdisk_image* get_initialized_ramdisk_image();
 
 #endif
