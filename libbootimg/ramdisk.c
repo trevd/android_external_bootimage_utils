@@ -15,10 +15,7 @@
 
 #include <private/android_filesystem_config.h>
 
-#define CPIO_HEADER_MAGIC "070701"
-#define CPIO_HEADER_MAGIC_SIZE 6
-#define CPIO_TRAILER_MAGIC "TRAILER!!!"
-#define CPIO_TRAILER_MAGIC_SIZE 10
+
 
 #define RECOVERY_FILE_NAME "sbin/recovery"
 

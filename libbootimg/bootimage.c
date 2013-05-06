@@ -3,16 +3,37 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <bootimg.h>
-#include <sha.h>
 #include <bootimage.h>
 #include <utils.h>
+
+// include the android boot image header from the mkbootimg
+// in the Android AOSP sources ( /system/core/mkbootimg/bootimg.h )
+#include <bootimg.h>
+
+// include the android sha header used by libmincrypt
+// in the Android AOSP sources ( /system/core/libmincrypt/sha.h )
+#include <sha.h>
+
+
 // Private defines
 #ifndef BOOT_IMAGE_SIZE_MAX
 #define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
 #endif
 
+
+// The current maximum page size as used by google's mkbootimg program
+#ifndef MAXIMUM_KNOWN_PAGE_SIZE
 #define MAXIMUM_KNOWN_PAGE_SIZE 16384
+#endif
+
+// Allow for "Non Standard" Pagesizes used by some images
+// The largest non standard pagesize witnessed in the wild is 
+// 131072 bytes ( 0x00020000 ), Allowing 1MB should accomadate any
+// future expansion for now
+#ifndef MAXIMUM_ALLOWED_PAGE_SIZE
+#define MAXIMUM_ALLOWED_PAGE_SIZE 0x00100000 // 1048576 bytes ( 1MB )
+#endif
+
 
 static unsigned char padding[MAXIMUM_KNOWN_PAGE_SIZE] = { 0, };
 
@@ -28,8 +49,6 @@ unsigned set_boot_image_defaults(boot_image* image){
 	D("set_boot_image_defaults\n") ;
 	
 	image->header = calloc(1,sizeof(boot_img_hdr));
-	
-	
 	
 	memcpy(image->header->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
 	
@@ -68,30 +87,7 @@ unsigned set_boot_image_defaults(boot_image* image){
 	return 0;	
 	
 } 
-unsigned copy_boot_image_header_info(boot_image* dest,boot_image* source){
-	
-	//dest->header->kernel_addr = source->header->kernel_addr;
-    //dest->header->kernel_size = source->header->kernel_size;
-	
-	//dest->header->ramdisk_size = source->header->ramdisk_size;
-	//dest->header->ramdisk_addr = source->header->ramdisk_addr;
-	
-	//if(source->header->second_size > 0){
-	//    dest->header->second_size = source->header->second_size;
-	//    dest->header->second_addr = source->header->second_addr;
-	//}
-	
-	dest->header->tags_addr = source->header->tags_addr;
-	dest->header->page_size = source->header->page_size;
-	dest->header->ramdisk_addr = source->header->ramdisk_addr;
-	dest->header->kernel_addr = source->header->kernel_addr;
-	dest->header->second_addr = source->header->second_addr;
-	memcpy(dest->header->cmdline,source->header->cmdline,BOOT_ARGS_SIZE);
-	memcpy(dest->header->name,source->header->name,BOOT_NAME_SIZE);
-	
-	return 0;
-	
-}
+
 
 // set_boot_image_padding - work out the padding for each section
 // Padding is required because boot images are page aligned 

@@ -19,17 +19,18 @@ src_files :=  main.c \
 			  actions/global.c \
 			  libbootimg/utils.c \
 			  libbootimg/md5.c \
+			  libbootimg/file.c
 			  
 			 
-			  
+include_dirs := $(LOCAL_PATH) \
+				$(LOCAL_PATH)/include \
+				$(LOCAL_PATH)/include/libbootimg \
+				system/core/mkbootimg
+								  
 			
 include $(CLEAR_VARS)
 
-
-
-LOCAL_C_INCLUDES := $(LOCAL_PATH) \
-					$(LOCAL_PATH)/include \
-					system/core/mkbootimg
+LOCAL_C_INCLUDES := $(include_dirs)
 					
 LOCAL_STATIC_LIBRARIES := libbootimage libz
 
@@ -41,10 +42,7 @@ include $(BUILD_HOST_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
-
-LOCAL_C_INCLUDES := $(LOCAL_PATH) \
-					$(LOCAL_PATH)/include \
-					system/core/mkbootimg					
+LOCAL_C_INCLUDES := $(include_dirs)				
 
 LOCAL_STATIC_LIBRARIES := libbootimage libz libc
 
