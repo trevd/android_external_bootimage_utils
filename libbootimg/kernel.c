@@ -48,8 +48,7 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     
     }
 
-    
-    
+        
     D("kernel_magic_offset_p : %p\n",kernel_magic_offset_p);
     // look for a gzip entry in the packed kernel image data 
     unsigned char * gzip_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );

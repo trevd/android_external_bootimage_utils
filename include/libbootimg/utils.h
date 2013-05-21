@@ -25,6 +25,25 @@ void init_debug() ;
             fprintf(stderr,  __VA_ARGS__ ); \
         }
 
+/* NAME
+	find_in_memory - locate a substring
+
+ SYNOPSIS
+      
+	#include <utils.h>
+
+	unsigned char * find_in_memory(unsigned char *haystack, size_t haystacklen,
+					char *needle, size_t needlelen);
+
+ DESCRIPTION
+	The find_in_memory() function finds the start of the first occurrence of the substring needle of length needlelen in the memory area haystack of length haystacklen.
+
+ RETURN VALUE
+	The find_in_memory() function returns a pointer to the beginning of the substring, or NULL if the substring is not found.
+       
+	If an error occurs NULL is returned and errno is set appropriately
+       
+    */
     unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len); 
     unsigned char *find_in_memory_start_at(unsigned char *haystack, unsigned haystack_len,unsigned char *haystack_offset, char* needle, unsigned needle_len);
     unsigned long  get_long_from_hex_field(char * header_field_value);

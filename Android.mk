@@ -18,8 +18,7 @@ src_files :=  main.c \
 			  actions/create_ramdisk.c \
 			  actions/global.c \
 			  libbootimg/utils.c \
-			  libbootimg/md5.c \
-			  libbootimg/file.c
+			  
 			  
 			 
 include_dirs := $(LOCAL_PATH) \
@@ -53,3 +52,5 @@ LOCAL_FORCE_STATIC_EXECUTABLE := true
 LOCAL_MODULE := bootimage-utils
  
 include $(BUILD_EXECUTABLE)
+
+

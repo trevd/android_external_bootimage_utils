@@ -1,3 +1,19 @@
+
+###### Bootimage Loading Test ########
+
+include $(CLEAR_VARS)
+
+LOCAL_C_INCLUDES := $(LOCAL_PATH)  
+
+LOCAL_SRC_FILES := tests/load-unknown-file.c
+
+LOCAL_STATIC_LIBRARIES := 	libbootimage
+
+LOCAL_MODULE := load-unknown-file-test
+ 
+include $(BUILD_HOST_EXECUTABLE)
+
+
 ###### Bootimage Loading Test ########
 
 include $(CLEAR_VARS)

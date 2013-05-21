@@ -35,8 +35,14 @@ int mkdir_and_parents(const char *path,unsigned mode)
 int symlink_os(const char *source, size_t size,const char *path){
     
 	
-    //CreateSymbolicLink(nativeSymLinkName, nativeTargetName, 0);
-    
+    /*D("CreateSymbolicLink source=%s path=%s\n",source,path); 
+    if(!CreateSymbolicLink((LPSTR)path, (LPSTR)source, 0)){
+        int error = GetLastError();
+        D("CreateSymbolicLink Error:%d\n",error); 
+        
+    }
+    return 0;
+    */
     FILE *output_file_fp = fopen(path, "wb");
     if (output_file_fp != NULL)
     {
@@ -45,8 +51,10 @@ int symlink_os(const char *source, size_t size,const char *path){
         fwrite("\0",1,1,output_file_fp);
         fclose(output_file_fp);
     }
-    return 0;
+    
 }
 int readlink_os(const char *path, char *buf, size_t bufsiz){
+    
+    
     return 0;
 }
