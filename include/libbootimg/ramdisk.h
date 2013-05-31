@@ -105,7 +105,7 @@ char *str_ramdisk_type(int type);
 
 char *str_recovery_brand(int ramdisk_brand);
 
-unsigned update_ramdisk_header(ramdisk_entry* entry);
+unsigned update_ramdisk_entry_cpio_newc_header_info(ramdisk_entry* entry);
 
 unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage);
 
