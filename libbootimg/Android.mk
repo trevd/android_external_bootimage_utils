@@ -37,7 +37,8 @@ include_dirs := $(LOCAL_PATH)/../include \
 				$(LOCAL_PATH)/../include/libbootimg \
 				system/core/mkbootimg \
 				system/core/include/mincrypt \
-				external/zlib 
+				external/zlib \
+				external/lzo/include
 
 ifeq ($(HOST_OS),windows)
 	src_files += utils_windows.c
@@ -55,7 +56,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz
+LOCAL_STATIC_LIBRARIES := libz liblzo-static
 
 LOCAL_MODULE := libbootimage
  
@@ -70,7 +71,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz
+LOCAL_STATIC_LIBRARIES := libz liblzo-static
 
 LOCAL_MODULE := libbootimage
  
@@ -82,7 +83,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz
+LOCAL_STATIC_LIBRARIES := libz liblzo-static
 
 LOCAL_MODULE := libbootimage
  
@@ -97,7 +98,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz
+LOCAL_STATIC_LIBRARIES := libz liblzo-static
 
 LOCAL_MODULE := libbootimage
  

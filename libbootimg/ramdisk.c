@@ -356,7 +356,7 @@ unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_imag
 
     }
     fprintf(stderr,"ramdisk_addr %p %u\n",ramdisk_addr,data_size);
-    int return_value = load_ramdisk_image_from_archive_memory(ramdisk_addr,data_size,image);
+    unsigned return_value = load_ramdisk_image_from_archive_memory(ramdisk_addr,data_size,image);
 
     return  return_value; 
 }

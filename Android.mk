@@ -39,6 +39,7 @@ src_files :=  main.c \
 			  actions/copy_ramdisk.c \
 			  actions/create_ramdisk.c \
 			  actions/global.c \
+			  actions/install.c \
 			  libbootimg/utils.c \
 			  
 			  

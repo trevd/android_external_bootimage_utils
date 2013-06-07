@@ -20,6 +20,17 @@
  * 
  * 
  */
+ 
+/* Program Actions - Explained
+ * A Program Action encaspulates a main action carried out by the program
+ * The "Entry Point" for an action is the process_<action name>_action function,
+ * this function processes the command line arguments and then calls the 
+ * internal functions which are specific to each action.
+ *  
+ * 
+ */ 
+ 
+ 
 // Standard Headers
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +45,6 @@
 #include <bootimage.h>
 
 // internal program headers
-#include <actions.h>
 #include <actions.h>
 #include <program.h>
 
@@ -59,7 +69,7 @@ struct extract_action{
     char*       current_working_directory   ;
 };
 
-int extract_ramdisk_files_from_ramdisk_image(extract_action* action, global_action* gaction, ramdisk_image* rimage){
+static int extract_ramdisk_files_from_ramdisk_image(extract_action* action, global_action* gaction, ramdisk_image* rimage){
     
     unsigned entry_index = 0 ; 
     unsigned filename_index = 0 ; 
@@ -107,7 +117,7 @@ int extract_ramdisk_files_from_ramdisk_image(extract_action* action, global_acti
 }
 
 /* */
-int extract_ramdisk_files_from_boot_image(extract_action* action, global_action* gaction, boot_image* bimage){
+static int extract_ramdisk_files_from_boot_image(extract_action* action, global_action* gaction, boot_image* bimage){
     
     D("action->ramdisk_filenames_count=%d\n",action->ramdisk_filenames_count);
     errno = 0;
@@ -125,7 +135,7 @@ int extract_ramdisk_files_from_boot_image(extract_action* action, global_action*
     return 0;
 }
 /* extract_ramdisk_cpio_image - expects rimage to be a prointer to the start of a cpio archive*/
-int extract_ramdisk_cpio_image(extract_action* action, global_action* gaction,ramdisk_image* rimage){
+static int extract_ramdisk_cpio_image(extract_action* action, global_action* gaction,ramdisk_image* rimage){
     
     D("rimage_size %d\n",rimage->size);
     
@@ -138,7 +148,7 @@ int extract_ramdisk_cpio_image(extract_action* action, global_action* gaction,ra
             return errno;
              
      }else {
-         // no filenames - fully extraction it is then
+         // no filenames - full extraction it is then
         if(action->ramdisk_directory){
             if(save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory)){
                 fprintf(stderr," error unpacking cpio archive to %s %d %s\n",action->ramdisk_directory,errno,strerror(errno));
@@ -158,7 +168,7 @@ int extract_ramdisk_cpio_image(extract_action* action, global_action* gaction,ra
  * one has been set in action->ramdisk_cpioname
  * expects rimage to be a prointer to the start of a cpio archive
  */
-int extract_ramdisk_image(extract_action* action, global_action* gaction,ramdisk_image* rimage){
+static int extract_ramdisk_image(extract_action* action, global_action* gaction,ramdisk_image* rimage){
     
     D("rimage_size %d\n",rimage->size);
     errno = 0 ;
@@ -197,7 +207,7 @@ int extract_ramdisk_image(extract_action* action, global_action* gaction,ramdisk
     return 0 ; 
 }
 
-int extract_bootimage(extract_action* action, global_action* gaction,boot_image* bimage){
+static int extract_bootimage(extract_action* action, global_action* gaction,boot_image* bimage){
     
     errno = 0;
     int return_value=0;
@@ -289,9 +299,9 @@ int extract_bootimage(extract_action* action, global_action* gaction,boot_image*
     return 0;
     
 }
-/* extract_file - determines the file type we are dealing with and branches
+/* process_extract_file - determines the file type we are dealing with and branches
           accordingly */
-int extract_file(extract_action* action, global_action* gaction){
+static int process_extract_file(extract_action* action, global_action* gaction){
 
     
     int return_value=0;
@@ -305,8 +315,7 @@ int extract_file(extract_action* action, global_action* gaction){
         return 0;    
     }
 
-    
-    
+    // check if the output directory is specified, 
     if(action->output_directory){
         D("action->output_directory:%s\n",action->output_directory);
         mkdir_and_parents(action->output_directory,0755);
@@ -556,10 +565,8 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
     
     if(!action.filename) 
     return print_program_error_file_name_not_found(action.filename);
-    
-    
-    
-    extract_file(&action,gaction);
+      
+    process_extract_file(&action,gaction);
        
     return 0;
 }

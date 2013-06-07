@@ -20,12 +20,18 @@
  * 
  * 
  */
+ 
+//  standard headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <utils.h>
-#include <zlib.h>
 #include <string.h>
+
+// compression specific headers
+#include <zlib.h>
+#include <lzo/lzo1x.h>
+
 long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,unsigned uncompressed_max_size){
 
     return 0;

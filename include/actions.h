@@ -60,24 +60,40 @@ struct global_action{
     int     current_working_directory;
 };
 
+// init_global_action - implemented in actions/global.c
 int init_global_action(unsigned argc,char ** argv,global_action* action);
+
+// only_global_actions - implemented in actions/global.c
 int only_global_actions(unsigned argc,char ** argv,global_action* action);
 
+// process_global_action - implemented in actions/global.c
 int process_global_action(unsigned argc,char ** argv,global_action* action);
 
+// process_extract_action - implemented in actions/extract.c
 int process_extract_action(unsigned argc,char ** argv,global_action* gaction);
 
+// process_update_action - implemented in actions/update.c
 int process_update_action(unsigned argc,char ** argv,global_action* gaction);
 
+// process_info_action - implemented in actions/info.c
 int process_info_action(unsigned argc,char ** argv,global_action* gaction);
 
+// process_scan_action - implemented in actions/scan.c
 int process_scan_action(unsigned argc,char ** argv,global_action* gaction);
 
+// process_copy_kernel_action - implemented in actions/copy_kernel.c
 int process_copy_kernel_action(unsigned argc,char ** argv,global_action* gaction);
+
+// process_copy_ramdisk_action - implemented in actions/copy_ramdisk.c
 int process_copy_ramdisk_action(unsigned argc,char ** argv,global_action* gaction);
 
+// process_create_action - implemented in actions/create.c
 int process_create_action(unsigned argc,char ** argv,global_action* gaction);
-int process_create_kernel_action(unsigned argc,char ** argv,global_action* gaction);
+
+// process_create_kernel_action - implemented in actions/extract.c
+// int process_create_kernel_action(unsigned argc,char ** argv,global_action* gaction);
+
+// process_create_ramdisk_action - implemented in actions/create_ramdisk.c
 int process_create_ramdisk_action(unsigned argc,char ** argv,global_action* gaction);
 
 
