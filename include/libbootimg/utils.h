@@ -1,3 +1,25 @@
+/*
+ * utils.h
+ * 
+ * Copyright 2013 Trevor Drake <trevd1234@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ * 
+ * 
+ */
 #ifndef _cfe5afee_9069_11e2_93f2_5404a601fa9d
 #define _cfe5afee_9069_11e2_93f2_5404a601fa9d
 
@@ -26,22 +48,22 @@ void init_debug() ;
         }
 
 /* NAME
-	find_in_memory - locate a substring
+    find_in_memory - locate a substring
 
  SYNOPSIS
       
-	#include <utils.h>
+    #include <utils.h>
 
-	unsigned char * find_in_memory(unsigned char *haystack, size_t haystacklen,
-					char *needle, size_t needlelen);
+    unsigned char * find_in_memory(unsigned char *haystack, size_t haystacklen,
+                    char *needle, size_t needlelen);
 
  DESCRIPTION
-	The find_in_memory() function finds the start of the first occurrence of the substring needle of length needlelen in the memory area haystack of length haystacklen.
+    The find_in_memory() function finds the start of the first occurrence of the substring needle of length needlelen in the memory area haystack of length haystacklen.
 
  RETURN VALUE
-	The find_in_memory() function returns a pointer to the beginning of the substring, or NULL if the substring is not found.
+    The find_in_memory() function returns a pointer to the beginning of the substring, or NULL if the substring is not found.
        
-	If an error occurs NULL is returned and errno is set appropriately
+    If an error occurs NULL is returned and errno is set appropriately
        
     */
     unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len); 

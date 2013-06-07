@@ -1,4 +1,25 @@
-
+/*
+ * update.c
+ * 
+ * Copyright 2013 Trevor Drake <trevd1234@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ * 
+ * 
+ */
 
 // Standard Headers
 #include <stdio.h>
@@ -411,7 +432,7 @@ int update_boot_image(update_action* action,global_action* gaction,boot_image* b
     return 0;
 }
 
-int update_file(update_action* action,global_action* gaction ){
+static int process_update_file(update_action* action,global_action* gaction ){
 
    
     char* current_working_directory = NULL; 
@@ -698,9 +719,10 @@ int process_update_action(unsigned argc,char ** argv,global_action* gaction){
     }
         argc--; argv++ ;
     }
-    // we must have at least a boot image to process
+    // we must have at least a filename to process
     if(!action.filename) 
-    return print_program_error_file_name_not_found(action.filename);
+        return print_program_error_file_name_not_found(action.filename);
+    
     // output_file not set. use the bootimage filename
     if(!action.output_filename){
     D("no output set using bootimage_filename:%s\n",action.filename);
@@ -708,7 +730,7 @@ int process_update_action(unsigned argc,char ** argv,global_action* gaction){
     }
     
     
-    update_file(&action,gaction);
+    process_update_file(&action,gaction);
        
     return 0;
 }

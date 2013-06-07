@@ -1,3 +1,26 @@
+/*
+ * utils_windows.c
+ * 
+ * Copyright 2013 Trevor Drake <trevd1234@gmail.com>
+ * 
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301, USA.
+ * 
+ * 
+ */
+
 #include <string.h>
 #include <utils.h>
 #include <stdlib.h>
@@ -34,7 +57,7 @@ int mkdir_and_parents(const char *path,unsigned mode)
 }
 int symlink_os(const char *source, size_t size,const char *path){
     
-	
+    
     /*D("CreateSymbolicLink source=%s path=%s\n",source,path); 
     if(!CreateSymbolicLink((LPSTR)path, (LPSTR)source, 0)){
         int error = GetLastError();
@@ -46,7 +69,7 @@ int symlink_os(const char *source, size_t size,const char *path){
     FILE *output_file_fp = fopen(path, "wb");
     if (output_file_fp != NULL)
     {
-		fwrite("LNK:",4,1,output_file_fp);
+        fwrite("LNK:",4,1,output_file_fp);
         fwrite(source,size,1,output_file_fp);
         fwrite("\0",1,1,output_file_fp);
         fclose(output_file_fp);
