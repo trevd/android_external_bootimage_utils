@@ -147,6 +147,7 @@ int update_kernel_image(update_action* action,global_action* gaction,kernel_imag
     return 0;
 
 }
+
 inline int update_boot_image_ramdisk_from_files(update_action* action,global_action* gaction,boot_image** pbimage){
     
     D("action->ramdisk_filenames_count=%d\n",action->ramdisk_filenames_count);
@@ -323,13 +324,13 @@ inline int update_boot_image_kernel_from_file(update_action* action,global_actio
     
     if(bimage->header->kernel_size == new_size){
     
-    // The Kernel Sizes Match, Check it's not coincidence
-    if(is_md5_match(bimage->kernel_addr,bimage->header->kernel_size,new_addr, new_size)){
-        free(new_addr);
-        fprintf(stderr," Updating kernel image skipped , files are the same.\n");
-        errno =EINVAL;
-        return errno;
-    }
+        // The Kernel Sizes Match, Check it's not coincidence
+        if(is_md5_match(bimage->kernel_addr,bimage->header->kernel_size,new_addr, new_size)){
+            free(new_addr);
+            fprintf(stderr," Updating kernel image skipped , files are the same.\n");
+            errno =EINVAL;
+            return errno;
+        }
     }
     
     // Tell 'em how it's going down
