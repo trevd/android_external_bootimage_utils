@@ -96,7 +96,8 @@ int process_create_action(unsigned argc,char ** argv,global_action* gaction);
 // process_create_ramdisk_action - implemented in actions/create_ramdisk.c
 int process_create_ramdisk_action(unsigned argc,char ** argv,global_action* gaction);
 
-
+// process_update_action - implemented in actions/install.c
+int process_install_action(unsigned argc,char ** argv,global_action* gaction);
 
 
 

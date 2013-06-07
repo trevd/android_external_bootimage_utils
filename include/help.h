@@ -29,5 +29,6 @@
 
 int print_help_message(global_action* gaction);
 int print_info_action_help(global_action* gaction);
+int print_install_action_help(global_action* gaction);
 
 #endif

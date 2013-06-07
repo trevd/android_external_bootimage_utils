@@ -72,7 +72,7 @@ void init_debug() ;
     int mkdir_and_parents(const char *path,unsigned mode);
     unsigned strlcmp(const  char *s1, const  char *s2);
     unsigned strulcmp(const unsigned char *s1, const unsigned char *s2);
-    int symlink_os(const char *source, size_t size,const char *path);
+    int symlink_os(const char *source, size_t source_size,const char *path);
     int readlink_os(const char *path, char *buf, size_t bufsiz);
     unsigned long write_item_to_disk_extended(unsigned char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size);
     unsigned long write_item_to_disk(unsigned char *data,unsigned data_size,unsigned mode,char* name);
@@ -80,4 +80,6 @@ void init_debug() ;
     unsigned char* read_from_block_device(const char *name, unsigned* data_size);
     char* get_md5_sum(unsigned char* data ,unsigned size) ;
     int is_md5_match(unsigned char* data_a ,unsigned size_a,unsigned char* data_b ,unsigned size_b);
+    int get_exe_path(char* buffer,size_t buffer_size);
+
 #endif

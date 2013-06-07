@@ -55,7 +55,7 @@ int mkdir_and_parents(const char *path,unsigned mode)
                 mkdir(opath);
         return 0;
 }
-int symlink_os(const char *source, size_t size,const char *path){
+int symlink_os(const char *source, size_t source_size,const char *path){
     
     
     /*D("CreateSymbolicLink source=%s path=%s\n",source,path); 
@@ -70,7 +70,7 @@ int symlink_os(const char *source, size_t size,const char *path){
     if (output_file_fp != NULL)
     {
         fwrite("LNK:",4,1,output_file_fp);
-        fwrite(source,size,1,output_file_fp);
+        fwrite(source,source_size,1,output_file_fp);
         fwrite("\0",1,1,output_file_fp);
         fclose(output_file_fp);
     }
@@ -80,4 +80,8 @@ int readlink_os(const char *path, char *buf, size_t bufsiz){
     
     
     return 0;
+}
+
+int get_exe_path(char* buffer,size_t buffer_size){
+    return 0 ;
 }

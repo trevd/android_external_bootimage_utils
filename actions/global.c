@@ -126,6 +126,7 @@ int init_global_action(unsigned argc,char ** argv, global_action* action){
     action->program_name = argv[0] ;
     action->process_action = ACTION_NONE ; 
     check_program_name(argc,argv,action);
+    D("action->process_action=%d\n",action->process_action);
     return 0;
 }
 
@@ -160,19 +161,20 @@ int process_global_action(unsigned argc,char ** argv,global_action* action){
     }
     
     if(!action) init_global_action(argc,argv,action);
-   
-    while(argc > 0){
-        
     if(getenv("BITDEBUG")){
         action->debug = 1 ;
         // initialize debug printing for libbootimage
         init_debug();
         D("debug output enabled action->debug=%d\n", action->debug) ;
-    }else if(!strlcmp(argv[0],"--verbose")){
-        action->verbose = 1 ;
-    }else if(!strlcmp(argv[0],"--log")){
-        action->log = 1 ;
     }
+   
+    while(argc > 0){
+          
+        if(!strlcmp(argv[0],"--verbose")){
+            action->verbose = 1 ;
+        }else if(!strlcmp(argv[0],"--log")){
+            action->log = 1 ;
+        }
         argc--; argv++;
     }
     

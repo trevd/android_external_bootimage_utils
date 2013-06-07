@@ -65,10 +65,21 @@ int print_info_action_help(global_action* gaction){
     fprintf(stderr," -k, --kernel\n");
     fprintf(stderr," -r, --ramdisk\n");
     fprintf(stderr," -s, --second\n");
-    fprintf(stderr," -a, --additional\n");
+    fprintf(stderr," -a, --additional\n\n");
     
     
     return 0; 
+}
+// print_install_action_help - prints the help for the install action
+int print_install_action_help(global_action* gaction){
+    
+    // the help for install is a lot simpler than most because it does not
+    // have a multicall version 
+    print_program_title();
+    fprintf(stderr," %s install - install multicall symlinks\n\n",gaction->program_name);
+    fprintf(stderr," Usage: %s install [ path ]\n\n",gaction->program_name);
+    fprintf(stderr," path: The location to create the symlinks\n\n");
+    return 0;
 }
 
 int print_standard_help(global_action* gaction){
@@ -107,7 +118,7 @@ int print_help_message(global_action* gaction){
     }
     
     switch(gaction->process_action){                
-        case ACTION_INFO:       print_info_action_help(gaction); break;             
+        case ACTION_INFO:               print_info_action_help(gaction); break;             
         case ACTION_UPDATE:             break;          
         case ACTION_UPDATE_KERNEL:      break;
         case ACTION_UPDATE_RAMDISK:     break;
@@ -123,6 +134,7 @@ int print_help_message(global_action* gaction){
         case ACTION_CREATE_BOOT_IMAGE:  break;
         case ACTION_CREATE_RAMDISK:     break;
         case ACTION_CREATE_KERNEL:      break;
+        case ACTION_INSTALL:            print_install_action_help(gaction); break;
         default:                        break;
         }    
         

@@ -60,18 +60,18 @@ int check_for_android_magic(FILE* filefp,unsigned read_size){
     errno = 0;
     unsigned char* data = calloc(read_size,sizeof(char));
     if(data == 0) {
-    errno = ENOMEM; 
+        errno = ENOMEM; 
     
     }else{
-    if(fread(data, 1,read_size, filefp) != read_size){
-        if(!feof(filefp))
-        errno = ferror(filefp);
-    }else{
-        unsigned char* magic = find_in_memory(data,read_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
-        if(!magic)
-        errno = ENODATA ;
-    }
-    free(data);
+        if(fread(data, 1,read_size, filefp) != read_size){
+            if(!feof(filefp))
+                errno = ferror(filefp);
+        }else{
+            unsigned char* magic = find_in_memory(data,read_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
+            if(!magic)
+                errno = ENODATA ;
+        }
+        free(data);
     }
     
     // fprintf(stderr,"read_item_from_disk data %p\n",data);
@@ -84,17 +84,17 @@ int check_for_android_magic(FILE* filefp,unsigned read_size){
 int scan_for_boot_image(scan_action* action){
     
     if(action->target_filename){
-    fprintf(stderr,"scan_for_boot_image in target_filename:%s\n",action->target_filename);
-    FILE* filefp = fopen(action->target_filename,"rb");
-    if(!filefp) return errno;
+        fprintf(stderr,"scan_for_boot_image in target_filename:%s\n",action->target_filename);
+        FILE* filefp = fopen(action->target_filename,"rb");
+        if(!filefp) return errno;
     
-    if(action->scan_type==SCAN_TYPE_QUICK){
-        if(!check_for_android_magic(filefp,action->scan_size)){
-        fprintf(stderr,"boot image not found :%s\n",action->target_filename);
-        }else{
-            fprintf(stderr,"boot image found in :%s\n",action->target_filename);
+        if(action->scan_type==SCAN_TYPE_QUICK){
+            if(!check_for_android_magic(filefp,action->scan_size)){
+                fprintf(stderr,"boot image not found :%s\n",action->target_filename);
+            }else{
+                fprintf(stderr,"boot image found in :%s\n",action->target_filename);
+            }
         }
-    }
     }
     
     

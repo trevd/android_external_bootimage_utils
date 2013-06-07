@@ -32,7 +32,7 @@
 
 int get_action(unsigned argc,char ** argv,global_action* gaction){
 
-    D("argv[0]=%s\n",argv[0]);
+    D("argv[0]=%s  gaction->process_action %d \n",argv[0],gaction->process_action);
     switch(gaction->process_action){                
         case ACTION_INFO:               process_info_action( --argc, ++argv, gaction);              break;              
         case ACTION_UPDATE:             process_update_action( --argc, ++argv, gaction);            break;          
@@ -50,6 +50,7 @@ int get_action(unsigned argc,char ** argv,global_action* gaction){
         case ACTION_CREATE_BOOT_IMAGE:  process_create_action(--argc,++argv,gaction);           break;
         case ACTION_CREATE_RAMDISK:     process_create_ramdisk_action(--argc,++argv,gaction);   break;
         case ACTION_CREATE_KERNEL:      break;
+        case ACTION_INSTALL:            process_install_action(--argc,++argv,gaction);          break;
         default:                        break;
         }    
         

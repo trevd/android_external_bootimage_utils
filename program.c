@@ -57,7 +57,7 @@ unsigned print_program_title_and_description(){
 
 unsigned print_program_error_processing(char* filename){
     
-    //  file too large error. no pounsigned in contining
+    //  file too large error.
     unsigned save_err = errno ; 
     print_program_title();
     fprintf(stderr," Cannot process \"%s\" - error : %d %s\n\n",filename,save_err,strerror(save_err));
