@@ -30,11 +30,78 @@
 
 // compression specific headers
 #include <zlib.h>
-#include <lzo/lzo1x.h>
-
-long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,unsigned uncompressed_max_size){
+#include <lzop.h>
+#include <lzop_support.h>
+long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+    
 
     return 0;
+    
+}
+
+
+long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+
+    
+    
+    
+    // Double check the lzop magic, we should have already checked this we deciding
+    // what decompression routine we needed
+    if( !check_magic(compressed_data,sizeof(lzop_magic)) ){
+        unsigned c = 0; 
+        for(c = 0 ; c < sizeof(lzop_magic) ; c++)
+            D("ERROR LZOP MAIGC CHECK FAILED DATA:%02x MAGIC:%02x\n",compressed_data[c],lzop_magic[c]);
+        errno = ENOEXEC ;
+        return 0; 
+    }
+    
+    
+    // read the lzop file header. this is after the magic so we offset the data
+    lzop_stream s;
+    size_t header_read = bread_lzop_header(&s, compressed_data+sizeof(lzop_magic), LZOP_MAX_HEADER_SIZE);
+    if ( !header_read){
+        D("ERROR LZOP HEADER READ FAILED %u\n",header_read);
+        errno = ENOEXEC ;
+        return 0 ;
+    }
+    
+    // Setup a lzop_block. The block buffer is a pointer to the start of the 
+    // compressed data including the magic and the size is the full size of the compressed data
+    lzop_block b;
+    b.c_buf = compressed_data;
+    b.c_len = compressed_data_size;
+    
+    // read the lzop block header.         
+    size_t block_header_read = bread_lzop_block(&s, compressed_data+sizeof(lzop_magic)+header_read, LZOP_MAX_BLOCK_HEADER_LEN, &b);
+    if(!block_header_read ) {
+        errno = EINVAL ;
+        return 0 ;
+    }
+    
+    int data_offset = sizeof(lzop_magic)+header_read+block_header_read+b.c_len ;
+    D("data_offset 1 (%u+%u+%u+%u) = %u \n",sizeof(lzop_magic),header_read,block_header_read,b.c_len, data_offset) ;
+    
+    long decompressed_size = 0 ; 
+    while( b.d_len > 0 ) {
+        size_t decompress_bytes = lzop_decompress(&s, &b, uncompressed_data+decompressed_size, uncompressed_max_size);
+        if(!decompress_bytes){
+            errno = EINVAL ;
+            return 0 ;
+        }
+        decompressed_size += b.d_len;
+        D("LZOP DECOMPRESS block->c_len=%u b.d_len=%u\n",b.c_len ,b.d_len);
+        int block_read = bread_lzop_block(&s,compressed_data+data_offset,LZOP_MAX_BLOCK_HEADER_LEN,&b);
+         if(!block_read){
+            errno = EINVAL ;
+            return 0 ;
+        }
+        data_offset +=(block_read+b.c_len);
+       
+        D("data_offset  2 %u block_read %u b.c_len %u b.d_len %u\n",data_offset,block_read,b.c_len,b.d_len) ;
+
+    }
+    D("LZO DECOMPRESSED SIZE:%lu\n",decompressed_size);
+    return decompressed_size;
 }
 long compress_lzo_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size){
     

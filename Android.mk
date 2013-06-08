@@ -47,6 +47,7 @@ src_files :=  main.c \
 include_dirs := $(LOCAL_PATH) \
 				$(LOCAL_PATH)/include \
 				$(LOCAL_PATH)/include/libbootimg \
+				$(LOCAL_PATH)/liblzop \
 				system/core/mkbootimg
 								  
 			
@@ -54,7 +55,7 @@ include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(include_dirs)
 					
-LOCAL_STATIC_LIBRARIES := libbootimage libz
+LOCAL_STATIC_LIBRARIES := libbootimage libz liblzop-static liblzo-static 
 
 LOCAL_SRC_FILES := $(src_files)
 
@@ -66,7 +67,7 @@ include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(include_dirs)				
 
-LOCAL_STATIC_LIBRARIES := libbootimage libz libc
+LOCAL_STATIC_LIBRARIES := libbootimage libz libc liblzop-static liblzo-static
 
 LOCAL_SRC_FILES := $(src_files)
 

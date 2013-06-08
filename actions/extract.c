@@ -315,7 +315,7 @@ static int process_extract_file(extract_action* action, global_action* gaction){
         return 0;    
     }
 
-    // check if the output directory is specified, 
+    // check if the output directory is specified. 
     if(action->output_directory){
         D("action->output_directory:%s\n",action->output_directory);
         mkdir_and_parents(action->output_directory,0755);
