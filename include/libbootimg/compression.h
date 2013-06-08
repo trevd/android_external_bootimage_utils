@@ -47,60 +47,6 @@
    If not, write to the Free Software Foundation, Inc.,
    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  */
-#include <stdint.h>
-
-#define LZO1X
-#undef LZO1Y
-
-#undef assert
-/*
-static void die_at(int line)
-{
-        bb_error_msg_and_die("internal error at %d", line);
-}
-#define assert(v) if (!(v)) die_at(__LINE__)
-*/
-#define assert(v) ((void)0)
-uint32_t *global_crc32_table;
-uint32_t crc32_block_endian0(uint32_t val, const void *buf, unsigned len, uint32_t *crc_table);
-uint32_t crc32_block_endian1(uint32_t val, const void *buf, unsigned len, uint32_t *crc_table);
-uint32_t* crc32_filltable(uint32_t *crc_table, int endian);
-int lzo1x_1_compress(const uint8_t* src, unsigned src_len,
-        uint8_t* dst, unsigned* dst_len,
-        void* wrkmem);
-int lzo1x_1_15_compress(const uint8_t* src, unsigned src_len,
-        uint8_t* dst, unsigned* dst_len,
-        void* wrkmem);
-int lzo1x_999_compress_level(const uint8_t* in, unsigned in_len,
-        uint8_t* out, unsigned* out_len,
-        void* wrkmem,
-        int compression_level);
-
-/* decompression */
-//int lzo1x_decompress(const uint8_t* src, unsigned src_len,
-//      uint8_t* dst, unsigned* dst_len,
-//      void* wrkmem /* NOT USED */);
-/* safe decompression with overrun testing */
-int lzo1x_decompress_safe(const uint8_t* src, unsigned src_len,
-        uint8_t* dst, unsigned* dst_len,
-        void* wrkmem /* NOT USED */);
-
-#define LZO_E_OK                    0
-#define LZO_E_ERROR                 (-1)
-#define LZO_E_OUT_OF_MEMORY         (-2)    /* [not used right now] */
-#define LZO_E_NOT_COMPRESSIBLE      (-3)    /* [not used right now] */
-#define LZO_E_INPUT_OVERRUN         (-4)
-#define LZO_E_OUTPUT_OVERRUN        (-5)
-#define LZO_E_LOOKBEHIND_OVERRUN    (-6)
-#define LZO_E_EOF_NOT_FOUND         (-7)
-#define LZO_E_INPUT_NOT_CONSUMED    (-8)
-#define LZO_E_NOT_YET_IMPLEMENTED   (-9)    /* [not used right now] */
-
-/* lzo-2.03/include/lzo/lzoconf.h */
-#define LZO_VERSION   0x2030
-
-
-
 
 #define GZIP_DEFLATE_MAGIC "\x1F\x8B\x08"
 #define GZIP_DEFLATE_MAGIC_SIZE 3
@@ -123,13 +69,14 @@ int lzo1x_decompress_safe(const uint8_t* src, unsigned src_len,
 
 
 long uncompress_gzip_memory(unsigned char* compressed_data , size_t compressed_data_size, 
-                    unsigned char* uncompressed_data,size_t uncompressed_max_size);
+                unsigned char* uncompressed_data,size_t uncompressed_max_size);
     
-    long compress_gzip_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+long compress_gzip_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
-    long uncompress_lzo_memory(unsigned char* compressed_data , size_t compressed_data_size, 
-                    unsigned char* uncompressed_data,size_t uncompressed_max_size);
-    
-    long compress_lzo_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+
+long uncompress_lzo_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+                unsigned char* uncompressed_data,size_t uncompressed_max_size);
+
+long compress_lzo_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
 #endif
