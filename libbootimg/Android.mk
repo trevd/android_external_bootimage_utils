@@ -56,7 +56,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
 
 LOCAL_MODULE := libbootimage
  
@@ -71,7 +71,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
 
 LOCAL_MODULE := libbootimage
  
@@ -83,7 +83,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
 
 LOCAL_MODULE := libbootimage
  
@@ -98,7 +98,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
 LOCAL_MODULE := libbootimage
  
 include $(BUILD_SHARED_LIBRARY)

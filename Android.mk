@@ -55,7 +55,13 @@ include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(include_dirs)
 					
-LOCAL_STATIC_LIBRARIES := libbootimage libz liblzop-static liblzo-static liblzma
+LOCAL_STATIC_LIBRARIES := libbootimage libz liblzop-static liblzo-static
+
+#ifeq ($(HOST_OS),windows)
+#	LOCAL_STATIC_LIBRARIES += liblzma
+#else
+	LOCAL_STATIC_LIBRARIES += liblzma-static
+#endif
 
 LOCAL_SRC_FILES := $(src_files)
 
@@ -67,7 +73,16 @@ include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(include_dirs)				
 
-LOCAL_STATIC_LIBRARIES := libbootimage libz libc liblzop-static liblzo-static liblzma
+LOCAL_STATIC_LIBRARIES := libbootimage libz libc liblzop-static liblzo-static 
+ifeq ($(HOST_OS),windows)
+	HOST_GLOBAL_LDFLAGS := -Wl,--enable-stdcall-fixup
+endif
+#else
+	LOCAL_STATIC_LIBRARIES += liblzma-static
+#endif
+
+
+
 
 LOCAL_SRC_FILES := $(src_files)
 

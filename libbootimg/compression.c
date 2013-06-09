@@ -38,7 +38,7 @@
 
 long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
     
-    lzma_action action;
+    lzma_action action = LZMA_RUN;
     lzma_ret ret_xz;
     long return_value;
 
@@ -50,14 +50,19 @@ long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_da
     lzmaInfo.total_out=  uncompressed_max_size;
     lzmaInfo.next_in= compressed_data  ;
     lzmaInfo.next_out= uncompressed_data;
-    
-    ret_xz = lzma_stream_decoder (&lzmaInfo, UINT64_MAX, LZMA_TELL_UNSUPPORTED_CHECK | LZMA_CONCATENATED);
+    ret_xz = lzma_stream_decoder (&lzmaInfo, UINT_MAX, LZMA_CONCATENATED);
     if (ret_xz != LZMA_OK) {
         D( "lzma_stream_decoder error: %d\n", (int) ret_xz);
         return 0;
     }
+    D( "decoder ret_xz: %d\n", (int) ret_xz);
+    D( "lzmaInfo.next_out: %p\n", lzmaInfo.next_out);
+    D( "lzmaInfo.avail_out: %u\n", lzmaInfo.avail_out);
+    D( "lzmaInfo.total_out: %u\n", lzmaInfo.total_out);
+    //D( "ret_xz: %d\n", (int) ret_xz);
+    //D( "ret_xz: %d\n", (int) ret_xz);
     ret_xz = lzma_code (&lzmaInfo, action);
-    D( "ret_xz: %d\n", (int) ret_xz);
+    D( "lzma_code ret_xz: %d action=%d\n", (int) ret_xz,(int)action);
     return_value= lzmaInfo.total_out;
     lzma_end (&lzmaInfo);
     return return_value; 
