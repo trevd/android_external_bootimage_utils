@@ -55,7 +55,7 @@ include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(include_dirs)
 					
-LOCAL_STATIC_LIBRARIES := libbootimage libz liblzop-static liblzo-static 
+LOCAL_STATIC_LIBRARIES := libbootimage libz liblzop-static liblzo-static liblzma
 
 LOCAL_SRC_FILES := $(src_files)
 
@@ -67,7 +67,7 @@ include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(include_dirs)				
 
-LOCAL_STATIC_LIBRARIES := libbootimage libz libc liblzop-static liblzo-static
+LOCAL_STATIC_LIBRARIES := libbootimage libz libc liblzop-static liblzo-static liblzma
 
 LOCAL_SRC_FILES := $(src_files)
 

@@ -454,6 +454,12 @@ unsigned char* get_archive_compression_type_and_offset(unsigned char* ramdisk_ad
         image->compression_type = RAMDISK_COMPRESSION_LZO ;
         return archive_magic_offset_p;
     }
+    archive_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,XZ_MAGIC, XZ_MAGIC_SIZE);
+    if(archive_magic_offset_p){
+        D("compression_type=XZ\n");
+        image->compression_type = RAMDISK_COMPRESSION_XZ ;
+        return archive_magic_offset_p;
+    }
     D("compression_type=NOT FOUND\n");
     return NULL;
 }
@@ -472,22 +478,22 @@ unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsi
        
     unsigned char *uncompressed_ramdisk_data = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ;
     unsigned uncompressed_ramdisk_size = 0;
-    switch(image->compression_type){
-    case RAMDISK_COMPRESSION_GZIP:
-       uncompressed_ramdisk_size = uncompress_gzip_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-       break ;
-    case RAMDISK_COMPRESSION_LZO:{
-        uncompressed_ramdisk_size = uncompress_lzo_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-        FILE* fp = fopen("quick.cpio","w+b");
-        fwrite(uncompressed_ramdisk_data,1,uncompressed_ramdisk_size,fp);
-        fclose(fp);
-        break;
-    }
-        //uncompressed_ramdisk_size = uncompress_lzo_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-        //break ;
-    default:
-        break;
     
+    switch(image->compression_type){
+        case RAMDISK_COMPRESSION_GZIP:
+           uncompressed_ramdisk_size = uncompress_gzip_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+           break ;
+        case RAMDISK_COMPRESSION_LZO:{
+            uncompressed_ramdisk_size = uncompress_lzo_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+            break;
+        }
+        case RAMDISK_COMPRESSION_XZ:{
+            uncompressed_ramdisk_size = uncompress_xz_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+            break;
+        }
+        
+        default:
+            break;
     }
     
     if(!uncompressed_ramdisk_size){
@@ -810,6 +816,7 @@ char *str_ramdisk_compression(int compression_type){
     case RAMDISK_COMPRESSION_LZMA: return "lzma" ; 
     case RAMDISK_COMPRESSION_LZO: return "lzo" ; 
     case RAMDISK_COMPRESSION_BZIP2: return "bz2";
+    case RAMDISK_COMPRESSION_XZ: return "xz";
     default: return "none";
     }
     return "unknown";

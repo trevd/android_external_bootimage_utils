@@ -39,6 +39,7 @@ include_dirs := external/bootimage-tools/include \
 				system/core/mkbootimg \
 				system/core/include/mincrypt \
 				external/zlib \
+				external/xz/src/liblzma/api \
 				external/lzo/include
 
 ifeq ($(HOST_OS),windows)
@@ -55,7 +56,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
 
 LOCAL_MODULE := libbootimage
  
@@ -70,7 +71,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
 
 LOCAL_MODULE := libbootimage
  
@@ -82,7 +83,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
 
 LOCAL_MODULE := libbootimage
  
@@ -97,8 +98,7 @@ LOCAL_C_INCLUDES := $(include_dirs)
 
 LOCAL_SRC_FILES := $(src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static
-
+LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma
 LOCAL_MODULE := libbootimage
  
 include $(BUILD_SHARED_LIBRARY)

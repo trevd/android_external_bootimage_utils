@@ -79,4 +79,11 @@ long uncompress_lzo_memory(unsigned char* compressed_data , size_t compressed_da
 
 long compress_lzo_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
+                
+long uncompress_xz_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+                unsigned char* uncompressed_data,size_t uncompressed_max_size);
+
+long compress_xz_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+                unsigned char* compressed_data,size_t compressed_max_size);
+
 #endif

@@ -68,44 +68,44 @@ char * uncompress_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,u
     return "none";
 
 }
-// get_compressed_kernel_location_and_type - returns the offset of a compressed file and 
+// get_kernel_compression_type_and_offset - returns the offset of a compressed file and 
 // populates the image->compression_type parameter with the compression type found
-unsigned char * get_compressed_kernel_location_and_type(unsigned char* kernel_addr,unsigned kernel_size,unsigned char* kernel_magic_offset_p,kernel_image* image){
+unsigned char * get_kernel_compression_type_and_offset(unsigned char* kernel_addr,unsigned kernel_size,unsigned char* kernel_magic_offset_p,kernel_image* image){
     
     D("kernel_magic_offset_p : %p\n",kernel_magic_offset_p);
     
     // look for a gzip entry in the packed kernel image data 
     unsigned char * gzip_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
-    D("gzip_magic_offset_p : %p\n",gzip_magic_offset_p);
     if(gzip_magic_offset_p){
+        D("compression_type=GZIP gzip_magic_offset_p : %p\n",gzip_magic_offset_p);
         image->compression_type = KERNEL_COMPRESSION_GZIP ;
         return gzip_magic_offset_p; 
     }
     // look for a lzop entry in the packed kernel image data 
     unsigned char * lzop_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,LZOP_MAGIC, LZOP_MAGIC_SIZE );
-    D("lzop_magic_offset_p : %p\n",lzop_magic_offset_p);
     if(lzop_magic_offset_p){
+        D("compression_type=LZOP lzop_magic_offset_p : %p\n",lzop_magic_offset_p);
         image->compression_type = KERNEL_COMPRESSION_LZO ;
         return lzop_magic_offset_p; 
     }
     // look for a xz entry in the packed kernel image data 
     unsigned char * xz_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,XZ_MAGIC, XZ_MAGIC_SIZE );
-    D("xz_magic_offset_p : %p\n",xz_magic_offset_p);
     if(xz_magic_offset_p){
+        D("compression_type=XZ xz_magic_offset_p : %p\n",xz_magic_offset_p);
         image->compression_type = KERNEL_COMPRESSION_XZ ;
         return xz_magic_offset_p; 
     }
     // look for a lzma entry in the packed kernel image data 
     unsigned char * lzma_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,LZMA_MAGIC, LZMA_MAGIC_SIZE );
-    D("lzma_magic_offset_p : %p\n",lzma_magic_offset_p);
     if(lzma_magic_offset_p){
+        D("compression_type=LZMA lzma_magic_offset_p : %p\n",lzma_magic_offset_p);
         image->compression_type = KERNEL_COMPRESSION_LZMA ;
         return lzma_magic_offset_p; 
     }
     // look for a bzip2 entry in the packed kernel image data 
     unsigned char * bzip2_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,BZIP2_MAGIC, BZIP2_MAGIC_SIZE );
-    D("bzip2_magic_offset_p : %p\n",bzip2_magic_offset_p);
     if(bzip2_magic_offset_p){
+        D("compression_type=BZIP2 bzip2_magic_offset_p : %p\n",bzip2_magic_offset_p);
         image->compression_type = KERNEL_COMPRESSION_BZIP2 ;
         return bzip2_magic_offset_p; 
     }
@@ -139,14 +139,29 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     
     
     
-    unsigned char * compressed_kernel_offset_p = get_compressed_kernel_location_and_type(kernel_addr,kernel_size,kernel_magic_offset_p,image);
-    D("compressed_kernel_offset_p %p\n",compressed_kernel_offset_p) ;
+    unsigned char * compressed_kernel_offset_p = get_kernel_compression_type_and_offset(kernel_addr,kernel_size,kernel_magic_offset_p,image);
+    D("compressed_kernel_offset_p %p %kernel_size=u\n",compressed_kernel_offset_p,kernel_size) ;
     
     
     unsigned char *uncompressed_kernel_data = calloc(MAX_KERNEL_SIZE,sizeof(unsigned char)) ;
     long uncompressed_kernel_size = 0;
     errno = 0 ;
-    uncompressed_kernel_size = uncompress_gzip_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
+    switch(image->compression_type){
+        case KERNEL_COMPRESSION_GZIP:
+           uncompressed_kernel_size = uncompress_gzip_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
+           break ;
+        case KERNEL_COMPRESSION_LZO:{
+            uncompressed_kernel_size = uncompress_lzo_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
+            break;
+        }
+        case KERNEL_COMPRESSION_XZ:{
+            uncompressed_kernel_size = uncompress_xz_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
+            break;
+        }
+        
+        default:
+            break;
+    }
     if(errno){
         D("errno: %u %s\n",errno,strerror(errno));
         free(uncompressed_kernel_data);

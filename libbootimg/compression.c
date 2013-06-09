@@ -27,18 +27,47 @@
 #include <errno.h>
 #include <utils.h>
 #include <string.h>
-
+#include <inttypes.h>
+#include <stdbool.h>
 // compression specific headers
 #include <zlib.h>
 #include <lzop.h>
-#include <lzop_support.h>
+
+#include <lzma.h>
+
 long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+    
+    lzma_action action;
+    lzma_ret ret_xz;
+    long return_value;
+
+    /* initialize xz decoder */
+    lzma_stream lzmaInfo = LZMA_STREAM_INIT; /* alloc and init lzma_stream struct */
+    lzmaInfo.avail_in=  compressed_data_size;
+    lzmaInfo.total_in=  compressed_data_size;  
+    lzmaInfo.avail_out=  uncompressed_max_size;
+    lzmaInfo.total_out=  uncompressed_max_size;
+    lzmaInfo.next_in= compressed_data  ;
+    lzmaInfo.next_out= uncompressed_data;
+    
+    ret_xz = lzma_stream_decoder (&lzmaInfo, UINT64_MAX, LZMA_TELL_UNSUPPORTED_CHECK | LZMA_CONCATENATED);
+    if (ret_xz != LZMA_OK) {
+        D( "lzma_stream_decoder error: %d\n", (int) ret_xz);
+        return 0;
+    }
+    ret_xz = lzma_code (&lzmaInfo, action);
+    D( "ret_xz: %d\n", (int) ret_xz);
+    return_value= lzmaInfo.total_out;
+    lzma_end (&lzmaInfo);
+    return return_value; 
+    
+}
+long compress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
     
 
     return 0;
     
 }
-
 
 long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
 
