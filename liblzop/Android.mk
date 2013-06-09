@@ -24,7 +24,7 @@ LOCAL_PATH :=  $(call my-dir)
 liblzop_src_files := liblzop.c lzop_support.c
 
 include_dirs := $(LOCAL_PATH) \
-				external/lzo/include
+				external/bootimage-tools/liblzo/include
 										
 include $(CLEAR_VARS)
 

@@ -22,12 +22,18 @@
 #
  
 MAIN_PATH:= $(call my-dir)
+
+ifeq ($(HOST_OS),windows)
+	# Fixup windows global LD_FLAGS incase we are using mingw6
+	HOST_GLOBAL_LDFLAGS := -Wl,--enable-stdcall-fixup
+endif
+
 include $(all-subdir-makefiles)
 
 LOCAL_PATH := $(MAIN_PATH)
 
 	
-src_files :=  main.c \
+bootimage_tools_src_files :=  main.c \
 			  help.c \
 			  program.c \
 			  actions/extract.c \
@@ -44,51 +50,44 @@ src_files :=  main.c \
 			  
 			  
 			 
-include_dirs := $(LOCAL_PATH) \
+bootimage_tools_include_dirs := $(LOCAL_PATH) \
 				$(LOCAL_PATH)/include \
 				$(LOCAL_PATH)/include/libbootimg \
 				$(LOCAL_PATH)/liblzop \
+				$(LOCAL_PATH)/liblzo/include \
 				system/core/mkbootimg
-								  
+							
+bootimage_tools_static_libraries := libbootimage\
+									libz \
+									liblzop-static \
+									liblzo-static \
+									liblzma-static
+
+bootimage_tools_module_name := bootimage-utils								  
 			
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(include_dirs)
+LOCAL_C_INCLUDES := $(bootimage_tools_include_dirs)
 					
-LOCAL_STATIC_LIBRARIES := libbootimage libz liblzop-static liblzo-static
+LOCAL_STATIC_LIBRARIES := $(bootimage_tools_static_libraries)
 
-#ifeq ($(HOST_OS),windows)
-#	LOCAL_STATIC_LIBRARIES += liblzma
-#else
-	LOCAL_STATIC_LIBRARIES += liblzma-static
-#endif
+LOCAL_SRC_FILES := $(bootimage_tools_src_files)
 
-LOCAL_SRC_FILES := $(src_files)
-
-LOCAL_MODULE := bootimage-utils
+LOCAL_MODULE := $(bootimage_tools_module_name)
  
 include $(BUILD_HOST_EXECUTABLE)
 
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(include_dirs)				
+LOCAL_C_INCLUDES := $(bootimage_tools_include_dirs)				
 
-LOCAL_STATIC_LIBRARIES := libbootimage libz libc liblzop-static liblzo-static 
-ifeq ($(HOST_OS),windows)
-	HOST_GLOBAL_LDFLAGS := -Wl,--enable-stdcall-fixup
-endif
-#else
-	LOCAL_STATIC_LIBRARIES += liblzma-static
-#endif
+LOCAL_STATIC_LIBRARIES := libc $(bootimage_tools_static_libraries)
 
-
-
-
-LOCAL_SRC_FILES := $(src_files)
+LOCAL_SRC_FILES := $(bootimage_tools_src_files)
 
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 
-LOCAL_MODULE := bootimage-utils
+LOCAL_MODULE := $(bootimage_tools_module_name)
  
 include $(BUILD_EXECUTABLE)
 

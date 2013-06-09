@@ -23,7 +23,7 @@
 
 LOCAL_PATH:= $(call my-dir)
 
-src_files := bootimage.c \
+libbootimg_src_files := bootimage.c \
 			compression.c \
 			kernel.c \
 			ramdisk.c\
@@ -33,78 +33,53 @@ src_files := bootimage.c \
 			../../../system/core/libmincrypt/sha.c
 			
 			
-include_dirs := external/bootimage-tools/include \
+libbootimg_include_dirs := external/bootimage-tools/include \
 				external/bootimage-tools/include/libbootimg \
 				external/bootimage-tools/liblzop \
 				system/core/mkbootimg \
 				system/core/include/mincrypt \
 				external/zlib \
-				external/xz/src/liblzma/api \
-				external/lzo/include
+				external/bootimage-tools/liblzma/api \
+				external/bootimage-tools/liblzo/include
+				
+libbootimg_static_libraries := 	libz \
+								liblzop-static \
+								liblzo-static \
+								liblzma-static
+								
+libbootimg_module_name := libbootimage
 
 ifeq ($(HOST_OS),windows)
-	src_files += utils_windows.c
+	libbootimg_src_files += utils_windows.c
 endif
 
 ifeq ($(HOST_OS),linux)
-	src_files += utils_linux.c
+	libbootimg_src_files += utils_linux.c
 endif 
+
 
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(include_dirs)
+LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
 
-LOCAL_SRC_FILES := $(src_files)
+LOCAL_SRC_FILES := $(libbootimg_src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
+LOCAL_STATIC_LIBRARIES := $(libbootimg_static_libraries)
 
-LOCAL_MODULE := libbootimage
+LOCAL_MODULE := $(libbootimg_module_name)
  
 include $(BUILD_HOST_STATIC_LIBRARY)
 
-include $(CLEAR_VARS)
-
-
-
-
-LOCAL_C_INCLUDES := $(include_dirs)		
-
-LOCAL_SRC_FILES := $(src_files)
-
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
-
-LOCAL_MODULE := libbootimage
- 
-#include $(BUILD_HOST_SHARED_LIBRARY)
-ifneq ($(HOST_OS),windows)
-include $(CLEAR_VARS)
-
-LOCAL_C_INCLUDES := $(include_dirs)
-
-LOCAL_SRC_FILES := $(src_files)
-
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
-
-LOCAL_MODULE := libbootimage
- 
-include $(BUILD_STATIC_LIBRARY)
-endif
-#### Shared library
-ifneq ($(HOST_OS),windows)
 
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(include_dirs)
+LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
 
-LOCAL_SRC_FILES := $(src_files)
+LOCAL_SRC_FILES := $(libbootimg_src_files)
 
-LOCAL_STATIC_LIBRARIES := libz liblzop-static liblzo-static liblzma-static
-LOCAL_MODULE := libbootimage
- 
-include $(BUILD_SHARED_LIBRARY)
+LOCAL_STATIC_LIBRARIES := $(libbootimg_static_libraries)
 
-#include $(LOCAL_PATH)/test.mk
-endif
+LOCAL_MODULE := $(libbootimg_module_name)
 
 
 
