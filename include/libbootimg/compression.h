@@ -57,6 +57,12 @@
 #define XZ_MAGIC "\xFD\x37\x7A\x58\x5A\x0" // .7zXZ NULL
 #define XZ_MAGIC_SIZE 6
 
+#define XZ_FOOTER_MAGIC "\x59\x5A" // YX
+#define XZ_FOOTER_MAGIC_SIZE 2
+
+#define XZ_STREAM_FLAGS_SIZE 2
+
+
 #define LZMA_MAGIC "\x5D\x00" // ] .NULL 
 #define LZMA_MAGIC_SIZE 2
 

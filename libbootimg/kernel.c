@@ -38,7 +38,6 @@
 #define KERNEL_IKCFG_SIZE 8
 
 #define MAX_KERNEL_SIZE (8192*1024)*4
-
 int print_kernel_info(kernel_image* kimage){
     
     //fprintf(stderr,"  kernel_addr      :%p\n",bimage.kernel_addr); 
@@ -88,13 +87,30 @@ unsigned char * get_kernel_compression_type_and_offset(unsigned char* kernel_add
         image->compression_type = KERNEL_COMPRESSION_LZO ;
         return lzop_magic_offset_p; 
     }
+    
+    
     // look for a xz entry in the packed kernel image data 
-    unsigned char * xz_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,XZ_MAGIC, XZ_MAGIC_SIZE );
+    unsigned char * xz_magic_offset_p ;
+    unsigned char * xz_magic_offset_check_p = kernel_magic_offset_p;
+    for(;;){
+        xz_magic_offset_check_p = find_in_memory_start_at(kernel_addr,kernel_size,xz_magic_offset_check_p,XZ_MAGIC, XZ_MAGIC_SIZE );
+        D("compression_type=XZ xz_magic_offset_check_p : %p xz_magic_offset_p: %p\n",xz_magic_offset_check_p,xz_magic_offset_p);
+        if(!xz_magic_offset_check_p){
+            D("BREAK!\n");
+             break ;
+         }
+        
+        xz_magic_offset_p = xz_magic_offset_check_p;
+        xz_magic_offset_check_p += 1;
+       
+    }  
     if(xz_magic_offset_p){
         D("compression_type=XZ xz_magic_offset_p : %p\n",xz_magic_offset_p);
+        
         image->compression_type = KERNEL_COMPRESSION_XZ ;
         return xz_magic_offset_p; 
     }
+
     // look for a lzma entry in the packed kernel image data 
     unsigned char * lzma_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,LZMA_MAGIC, LZMA_MAGIC_SIZE );
     if(lzma_magic_offset_p){
@@ -140,7 +156,7 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     
     
     unsigned char * compressed_kernel_offset_p = get_kernel_compression_type_and_offset(kernel_addr,kernel_size,kernel_magic_offset_p,image);
-    D("compressed_kernel_offset_p %p %kernel_size=u\n",compressed_kernel_offset_p,kernel_size) ;
+    D("compressed_kernel_offset_p %p kernel_size=%u\n",compressed_kernel_offset_p,kernel_size) ;
     
     
     unsigned char *uncompressed_kernel_data = calloc(MAX_KERNEL_SIZE,sizeof(unsigned char)) ;
