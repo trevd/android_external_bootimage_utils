@@ -614,8 +614,12 @@ void get_filesystem_entry_names( char *name, int level){
         if (S_ISDIR(sb.st_mode)) {
             char path[PATH_MAX];
             int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+            
+            // Skip self and previous directory entries
             if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
                 continue;
+        
+        
         total_size += 0;
         
         names[total]=strdup(path+root_len);
@@ -696,25 +700,29 @@ static unsigned char* append_file_contents_to_stream(struct stat s,char *filenam
 unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size){
     
     
-    // allocate the memory required for the filenames list
+    
     struct stat sb;
     errno = 0 ;
     if(lstat(directory_name,&sb) == -1){
-    errno = EBADF;
-    return NULL;
+        errno = EBADF;
+        return NULL;
     }
     
+    // STEP 1: Information Gathering.
+    // Find out how many files we as dealing with
     size_t filesystem_entries =0 ;
     count_filesystem_entries(directory_name,0);
     D("filesystem_entries %u %u\n",filesystem_entries,total);
     filesystem_entries = total;
     unsigned i; 
+    
+    // allocate the memory required for the filenames list
     names = calloc(filesystem_entries, sizeof(names));
     for(i = 0; i < filesystem_entries; i++) {
-    names[i] = (char *)calloc(PATH_MAX,sizeof(char));   
-    if (names[i] == NULL) {
-        D("Memory cannot be allocated to arr[]");
-    }
+        names[i] = (char *)calloc(PATH_MAX,sizeof(char));   
+        if (names[i] == NULL) {
+            D("Memory cannot be allocated to arr[]");
+        }
      D("i: %d \n",i);
     }
     total = 0;
@@ -729,12 +737,13 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     unsigned char* nextbyte = &cpio_data[0];
     for(i = 0; i < filesystem_entries; i++){
     
-    struct stat sb;
-    if(lstat(names[i],&sb) == -1)
-        continue;
-    D("nextbyte %p errno=%d\n",nextbyte,errno);
-    nextbyte = append_cpio_header_to_stream(sb,names[i],nextbyte);
-    nextbyte = append_file_contents_to_stream(sb,names[i],nextbyte);
+        struct stat sb;
+        if(lstat(names[i],&sb) == -1)
+            continue;
+        
+        D("nextbyte %p errno=%d\n",nextbyte,errno);
+        nextbyte = append_cpio_header_to_stream(sb,names[i],nextbyte);
+        nextbyte = append_file_contents_to_stream(sb,names[i],nextbyte);
     
     }
     struct stat s ; memset(&s, 0, sizeof(s));
@@ -745,12 +754,10 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     
     (*cpio_size) = nextbyte - &cpio_data[0] ;
     // align the file size to the next 256 boundary
-    while((*cpio_size) & 0xff) {
+    while((*cpio_size) & 0xff) 
         (*cpio_size)++;
-        
-    }
     
-    //fprintf(stderr,"file_size %u %p\n",file_size,nextbyte);
+    D("cpio_size %u %p\n",cpio_size,nextbyte);
     
     return cpio_data;
     

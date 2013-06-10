@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <utils.h>
 #include <utils_windows.h>
 
 unsigned char* read_from_block_device(const char *name, unsigned* data_size){
@@ -74,14 +75,37 @@ int symlink_os(const char *source, size_t source_size,const char *path){
         fwrite("\0",1,1,output_file_fp);
         fclose(output_file_fp);
     }
-    
+    return 0;
 }
 int readlink_os(const char *path, char *buf, size_t bufsiz){
     
-    
-    return 0;
+    FILE *file_fp = fopen(path, "rb");
+    fseek(file_fp,4,SEEK_SET);
+    fread(buf,bufsiz,1,file_fp);
+    fclose(file_fp);
+    return bufsiz;
 }
+int lstat(const char *path, struct stat *buf){
+    
+    int stat_result = stat(path,buf); 
+    if(stat_result < 0 ) return stat_result;
+    
+    char* buffer = calloc(4,sizeof(char));
+    
+    FILE *file_fp = fopen(path, "rb");
+    fread(buffer,4,1,file_fp);
+    D("mode %d\n",buf->st_mode);
+    if(!strncmp("LNK:",buffer,4)){
+        
+        buf->st_mode = (buf->st_mode | S_IFLNK);
+        D("LINK:mode %d\n",buf->st_mode);
+        buf->st_size -= 4 ; 
 
+    }
+    fclose(file_fp);
+        
+    return stat_result ;
+}
 int get_exe_path(char* buffer,size_t buffer_size){
     return 0 ;
 }

@@ -48,9 +48,13 @@ struct create_action{
     char *      ramdisk_directory   ;
     char *      second_filename     ;
     char *      output_directory    ;
-    unsigned    command_line        ;
-    unsigned    board_name      ;
-    unsigned    page_size       ;
+    char *      command_line        ;
+    char *      board_name          ;
+    unsigned    page_size           ;
+    unsigned    base_address        ;
+    unsigned    kernel_offset       ;
+    unsigned    ramdisk_offset      ;
+    unsigned    tags_offset         ;
     unsigned    ramdisk_filenames_count ;
 };
 
@@ -68,50 +72,67 @@ int create_bootimage(create_action* action, global_action* gaction){
     // set the physical address defaults and other boot_image structure defaults
     set_boot_image_defaults(&bimage);
     if (action->header_filename) {
-    fprintf(stderr, " Creating Header From : \"%s\"\n",action->header_filename) ;
-    load_boot_image_header_from_disk(action->header_filename,&bimage);
+        fprintf(stderr, " Creating Header From : \"%s\"\n",action->header_filename) ;
+        load_boot_image_header_from_disk(action->header_filename,&bimage);
     }
     
+    //
     if(action->kernel_filename){
         
-    unsigned kernel_size = 0; 
-    if(!(bimage.kernel_addr = read_item_from_disk(action->kernel_filename,&kernel_size))){
-        print_program_error_processing(action->kernel_filename);
-        return errno ; 
+        unsigned kernel_size = 0; 
+        if(!(bimage.kernel_addr = read_item_from_disk(action->kernel_filename,&kernel_size))){
+            print_program_error_processing(action->kernel_filename);
+            return errno ; 
+        }
+        bimage.header->kernel_size = kernel_size;      
+        fprintf(stderr, " Creating Kernel From : \"%s\"\n",action->kernel_filename) ;
     }
-    bimage.header->kernel_size = kernel_size;      
-    fprintf(stderr, " Creating Kernel From : \"%s\"\n",action->kernel_filename) ;
+    if(action->ramdisk_directory){    
+        
+        // A Directory was specified as our ramdisk source
+        // we need to pack the directory into a cpio-ball
+        unsigned cpio_ramdisk_size = 0; 
+        unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
+        if(!cpio_data){
+            // Not good... shit in fact. failed at the first hurdle
+            print_program_error_processing(action->ramdisk_directory);
+            return errno ; 
+        }
     
-
-    }
-    if(action->ramdisk_directory){
+        // allocate a buffer to compress the cpio-ball to, as it's shrinking
+        // we'll use the current uncompressed size as our new buffer size
+        ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+        // SMASH - Compress or Die!
+        bimage.header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size) ;
+        if(!bimage.header->ramdisk_size){
+            // That'll be Die then 
+            print_program_error_processing(action->ramdisk_directory);
+            
+            // free our allocated buffers before we leave
+            if(ramdisk_data) free(ramdisk_data);
+            if(cpio_data) free(cpio_data);
+            
+            return errno ; 
+        }
+        
+        // assign the start of the compressed data buffer to the
+        // ramdisk address and free our uncompressed buffer as we
+        // are done with that
+        if(cpio_data) free(cpio_data);
+        bimage.ramdisk_addr = ramdisk_data;
+        fprintf(stderr, " Creating Ramdisk From Directory : \"%s\"\n",action->ramdisk_directory) ;
+        
+    }else if(action->ramdisk_cpioname ){
     
-    unsigned cpio_ramdisk_size = 0; 
-    
-    unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
-    
-    if(cpio_data){
+        unsigned cpio_ramdisk_size = 0;     
+        unsigned char* cpio_data = read_item_from_disk(action->ramdisk_cpioname,&cpio_ramdisk_size);
+        
     
         ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
         if(!(bimage.header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size))){
-        print_program_error_processing(action->ramdisk_directory);
-        return errno ; 
+            print_program_error_processing(action->ramdisk_cpioname);
+            return errno ; 
         }
-        bimage.ramdisk_addr = ramdisk_data;
-        fprintf(stderr, " Creating Ramdisk From Directory : \"%s\"\n",action->ramdisk_directory) ;
-        free(cpio_data);
-        
-    }
-    }else if(action->ramdisk_cpioname ){
-    
-    unsigned cpio_ramdisk_size = 0;     
-    unsigned char* cpio_data = read_item_from_disk(action->ramdisk_cpioname,&cpio_ramdisk_size);
-    
-    ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
-    if(!(bimage.header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size))){
-        print_program_error_processing(action->ramdisk_cpioname);
-        return errno ; 
-    }
     
     bimage.ramdisk_addr = ramdisk_data;
     fprintf(stderr, " Creating Ramdisk From : \"%s\"\n",action->ramdisk_cpioname) ;

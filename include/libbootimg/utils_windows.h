@@ -23,10 +23,10 @@
 
 #ifndef _a837e23a_9629_11e2_9d73_5404a601fa9d
 #define _a837e23a_9629_11e2_9d73_5404a601fa9d
-
+#include <sys/stat.h>
 #include <windows.h>
 
-#define lstat stat
+
 
 #define S_IFLNK  0120000
 #define S_IFSOCK 0140000
@@ -36,4 +36,6 @@
 #define EOL WINDOWS_EOL
 #define BLKGETSIZE64 0
 #define ENODATA 61
+
+int lstat(const char *path, struct stat *buf);
 #endif

@@ -74,7 +74,22 @@ unsigned char * get_kernel_compression_type_and_offset(unsigned char* kernel_add
     D("kernel_magic_offset_p : %p\n",kernel_magic_offset_p);
     
     // look for a gzip entry in the packed kernel image data 
-    unsigned char * gzip_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
+    unsigned char * gzip_magic_offset_p = NULL;
+    unsigned char * gzip_magic_offset_check_p = kernel_magic_offset_p;
+    for(;;){
+        gzip_magic_offset_check_p = find_in_memory_start_at(kernel_addr,kernel_size,gzip_magic_offset_check_p,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
+        D("compression_type=GZIP gzip_magic_offset_check_p : %p gzip_magic_offset_p: %p\n",gzip_magic_offset_check_p,gzip_magic_offset_p);
+        if(!gzip_magic_offset_check_p){
+            D("BREAK!\n");
+             break ;
+         }
+        
+        gzip_magic_offset_p = gzip_magic_offset_check_p;
+        gzip_magic_offset_check_p += 1;
+       
+    }
+    
+    
     if(gzip_magic_offset_p){
         D("compression_type=GZIP gzip_magic_offset_p : %p\n",gzip_magic_offset_p);
         image->compression_type = KERNEL_COMPRESSION_GZIP ;
@@ -90,7 +105,7 @@ unsigned char * get_kernel_compression_type_and_offset(unsigned char* kernel_add
     
     
     // look for a xz entry in the packed kernel image data 
-    unsigned char * xz_magic_offset_p ;
+    unsigned char * xz_magic_offset_p = NULL ;
     unsigned char * xz_magic_offset_check_p = kernel_magic_offset_p;
     for(;;){
         xz_magic_offset_check_p = find_in_memory_start_at(kernel_addr,kernel_size,xz_magic_offset_check_p,XZ_MAGIC, XZ_MAGIC_SIZE );
