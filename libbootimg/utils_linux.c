@@ -60,55 +60,9 @@ oops:
     //printf("Number of blocks: %lu, this makes %.3f GB\n",numblocks, (double)numblocks * 512.0 / (1024 * 1024 * 1024));
     return NULL;
 }
-
-int mkdir_and_parents(const char *path,unsigned mode)
-{
-        errno = 0;
-        char opath[256];
-        char *p;
-        size_t len;
-         
-        strncpy(opath,(char*) path, sizeof(opath));
-        len = strlen(opath);
-        if(opath[len - 1] == '/')
-                opath[len - 1] = '\0';
-        for(p = opath; *p; p++){
-                if(*p == '/') {
-                        *p = '\0';
-                        if((strlen(opath) > 0) && (access(opath, F_OK))){
-                            D("in loop opath=%s\n",opath);  
-                            mkdir(opath, mode);
-                            
-                        }
-                        *p = '/';
-                        
-                }
-            }
-            
-        D("opath=%s\n" ,opath);  
-        if(access(opath, F_OK)){ 
-            /* if path is not terminated with / */
-            errno = 0 ;     
-            mkdir(opath, mode);
-        }
-        D("opath=%s errno=%u %s\n",opath,errno,strerror(errno));
-        return 0 ;
-}
-int symlink_os(const char *source, size_t source_size,const char *path){
-    
-    
-    char symlink_src[source_size+1];
-    memcpy(symlink_src,source,source_size);
-    symlink_src[source_size] ='\0';
-    return symlink(symlink_src,path);
-}
-int readlink_os(const char *path, char *buf, size_t bufsiz){
-    return readlink(path,buf,bufsiz);
-}
-
 int get_exe_path(char* buffer,size_t buffer_size){
     
-    readlink_os("/proc/self/exe",buffer,buffer_size);
+    readlink("/proc/self/exe",buffer,buffer_size);
     D("buffer=%s\n",buffer);
     return 0 ;
 }

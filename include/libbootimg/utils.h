@@ -41,10 +41,15 @@ extern int   utils_debug;
 
 void init_debug() ;
 
+#include <errno.h>
+static int internal_errno = 0 ; 
 #define D(  ...) \
         if (utils_debug){ \
+            /* save our errno because we don't want debug output to fuck */ \
+            internal_errno = errno ; \
             fprintf(stderr, "DEBUG: %s::%s():", __FILE__, __FUNCTION__); \
             fprintf(stderr,  __VA_ARGS__ ); \
+            errno = internal_errno ; \
         }
 
 /* NAME
@@ -72,8 +77,6 @@ void init_debug() ;
     int mkdir_and_parents(const char *path,unsigned mode);
     unsigned strlcmp(const  char *s1, const  char *s2);
     unsigned strulcmp(const unsigned char *s1, const unsigned char *s2);
-    int symlink_os(const char *source, size_t source_size,const char *path);
-    int readlink_os(const char *path, char *buf, size_t bufsiz);
     unsigned long write_item_to_disk_extended(unsigned char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size);
     unsigned long write_item_to_disk(unsigned char *data,unsigned data_size,unsigned mode,char* name);
     unsigned char* read_item_from_disk(const char *name, unsigned* data_size);

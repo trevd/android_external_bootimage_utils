@@ -26,16 +26,23 @@
 #include <sys/stat.h>
 #include <windows.h>
 
-
-
 #define S_IFLNK  0120000
 #define S_IFSOCK 0140000
-#define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
 #define S_IWGRP 00020
+#define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
+
 #define CONVERT_LINE_ENDINGS 1==1
 #define EOL WINDOWS_EOL
+
 #define BLKGETSIZE64 0
+
 #define ENODATA 61
 
+// redefine mkdir on windows
+#define mkdir(path,mode) mkdir(path)
+
+// 
 int lstat(const char *path, struct stat *buf);
+ssize_t readlink(const char *path, char *buf, size_t bufsiz);
+int symlink(const char *source, const char *path);
 #endif
