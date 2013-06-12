@@ -76,12 +76,12 @@ int process_install_action(unsigned argc,char ** argv,global_action* gaction){
     //strcat(install_directory,"bootimage-extract")
     print_program_title();
     fprintf(stderr,"Installing links to %s\n",install_directory);
-    symlink_os(exe_path,strlen(exe_path),"bootimage-extract");
-    symlink_os(exe_path,strlen(exe_path),"bootimage-info");
-    symlink_os(exe_path,strlen(exe_path),"bootimage-create");
-    symlink_os(exe_path,strlen(exe_path),"bootimage-update");
-    symlink_os(exe_path,strlen(exe_path),"bootimage-copy-ramdisk");
-    symlink_os(exe_path,strlen(exe_path),"bootimage-copy-kernel");
+    symlink(exe_path,"bootimage-extract");
+    symlink(exe_path,"bootimage-info");
+    symlink(exe_path,"bootimage-create");
+    symlink(exe_path,"bootimage-update");
+    symlink(exe_path,"bootimage-copy-ramdisk");
+    symlink(exe_path,"bootimage-copy-kernel");
     D("exe_path=%s\n",exe_path);
     
     

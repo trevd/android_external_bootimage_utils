@@ -177,9 +177,9 @@ static int extract_ramdisk_image(extract_action* action, global_action* gaction,
         // save the compress cpio file to disk
         D("action->ramdisk_cpioname=%s\n",action->ramdisk_cpioname);
         if(write_item_to_disk(rimage->start_addr,rimage->size,33188,action->ramdisk_cpioname)){
-            fprintf(stderr,"error writing cpio archive%s %d %s\n",action->ramdisk_cpioname,errno,strerror(errno));
+            fprintf(stderr," ERROR writing cpio archive%s %d %s\n",action->ramdisk_cpioname,errno,strerror(errno));
         }else{
-            fprintf(stderr," cpio archive extracted to \"%s\"\n",action->ramdisk_cpioname);
+            fprintf(stderr," Cpio archive extracted to \"%s\"\n",action->ramdisk_cpioname);
         }
         //fprintf(stderr,"\n");
         errno = 0;
@@ -195,9 +195,9 @@ static int extract_ramdisk_image(extract_action* action, global_action* gaction,
         // extract and save the cpio file contents to disc  
         if(action->ramdisk_directory){
             if(save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory)){
-                fprintf(stderr," error unpacking cpio archive to %s %d %s\n",action->ramdisk_directory,errno,strerror(errno));
+                fprintf(stderr," ERROR %d unpacking cpio archive to \"%s\" - %s\n",errno,action->ramdisk_directory,strerror(errno));
             }else{
-                fprintf(stderr," cpio archive unpacked to \"%s\"\n",action->ramdisk_directory);
+                fprintf(stderr," Cpio archive unpacked to \"%s\"\n",action->ramdisk_directory);
             }
             //fprintf(stderr,"\n");
             errno = 0;
@@ -229,7 +229,7 @@ static int extract_bootimage(extract_action* action, global_action* gaction,boot
         
         if(bimage->header_size != sizeof(boot_img_hdr)){
             errno = EINVAL ; 
-            fprintf(stderr," error boot image header is corrupt\n");
+            fprintf(stderr," ERROR boot image header is corrupt\n");
             
         }
         if(write_boot_image_header_to_disk(action->header_filename,bimage)){
@@ -242,11 +242,10 @@ static int extract_bootimage(extract_action* action, global_action* gaction,boot
      
     // Write the kernel file to disk
     if(action->kernel_filename){
-        fprintf(stderr," Kernel");
         if(write_item_to_disk(bimage->kernel_addr,bimage->header->kernel_size,33188,action->kernel_filename)){
-            fprintf(stderr," error writing %s %d %s\n",action->kernel_filename,errno,strerror(errno));
+            fprintf(stderr," ERROR %d writing kernel file to \"%s\" - %s\n",errno, action->kernel_filename,strerror(errno));
         }else{
-            fprintf(stderr," extracted to \"%s\"\n",action->kernel_filename);
+            fprintf(stderr," Kernel extracted to \"%s\"\n",action->kernel_filename);
         }
         errno = 0;
     }

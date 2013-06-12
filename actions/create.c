@@ -174,6 +174,7 @@ int create_bootimage(create_action* action, global_action* gaction){
    
    
 cleanup_bootimage:
+    D("cleaning up boot image\n");
     D("kernel_addr free\n");
     if(bimage.kernel_addr) free(bimage.kernel_addr);
     D("ramdisk_addr free\n");

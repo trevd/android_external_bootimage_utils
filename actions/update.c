@@ -482,8 +482,7 @@ static int process_update_file(update_action* action,global_action* gaction ){
     }
     
     // Probe the file type - Third check if we have a compressed ramdisk
-    ramdisk_image rimage;
-    init_ramdisk_image(&rimage);
+    ramdisk_image rimage ; //=  get_initialized_ramdisk_image();
     if(!(return_value =  load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage))){
         D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
         return_value = update_ramdisk_archive(action,gaction,&rimage);

@@ -103,11 +103,14 @@ struct ramdisk_image {
 
     };
 
+
+unsigned init_ramdisk_image(ramdisk_image* image);
+
 unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image);
 
 unsigned load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image);
 
-unsigned init_ramdisk_image(ramdisk_image* image);
+
 
 unsigned load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 

@@ -519,12 +519,17 @@ error_uncompressed:
 }
 unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name){
 
+    D("called with image=%p directory_name=%s\n", image,directory_name);
     char cwd[PATH_MAX];
     errno = 0;
     if(directory_name){
-    mkdir_and_parents(directory_name,0777);
-    getcwd(cwd,PATH_MAX);
-    chdir((char *)directory_name);
+        if( mkdir_and_parents(directory_name,0777) == -1 ){
+            D("failed mkdir_and_parents %s\n", directory_name);
+            return errno;        
+        }
+        
+        getcwd(cwd,PATH_MAX);
+        chdir((char *)directory_name);
     }
     
     unsigned i = 0;
@@ -686,7 +691,7 @@ static unsigned char* append_file_contents_to_stream(struct stat s,char *filenam
         fclose(fp);
     }else if(S_ISLNK(s.st_mode)){
         
-        readlink_os(filename,(char*)output_header,PATH_MAX);
+        readlink(filename,(char*)output_header,PATH_MAX);
         
         output_header+=s.st_size;
     }
