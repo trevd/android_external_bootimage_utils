@@ -21,20 +21,24 @@
  * 
  */
 #ifndef _f7d18500_9064_11e2_b0f1_5404a601fa9d
-#define _f7d18500_9064_11e2_b0f1_5404a601fa9d 
+#define _f7d18500_9064_11e2_b0f1_5404a601fa9d
+ 
 #include <bootimage.h>
-typedef struct kernel_image kernel_image;
+#include <compression.h>
 
 #define KERNEL_COMPRESSION_NONE 0
-#define KERNEL_COMPRESSION_GZIP 1
-#define KERNEL_COMPRESSION_LZO 2
-#define KERNEL_COMPRESSION_LZMA 3
-#define KERNEL_COMPRESSION_XZ 4
-#define KERNEL_COMPRESSION_BZIP2 5
+#define KERNEL_COMPRESSION_GZIP     COMPRESSION_GZIP_DEFLATE
+#define KERNEL_COMPRESSION_LZO      COMPRESSION_LZOP
+#define KERNEL_COMPRESSION_LZMA     COMPRESSION_LZMA
+#define KERNEL_COMPRESSION_XZ       COMPRESSION_XZ
+#define KERNEL_COMPRESSION_BZIP2    COMPRESSION_BZIP2
 
 
 #define KERNEL_ZIMAGE_MAGIC "\x18\x28\x6F\x01"
 #define KERNEL_ZIMAGE_MAGIC_SIZE 4 
+
+
+typedef struct kernel_image kernel_image;
 
 struct kernel_image {
     

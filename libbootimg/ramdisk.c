@@ -435,32 +435,19 @@ unsigned char* get_archive_compression_type_and_offset(unsigned char* ramdisk_ad
     // which can contain archives, such as a kernel image
     unsigned char * kernel_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,KERNEL_ZIMAGE_MAGIC, KERNEL_ZIMAGE_MAGIC_SIZE );
     if(kernel_magic_offset_p){
-    image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
-    return NULL ;
+        image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
+        return NULL ;
     }
     
     
     D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
-    unsigned char * archive_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
+    int compression = 0 ;
+    unsigned char * archive_magic_offset_p = find_compressed_data_in_memory(ramdisk_addr,ramdisk_size,&compression);
     if(archive_magic_offset_p){
         D("compression_type=GZIP\n");
-        image->compression_type = RAMDISK_COMPRESSION_GZIP ;
+        image->compression_type = compression ;
         return archive_magic_offset_p;
     }
-    
-    archive_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,LZOP_MAGIC, LZOP_MAGIC_SIZE);
-    if(archive_magic_offset_p){
-        D("compression_type=LZO\n");
-        image->compression_type = RAMDISK_COMPRESSION_LZO ;
-        return archive_magic_offset_p;
-    }
-    archive_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,XZ_MAGIC, XZ_MAGIC_SIZE);
-    if(archive_magic_offset_p){
-        D("compression_type=XZ\n");
-        image->compression_type = RAMDISK_COMPRESSION_XZ ;
-        return archive_magic_offset_p;
-    }
-    D("compression_type=NOT FOUND\n");
     return NULL;
 }
 
@@ -475,7 +462,7 @@ unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsi
         errno = ENOEXEC ;
         return ENOEXEC;
     }
-       
+    D("image->compression_type=%d\n",image->compression_type);
     unsigned char *uncompressed_ramdisk_data = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ;
     unsigned uncompressed_ramdisk_size = 0;
     

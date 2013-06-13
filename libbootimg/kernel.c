@@ -67,84 +67,21 @@ char * uncompress_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,u
     return "none";
 
 }
+
 // get_kernel_compression_type_and_offset - returns the offset of a compressed file and 
 // populates the image->compression_type parameter with the compression type found
 unsigned char * get_kernel_compression_type_and_offset(unsigned char* kernel_addr,unsigned kernel_size,unsigned char* kernel_magic_offset_p,kernel_image* image){
     
-    D("kernel_magic_offset_p : %p\n",kernel_magic_offset_p);
-    
-    // look for a gzip entry in the packed kernel image data 
-    unsigned char * gzip_magic_offset_p = NULL;
-    unsigned char * gzip_magic_offset_check_p = kernel_magic_offset_p;
-    for(;;){
-        gzip_magic_offset_check_p = find_in_memory_start_at(kernel_addr,kernel_size,gzip_magic_offset_check_p,GZIP_DEFLATE_MAGIC, GZIP_DEFLATE_MAGIC_SIZE );
-        D("compression_type=GZIP gzip_magic_offset_check_p : %p gzip_magic_offset_p: %p\n",gzip_magic_offset_check_p,gzip_magic_offset_p);
-        if(!gzip_magic_offset_check_p){
-            D("BREAK!\n");
-             break ;
-         }
-        
-        gzip_magic_offset_p = gzip_magic_offset_check_p;
-        gzip_magic_offset_check_p += 1;
-       
-    }
-    
-    
-    if(gzip_magic_offset_p){
-        D("compression_type=GZIP gzip_magic_offset_p : %p\n",gzip_magic_offset_p);
-        image->compression_type = KERNEL_COMPRESSION_GZIP ;
-        return gzip_magic_offset_p; 
-    }
-    // look for a lzop entry in the packed kernel image data 
-    unsigned char * lzop_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,LZOP_MAGIC, LZOP_MAGIC_SIZE );
-    if(lzop_magic_offset_p){
-        D("compression_type=LZOP lzop_magic_offset_p : %p\n",lzop_magic_offset_p);
-        image->compression_type = KERNEL_COMPRESSION_LZO ;
-        return lzop_magic_offset_p; 
-    }
-    
-    
-    // look for a xz entry in the packed kernel image data 
-    unsigned char * xz_magic_offset_p = NULL ;
-    unsigned char * xz_magic_offset_check_p = kernel_magic_offset_p;
-    for(;;){
-        xz_magic_offset_check_p = find_in_memory_start_at(kernel_addr,kernel_size,xz_magic_offset_check_p,XZ_MAGIC, XZ_MAGIC_SIZE );
-        D("compression_type=XZ xz_magic_offset_check_p : %p xz_magic_offset_p: %p\n",xz_magic_offset_check_p,xz_magic_offset_p);
-        if(!xz_magic_offset_check_p){
-            D("BREAK!\n");
-             break ;
-         }
-        
-        xz_magic_offset_p = xz_magic_offset_check_p;
-        xz_magic_offset_check_p += 1;
-       
-    }  
-    if(xz_magic_offset_p){
-        D("compression_type=XZ xz_magic_offset_p : %p\n",xz_magic_offset_p);
-        
-        image->compression_type = KERNEL_COMPRESSION_XZ ;
-        return xz_magic_offset_p; 
-    }
-
-    // look for a lzma entry in the packed kernel image data 
-    unsigned char * lzma_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,LZMA_MAGIC, LZMA_MAGIC_SIZE );
-    if(lzma_magic_offset_p){
-        D("compression_type=LZMA lzma_magic_offset_p : %p\n",lzma_magic_offset_p);
-        image->compression_type = KERNEL_COMPRESSION_LZMA ;
-        return lzma_magic_offset_p; 
-    }
-    // look for a bzip2 entry in the packed kernel image data 
-    unsigned char * bzip2_magic_offset_p = find_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,BZIP2_MAGIC, BZIP2_MAGIC_SIZE );
-    if(bzip2_magic_offset_p){
-        D("compression_type=BZIP2 bzip2_magic_offset_p : %p\n",bzip2_magic_offset_p);
-        image->compression_type = KERNEL_COMPRESSION_BZIP2 ;
-        return bzip2_magic_offset_p; 
+    D("kernel_addr=%p kernel_size=%u\n", kernel_addr,kernel_size);
+    int compression = KERNEL_COMPRESSION_NONE ;
+    unsigned char * archive_magic_offset_p = find_compressed_data_in_memory_start_at(kernel_addr,kernel_size,kernel_magic_offset_p,&compression);
+    if(archive_magic_offset_p){
+        image->compression_type = compression ;
+        return archive_magic_offset_p;
     }
     return NULL;
-     
-    
 }
-
+ 
 int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image ){
     
     // Look for the kernel zImage Magic

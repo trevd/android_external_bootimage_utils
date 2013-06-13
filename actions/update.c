@@ -526,7 +526,7 @@ int process_update_action(unsigned argc,char ** argv,global_action* gaction){
     action.property_count           = 0 ;
 
     FILE*file; int ramdisk_set = 0;
-      
+    
     while(argc > 0){
             
         // check for a valid file name

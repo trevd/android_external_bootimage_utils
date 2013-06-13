@@ -29,12 +29,45 @@
 #include <string.h>
 #include <inttypes.h>
 #include <stdbool.h>
+
+
 // compression specific headers
 #include <zlib.h>
 #include <lzop.h>
-
 #include <lzma.h>
 
+#include <compression_internal.h>
+
+unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack, unsigned haystack_len,unsigned char *haystack_offset, int* compression ){
+    
+    
+    D("haystack=%p haystack_len=%u\n", haystack,haystack_len);
+    unsigned char * compressed_magic_offset_p = NULL ;
+    int counter = 0 ;
+    for(counter = 1 ; counter <= COMPRESSION_INDEX_MAX ; counter ++){
+        
+        compressed_magic_offset_p = find_in_memory_start_at(haystack,
+                                                            haystack_len,haystack_offset,
+                                                            compression_types[counter].magic, 
+                                                            compression_types[counter].magic_size );
+        
+        if(compressed_magic_offset_p){
+           (*compression) = compression_types[counter].index ; 
+            D("compression_type=%s\n",compression_types[counter].name);
+           break ; 
+        }
+    }
+    return compressed_magic_offset_p;
+   
+    D("compression_type=NOT FOUND\n");
+    
+    return NULL;
+    
+}
+unsigned char * find_compressed_data_in_memory( unsigned char *haystack, unsigned haystack_len, int* compression ){
+    
+    return find_compressed_data_in_memory_start_at(haystack,haystack_len,haystack,compression);
+}
 
 long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
     
@@ -58,9 +91,7 @@ long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_da
     D( "decoder ret_xz: %d\n", (int) ret_xz);
     D( "lzmaInfo.next_out: %p\n", lzmaInfo.next_out);
     D( "lzmaInfo.avail_out: %u\n", lzmaInfo.avail_out);
-    D( "lzmaInfo.total_out: %u\n", lzmaInfo.total_out);
-    //D( "ret_xz: %d\n", (int) ret_xz);
-    //D( "ret_xz: %d\n", (int) ret_xz);
+    D( "lzmaInfo.total_out: %u\n", (unsigned )lzmaInfo.total_out);
     ret_xz = lzma_code (&lzmaInfo, action);
     D( "lzma_code ret_xz: %d action=%d\n", (int) ret_xz,(int)action);
     return_value= lzmaInfo.total_out;

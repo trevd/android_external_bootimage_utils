@@ -23,6 +23,9 @@
 #ifndef _2638e606_9103_11e2_b47f_5404a601fa9d
 #define _2638e606_9103_11e2_b47f_5404a601fa9d
 
+
+#include <compression.h>
+
 #define CPIO_HEADER_MAGIC "070701"
 #define CPIO_HEADER_MAGIC_SIZE 6
 
@@ -33,14 +36,15 @@
 
 #define RAMDISK_ENTRY_DATA_NON_CONTIGOUS -1
 
-#define RAMDISK_COMPRESSION_UNKNOWN -1
-#define RAMDISK_COMPRESSION_NONE 0
-#define RAMDISK_COMPRESSION_GZIP 1
-#define RAMDISK_COMPRESSION_LZO 2
-#define RAMDISK_COMPRESSION_LZMA 3
-#define RAMDISK_COMPRESSION_BZIP2 4
-#define RAMDISK_COMPRESSION_XZ 5
-#define RAMDISK_COMPRESSION_LZ4 6
+
+#define RAMDISK_COMPRESSION_UNKNOWN 0
+#define RAMDISK_COMPRESSION_GZIP    COMPRESSION_GZIP_DEFLATE
+#define RAMDISK_COMPRESSION_LZO     COMPRESSION_LZOP        
+#define RAMDISK_COMPRESSION_XZ      COMPRESSION_XZ          
+#define RAMDISK_COMPRESSION_LZMA    COMPRESSION_LZMA        
+#define RAMDISK_COMPRESSION_BZIP2   COMPRESSION_BZIP2       
+#define RAMDISK_COMPRESSION_LZ4     COMPRESSION_LZ4         
+#define RAMDISK_COMPRESSION_NONE    9
 
 #define RAMDISK_TYPE_UNKNOWN -1
 #define RAMDISK_TYPE_NORMAL 1
@@ -110,8 +114,6 @@ unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_imag
 
 unsigned load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image);
 
-
-
 unsigned load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
 unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
@@ -123,6 +125,11 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
 unsigned print_ramdisk_info(ramdisk_image* rimage);
 
 char *str_ramdisk_compression(int compression_type);
+
+/* int_ramdisk_compression - returns an integer representing the compression type
+ * if the ramdisk is compression type is unknown the then RAMDISK_COMPRESSION_UNKNOWN
+ * 
+ */ 
 
 unsigned int_ramdisk_compression(char * compression_type);
 
