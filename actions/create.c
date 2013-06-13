@@ -370,7 +370,7 @@ int process_create_action(unsigned argc,char ** argv,global_action* gaction){
         fprintf(stderr,"no boot image:%s\n",action.bootimage_filename);
         return EINVAL;
     }
-   
+    
     
     
     create_bootimage(&action,gaction);

@@ -61,13 +61,11 @@ struct global_action{
 };
 
 // init_global_action - implemented in actions/global.c
-int init_global_action(unsigned argc,char ** argv,global_action* action);
+int init_global_actions(unsigned argc,char ** argv,global_action* action);
 
 // only_global_actions - implemented in actions/global.c
 int only_global_actions(unsigned argc,char ** argv,global_action* action);
 
-// process_global_action - implemented in actions/global.c
-int process_global_action(unsigned argc,char ** argv,global_action* action);
 
 // process_extract_action - implemented in actions/extract.c
 int process_extract_action(unsigned argc,char ** argv,global_action* gaction);

@@ -32,4 +32,5 @@ unsigned print_program_error_file_type_not_recognized(char * filename);
 unsigned print_program_error_file_name_not_found(char * filename);
 unsigned print_program_error_file_not_boot_image(char * filename);
 unsigned print_program_error_file_write_boot_image(char * filename);
+unsigned print_program_error_invalid_option(char arg);
 #endif

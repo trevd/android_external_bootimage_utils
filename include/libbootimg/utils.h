@@ -37,10 +37,9 @@
 
 // Debug Functionality. use the init_debug() function to turn on debug messages
 
-extern int   utils_debug;
 
-void init_debug() ;
-
+extern int utils_debug ;
+    
 #include <errno.h>
 static int internal_errno = 0 ; 
 #define D(  ...) \
@@ -51,7 +50,16 @@ static int internal_errno = 0 ;
             fprintf(stderr,  __VA_ARGS__ ); \
             errno = internal_errno ; \
         }
-
+        
+#define DC( ac, av , ...) \
+        if (utils_debug){ \
+            fprintf(stderr, "DEBUG: %s::%s():Array Count:%d\n", __FILE__, __FUNCTION__,ac,av); \
+            int c = 0 ; \
+            for(c = 0 ; c < ac ; c++){ \
+                fprintf(stderr, "DEBUG: %s::%s(): %0d %p - %s\n", __FILE__, __FUNCTION__, c ,av[c],av[c]); \
+            } \
+        }
+        
 /* NAME
     find_in_memory - locate a substring
 

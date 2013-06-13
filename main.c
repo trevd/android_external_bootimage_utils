@@ -59,8 +59,11 @@ int get_action(unsigned argc,char ** argv,global_action* gaction){
 }
 int main(int argc,char ** argv){
 
-
     
+    // first call - switch on debugging
+    if(getenv("BITDEBUG")) utils_debug = 1;
+    DC(argc,argv);
+    //D("called with argc");
 
     // this should never happen but as we are
     // narrowing the variable we may aswell check
@@ -72,9 +75,9 @@ int main(int argc,char ** argv){
     // program name,  the action to process and whether 
     // the program was called using on of the many multicall 
     // binary shortcut commands
-    
+     
     global_action gaction ;
-    init_global_action(argc,argv,&gaction);
+    init_global_actions(argc,argv,&gaction);
     
     // only on argument past and that can only be
     // the filename, print some nice help to guide
@@ -84,8 +87,7 @@ int main(int argc,char ** argv){
         print_help_message( &gaction ) ;    
         return 0;
     }
-    // look for global actions first as this effects output
-    process_global_action(argc,argv, &gaction) ;
+
 
     D("gaction.debug:%d argc:%d\n",gaction.debug,argc);
     if(gaction.debug){

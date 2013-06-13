@@ -30,16 +30,31 @@
 #include <limits.h>
 #include <errno.h>
 #include <string.h> 
-
+#include <ctype.h>
 // internal program headers
 #include <actions.h>
 #include <utils.h>
 
 
-// check_program_name - internal function call from the init_global_action function 
-// and figures out the main action to be performed
-static int check_program_name(unsigned argc,char ** argv, global_action* action){
+// get_program_action - internal function call from the init_global_action function 
+// and figures out the main action to be performed - this is either based on the 
+// executing file name or on the first argument after
+static int get_program_action(unsigned argc,char ** argv, global_action* action){
 
+    
+    D("called with argc=%d argv=%p action=%p\n",argc,argv,action);
+    if(argc < 2 )  return -1 ;
+
+    if(!argv || !argv[0]) return -2;
+    
+    if(!action) return -3;
+         
+    if(!action->program_name || !strlen(action->program_name) ) return -4 ;
+     
+    D("action->program_name=%s\n",action->program_name);
+    
+    action->process_action = ACTION_NONE ;
+    
     // switch multicall on, we can turn it back off if we don't find one
     // cheeky logic, saves on code.
     action->multicall = 1 ;
@@ -80,7 +95,9 @@ static int check_program_name(unsigned argc,char ** argv, global_action* action)
         // not a multicall, check the next argument for the process action
         action->multicall = 0 ;
         argc -- ; argv ++ ;
-        if(!argc) return -1 ;
+        if(!argc) return -5 ;
+        
+        if(!argv[0]) return -6;
     
         if(!strlcmp(argv[0],"extract") || !strlcmp(argv[0],"x"))
             action->process_action = ACTION_EXTRACT;
@@ -107,26 +124,51 @@ static int check_program_name(unsigned argc,char ** argv, global_action* action)
         
     
     }
+    if(action->process_action == ACTION_NONE) return -7;
+    
     return 0;
 
 }
 // init_global_action - initialize our global structure. 
 // This is called from the main function
-int init_global_action(unsigned argc,char ** argv, global_action* action){
+int init_global_actions(unsigned argc,char ** argv, global_action* action){
     
     errno = 0;
     if(!action){
         errno = EINVAL ;
         return errno;
     }
+    
+    if(getenv("BITDEBUG")){
+        action->debug = 1 ;
+        // initialize debug printing for libbootimage
+        utils_debug = 1 ;
+        D("debug output enabled action->debug=%d\n", action->debug) ;
+    }
+    
     action->debug = 0;
     action->log = 0;
     action->verbose = 0 ;
     action->multicall = 0 ;
     action->program_name = argv[0] ;
     action->process_action = ACTION_NONE ; 
-    check_program_name(argc,argv,action);
+    get_program_action(argc,argv,action);
+        
+    while(argc > 0){
+          
+        if(!strlcmp(argv[0],"--verbose")){
+            action->verbose = 1 ;
+        }else if(!strlcmp(argv[0],"--log")){
+            action->log = 1 ;
+        }
+        argc--; argv++;
+    }
+    
+    
     D("action->process_action=%d\n",action->process_action);
+    
+    
+    
     return 0;
 }
 
@@ -150,33 +192,4 @@ int only_global_actions(unsigned argc,char ** argv,global_action* action){
     }
     D("only_global_actions returning %d\n",return_value);
     return return_value;
-}
-
-int process_global_action(unsigned argc,char ** argv,global_action* action){
-    
-    errno = 0;
-    if(!action){
-        errno = EINVAL ;
-        return errno;
-    }
-    
-    if(!action) init_global_action(argc,argv,action);
-    if(getenv("BITDEBUG")){
-        action->debug = 1 ;
-        // initialize debug printing for libbootimage
-        init_debug();
-        D("debug output enabled action->debug=%d\n", action->debug) ;
-    }
-   
-    while(argc > 0){
-          
-        if(!strlcmp(argv[0],"--verbose")){
-            action->verbose = 1 ;
-        }else if(!strlcmp(argv[0],"--log")){
-            action->log = 1 ;
-        }
-        argc--; argv++;
-    }
-    
-    return 0;
 }

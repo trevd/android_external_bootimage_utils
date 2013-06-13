@@ -38,7 +38,7 @@ unsigned print_program_title(){
     
     static unsigned printed ;
     if(!printed){
-        fprintf(stderr,"\n %s %s\n\n",PROGRAM_TITLE,PROGRAM_VERSION);
+        fprintf(stderr,"\n %s %s\n Compiled on %s at %s\n\n",PROGRAM_TITLE,PROGRAM_VERSION, __DATE__,__TIME__);
         printed = 1 ;
     }
     return 0 ; 
@@ -89,6 +89,14 @@ unsigned print_program_error_file_not_boot_image(char * filename){
     fprintf(stderr," cannot open file \"%s\" as boot image - error %d - %s\n\n",filename ,errno , strerror(errno));
     return errno;
 }
+unsigned print_program_error_invalid_option(char arg){
+    
+    unsigned save_err = errno ; 
+    print_program_title();
+    fprintf(stderr," Invalid option \'%c\' - error %d - %s\n\n",arg ,errno , strerror(errno));
+    return errno;
+}
+
 unsigned print_program_error_file_write_boot_image(char * filename){
     
     unsigned save_err = errno ; 

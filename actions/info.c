@@ -28,6 +28,7 @@
 #include <errno.h>
 #include <limits.h>
 #include <unistd.h>
+
 // internal program headers
 #include <actions.h>
 #include <utils.h>
@@ -39,13 +40,16 @@ typedef struct info_action info_action;
 
 struct info_action{
     
-    char *      filename;
+    char *  filename;
     int     header  ;
     int     additional ;
     int     kernel  ;
     int     ramdisk ;
     int     second  ;
 };
+
+#define VALID_ACTION_SWITCHES "ahkrs"
+
 int info_kernel( kernel_image* kimage,info_action* action,int print_title){
     
     if(print_title){
@@ -208,10 +212,10 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
     unsigned i = 0 ;
     for(i = 0 ; i < argc ; i++){
         if(argv[i][0]!='-'){
-         possible_filename = argv[i];
-         D("possible_filename at position %d - %s %s\n",i,argv[i],possible_filename);
-         break ;
-     }
+            possible_filename = argv[i];
+            D("possible_filename at position %d - %s %s\n",i,argv[i],possible_filename);
+            break ;
+        }
     }
     
     
@@ -219,60 +223,64 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
     unsigned action_set = 0 ; 
       
     while(argc > 0){
-    
     if(!action.filename && (file=fopen(argv[0],"r+b"))){
         fclose(file);
         action.filename = argv[0];
         D("action.filename:%s\n",action.filename);
         if(!action_set){
-        
-        // if this is the last token the following token are global action only
-        // then print full information
-        if(argc == 1 || argv[1][0]!='-' || !only_global_actions(argc-1,argv+1,gaction)  ){ 
-            D("printing full info argc=%d\n",argc);
-            action.kernel   = 1     ;
-            action.header   = 1     ;
-            action.ramdisk  = 1     ;
-            action.second   = 1     ;
-            action.additional   = 1     ;
+            // if this is the last token the following token are global action only
+            // then print full information
+            if(argc == 1 || argv[1][0]!='-' || !only_global_actions(argc-1,argv+1,gaction)  ){ 
+                D("printing full info argc=%d\n",argc);
+                action.kernel = action.header = action.ramdisk =  action.second =  action.additional   = 1     ;
         }
-        }
+    }
         
         
-    }else if(!strlcmp(argv[0],"--kernel") || !strlcmp(argv[0],"-k")){
+    }else if(!strlcmp(argv[0],"--kernel") || !strncmp(argv[0],"-k",2)){
         
         // we have a kernel setting
         action.kernel = 1;
         action_set = 1 ;
         D("action.kernel:%d\n",action.kernel);
     }
-    else if(!strlcmp(argv[0],"--ramdisk") || !strlcmp(argv[0],"-i") || !strlcmp(argv[0],"-r") ){
+    else if(!strlcmp(argv[0],"--ramdisk") || !strncmp(argv[0],"-i",2) || !strncmp(argv[0],"-r",2) ){
         
         // we have a ramdisk setting
         action.ramdisk = 1;
         action_set = 1 ;
         D("action.ramdisk:%d\n",action.ramdisk);
-    }else if(!strlcmp(argv[0],"--header") || !strlcmp(argv[0],"-h") ){
+    }else if(!strlcmp(argv[0],"--header") || !strncmp(argv[0],"-h",2) ){
         
         // we have a ramdisk setting
         action.header = 1;
         action_set = 1 ;
         D("action.header:%d\n",action.header);
-    }else if(!strlcmp(argv[0],"--additional") || !strlcmp(argv[0],"-a") ){
+    }else if(!strlcmp(argv[0],"--additional") || !strncmp(argv[0],"-a",2) ){
         
         // we have a ramdisk setting
         action.additional = 1;
         action_set = 1 ;
         D("action.additional:%d\n",action.additional);
     }
-    
-    
-    argc--; argv++ ;
+    if( ( strlen(argv[0]) >= 2 ) && (argv[0][1] != '-') && (argv[0][0] == '-') ){
+        argv[0]++; 
+        argv[0][0]='-';
+        if(!strchr(VALID_ACTION_SWITCHES,argv[0][1])){
+            errno = EINVAL ; 
+            return print_program_error_invalid_option(argv[0][1]);
+        }
     }
+    else{
+        argc--; argv++ ;
+    }
+    
+   } 
+   
     
     // we must have at least a boot image to process
     if(!action.filename) 
-    return print_program_error_file_name_not_found(action.filename);
+        return print_program_error_file_name_not_found(possible_filename);
     
     
     
