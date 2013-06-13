@@ -102,7 +102,7 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
     
     kernel_image kimage;
     if(action->kernel && !load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage)){
-    info_kernel(&kimage,action,0) ;
+        info_kernel(&kimage,action,0) ;
     if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         
     }

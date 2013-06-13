@@ -54,20 +54,6 @@ int print_kernel_info(kernel_image* kimage){
     return 0;
     
 }
-char * uncompress_kernel_image(unsigned char* kernel_addr,unsigned kernel_size,unsigned char* compressed_kernel_offset_p,kernel_image* image){
-    
-    switch(image->compression_type){
-        case KERNEL_COMPRESSION_GZIP: return "gzip" ; 
-        case KERNEL_COMPRESSION_LZMA: return "lzma" ; 
-        case KERNEL_COMPRESSION_LZO: return "lzo" ; 
-        case KERNEL_COMPRESSION_XZ: return "xz" ; 
-        case KERNEL_COMPRESSION_BZIP2: return "bzip2" ; 
-        defaut: return "none";
-    }
-    return "none";
-
-}
-
 // get_kernel_compression_type_and_offset - returns the offset of a compressed file and 
 // populates the image->compression_type parameter with the compression type found
 unsigned char * get_kernel_compression_type_and_offset(unsigned char* kernel_addr,unsigned kernel_size,unsigned char* kernel_magic_offset_p,kernel_image* image){
@@ -126,14 +112,22 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
             uncompressed_kernel_size = uncompress_xz_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
             break;
         }
-        
+        case KERNEL_COMPRESSION_LZMA:{
+            uncompressed_kernel_size = uncompress_xz_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
+            break;
+        }
+        case KERNEL_COMPRESSION_BZIP2:{
+            uncompressed_kernel_size = uncompress_bzip2_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
+            break;
+        }
         default:
             break;
     }
-    if(errno){
+    if(!uncompressed_kernel_size){
+        errno = ENOEXEC ;
         D("errno: %u %s\n",errno,strerror(errno));
         free(uncompressed_kernel_data);
-        return  uncompressed_kernel_size;
+        return  -1;
     }
     D("uncompressed_kernel_size : %ld\n",uncompressed_kernel_size);
     // fill in the basic values    
@@ -182,15 +176,12 @@ exit:
     
     
 }
-char *str_kernel_compression(int compression_type){
+char *str_kernel_compression(unsigned compression){
         
-    switch(compression_type){
-        case KERNEL_COMPRESSION_GZIP: return "gzip" ; 
-        case KERNEL_COMPRESSION_LZMA: return "lzma" ; 
-        case KERNEL_COMPRESSION_LZO: return "lzo" ; 
-        case KERNEL_COMPRESSION_XZ: return "xz" ; 
-        case KERNEL_COMPRESSION_BZIP2: return "bzip2" ; 
-        defaut: return "none";
+    char* return_value = get_compression_name_from_index(compression);
+    if(errno > 0 ) {
+        errno = 0 ; 
+        return "none";
     }
-    return "none";
+    return return_value;
 }

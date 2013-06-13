@@ -58,6 +58,7 @@ bootimage_tools_include_dirs := $(LOCAL_PATH) \
 							
 bootimage_tools_static_libraries := libbootimage\
 									libz \
+									libbz \
 									liblzop-static \
 									liblzo-static \
 									liblzma-static

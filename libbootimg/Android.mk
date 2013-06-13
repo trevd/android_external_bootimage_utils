@@ -39,10 +39,12 @@ libbootimg_include_dirs := external/bootimage-tools/include \
 				system/core/mkbootimg \
 				system/core/include/mincrypt \
 				external/zlib \
+				external/bzip2 \
 				external/bootimage-tools/liblzma/api \
 				external/bootimage-tools/liblzo/include
 				
 libbootimg_static_libraries := 	libz \
+								libbz \
 								liblzop-static \
 								liblzo-static \
 								liblzma-static

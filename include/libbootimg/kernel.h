@@ -60,7 +60,7 @@ struct kernel_image {
 
 int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image );
 int print_kernel_info(kernel_image* kimage);
-char *str_kernel_compression(int compression_type);
+char *str_kernel_compression(unsigned compression) ;
     
 
 #endif

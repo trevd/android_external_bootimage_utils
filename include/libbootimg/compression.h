@@ -30,6 +30,18 @@
 #define COMPRESSION_BZIP2           5
 #define COMPRESSION_LZ4             6
 
+/* get_compression_name_from_index(int index)
+ * 
+ * Helper function to get the name of a compression type value 
+ * index should be a valid compression index number
+ * 
+ * Return:
+ * On success a pointer to a string containing the name of the compression type
+ * On failure NULL and errno is set ;
+ */
+char * get_compression_name_from_index(unsigned index); 
+unsigned get_compression_index_from_name(char *name) ;
+
 unsigned char * find_compressed_data_in_memory( unsigned char *haystack, unsigned haystack_len, int* compression );
 
 unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack, unsigned haystack_len,
@@ -51,6 +63,12 @@ long uncompress_xz_memory(unsigned char* compressed_data , size_t compressed_dat
                 unsigned char* uncompressed_data,size_t uncompressed_max_size);
 
 long compress_xz_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+                unsigned char* compressed_data,size_t compressed_max_size);
+
+long uncompress_bzip2_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+                unsigned char* uncompressed_data,size_t uncompressed_max_size);
+
+long compress_bzip2_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
 
 #endif

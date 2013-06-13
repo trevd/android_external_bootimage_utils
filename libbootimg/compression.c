@@ -35,27 +35,83 @@
 #include <zlib.h>
 #include <lzop.h>
 #include <lzma.h>
+#include <bzlib.h>
+
 
 #include <compression_internal.h>
+
+#define MAX_DECOMPRESS_SIZE (8192*1024)*4
+
+char *get_compression_name_from_index(unsigned index){
+    
+    errno = 0 ;
+    // the index member should be the same as the array position
+    // if it's not then some has fucked up somewhere
+    if(compression_types[index].index == index)
+        return compression_types[index].name ;
+    else { 
+        errno = EINVAL ; 
+        return NULL ;
+    }
+}
+unsigned get_compression_index_from_name(char *name){
+    int counter = 0 ; 
+    unsigned return_value = 0 ;
+    errno = EINVAL ;
+    for(counter = 1 ; counter <= COMPRESSION_INDEX_MAX ; counter ++){
+        if(strlcmp(compression_types[counter].name,name)){
+                return_value = counter;
+                errno = 0 ; 
+                break ; 
+        }
+    }
+    return return_value ; 
+    
+}
+
 
 unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack, unsigned haystack_len,unsigned char *haystack_offset, int* compression ){
     
     
     D("haystack=%p haystack_len=%u\n", haystack,haystack_len);
-    unsigned char * compressed_magic_offset_p = NULL ;
+    unsigned char * compressed_magic_offset_p = haystack_offset ;
+    unsigned char * uncompressed_data = calloc(MAX_DECOMPRESS_SIZE,sizeof(unsigned char)) ;
+    
+    long uncompressed_kernel_size = 0;
     int counter = 0 ;
     for(counter = 1 ; counter <= COMPRESSION_INDEX_MAX ; counter ++){
         
+        D("looking for %s magic at offset %p\n", compression_types[counter].name , haystack_offset);
         compressed_magic_offset_p = find_in_memory_start_at(haystack,
-                                                            haystack_len,haystack_offset,
+                                                            haystack_len,compressed_magic_offset_p,
                                                             compression_types[counter].magic, 
                                                             compression_types[counter].magic_size );
         
         if(compressed_magic_offset_p){
+            D("compressed_magic_offset_p %p\n",compressed_magic_offset_p);
+            if(compression_types[counter].uncompress_function != NULL){
+                errno = 0 ;
+                (* compression_types[counter].uncompress_function) (compressed_magic_offset_p,haystack_len,uncompressed_data,MAX_DECOMPRESS_SIZE);
+                if(errno != 0 ){
+                    // invalid data block search again
+                    compressed_magic_offset_p+=1 ;
+                    
+                    D("false positive for %s\n",compression_types[counter].name);
+                    D("compressed_magic_offset_p %p\n",compressed_magic_offset_p);
+                    counter--;
+                    //compressed_magic_offset_p = NULL ; 
+                    errno = 0 ;
+                    continue ;
+                    
+                }
+            }
            (*compression) = compression_types[counter].index ; 
-            D("compression_type=%s\n",compression_types[counter].name);
+           D("compression_type=%s\n",compression_types[counter].name);
            break ; 
         }
+        
+        compressed_magic_offset_p = haystack_offset  ;
+        D("resetting offset for next type %p\n",compressed_magic_offset_p);
     }
     return compressed_magic_offset_p;
    
@@ -69,8 +125,22 @@ unsigned char * find_compressed_data_in_memory( unsigned char *haystack, unsigne
     return find_compressed_data_in_memory_start_at(haystack,haystack_len,haystack,compression);
 }
 
+long uncompress_bzip2_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+
+    D("compressed_data_size=%u\n",compressed_data_size);
+   
+    int return_value = BZ2_bzBuffToBuffDecompress((char*)uncompressed_data,&uncompressed_max_size,(char*)compressed_data,compressed_data_size,0,0);
+    D("return_value %d uncompressed_max_size=%u\n",return_value,uncompressed_max_size);
+    return uncompressed_max_size;
+   
+}
+long compress_bzip2_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+    return 0 ;
+}
+
 long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
     
+    errno = 0 ;
     lzma_action action = LZMA_RUN;
     lzma_ret ret_xz;
     long return_value;
@@ -86,6 +156,7 @@ long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_da
     ret_xz = lzma_stream_decoder (&lzmaInfo, UINT_MAX, LZMA_CONCATENATED);
     if (ret_xz != LZMA_OK) {
         D( "lzma_stream_decoder error: %d\n", (int) ret_xz);
+        errno = 0-ret_xz;
         return 0;
     }
     D( "decoder ret_xz: %d\n", (int) ret_xz);
@@ -93,9 +164,20 @@ long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_da
     D( "lzmaInfo.avail_out: %u\n", lzmaInfo.avail_out);
     D( "lzmaInfo.total_out: %u\n", (unsigned )lzmaInfo.total_out);
     ret_xz = lzma_code (&lzmaInfo, action);
+    //if (ret_xz != LZMA_OK ) {
+        D( "lzma_code error: %d\n", (int) ret_xz);
+        errno = 0-ret_xz;
+      //  return 0;
+    //}
+    D( "lzmaInfo.total_out: %u\n", (unsigned )lzmaInfo.total_out);
+    
     D( "lzma_code ret_xz: %d action=%d\n", (int) ret_xz,(int)action);
     return_value= lzmaInfo.total_out;
     lzma_end (&lzmaInfo);
+    if (return_value > 0 ) {
+        D( "lzmaInfo.total_out: %u\n", (unsigned )lzmaInfo.total_out);
+        errno = 0;
+    }
     return return_value; 
     
 }
@@ -110,7 +192,7 @@ long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_d
 
     
     
-    
+     errno = 0 ;
     // Double check the lzop magic, we should have already checked this we deciding
     // what decompression routine we needed
     if( !check_magic(compressed_data,sizeof(lzop_magic)) ){
@@ -155,7 +237,7 @@ long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_d
             return 0 ;
         }
         decompressed_size += b.d_len;
-        D("LZOP DECOMPRESS block->c_len=%u b.d_len=%u\n",b.c_len ,b.d_len);
+        //D("LZOP DECOMPRESS block->c_len=%u b.d_len=%u\n",b.c_len ,b.d_len);
         int block_read = bread_lzop_block(&s,compressed_data+data_offset,LZOP_MAX_BLOCK_HEADER_LEN,&b);
          if(!block_read){
             errno = EINVAL ;
@@ -163,7 +245,7 @@ long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_d
         }
         data_offset +=(block_read+b.c_len);
        
-        D("data_offset  2 %u block_read %u b.c_len %u b.d_len %u\n",data_offset,block_read,b.c_len,b.d_len) ;
+        //D("data_offset  2 %u block_read %u b.c_len %u b.d_len %u\n",data_offset,block_read,b.c_len,b.d_len) ;
 
     }
     D("LZO DECOMPRESSED SIZE:%lu\n",decompressed_size);
@@ -178,10 +260,35 @@ long compress_lzo_memory( unsigned char* uncompressed_data , size_t uncompressed
     return compressed_len;*/
     return 0;
 }
+/* report a zlib or i/o error */
+void zerr(int ret)
+{
+    D("zpipe: ", stderr);
+    switch (ret) {
+    case Z_ERRNO:
+        if (ferror(stdin))
+            D("error reading stdin\n", stderr);
+        if (ferror(stdout))
+            D("error writing stdout\n", stderr);
+        break;
+    case Z_STREAM_ERROR:
+        D("invalid compression level\n", stderr);
+        break;
+    case Z_DATA_ERROR:
+        D("invalid or incomplete deflate data\n", stderr);
+        break;
+    case Z_MEM_ERROR:
+        D("out of memory\n", stderr);
+        break;
+    case Z_VERSION_ERROR:
+        D("zlib version mismatch!\n", stderr);
+    }
+}
 long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
 {
 
     errno = 0 ;
+    D("compressed_data_size=%u\n",compressed_data_size);
     z_stream zInfo = {0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 
     zInfo.avail_in=  compressed_data_size;
     zInfo.total_in=  compressed_data_size;  
@@ -193,20 +300,24 @@ long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_
     long err= inflateInit2( &zInfo,16+MAX_WBITS );               // zlib function
 
     if ( err == Z_OK ) {
-    err= inflate( &zInfo, Z_FINISH );     // zlib function
-    if ( err == Z_STREAM_END ) {
-        return_value= zInfo.total_out;
-    }else{ 
-        errno=err;
-        return_value =0;
-    }
+        err= inflate( &zInfo, Z_FINISH );     // zlib function
+        if ( err == Z_STREAM_END ) {
+            return_value= zInfo.total_out;
+        }else{ 
+            zerr(err);
+            D("error on inflate=%lu errno=%d\n",zInfo.avail_out,err);
+            errno=err;
+            return_value =0;
+        }
     }else{
         errno=err;
         return_value =0;
     }
+    D("return_value=%u errno=%d\n",return_value,errno);
     inflateEnd( &zInfo );   
     return( return_value ); 
 }
+
 long compress_gzip_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size)
 {
    

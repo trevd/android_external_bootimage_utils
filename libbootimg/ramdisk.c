@@ -444,7 +444,7 @@ unsigned char* get_archive_compression_type_and_offset(unsigned char* ramdisk_ad
     int compression = 0 ;
     unsigned char * archive_magic_offset_p = find_compressed_data_in_memory(ramdisk_addr,ramdisk_size,&compression);
     if(archive_magic_offset_p){
-        D("compression_type=GZIP\n");
+        D("compression_type=%s\n",str_ramdisk_compression(compression));
         image->compression_type = compression ;
         return archive_magic_offset_p;
     }
@@ -478,7 +478,14 @@ unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsi
             uncompressed_ramdisk_size = uncompress_xz_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
             break;
         }
-        
+        case RAMDISK_COMPRESSION_BZIP2:{
+            uncompressed_ramdisk_size = uncompress_bzip2_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+            break;
+        }
+        case RAMDISK_COMPRESSION_LZMA:{
+            uncompressed_ramdisk_size = uncompress_xz_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+            break;
+        }
         default:
             break;
     }
@@ -749,7 +756,7 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     while((*cpio_size) & 0xff) 
         (*cpio_size)++;
     
-    D("cpio_size %u %p\n",cpio_size,nextbyte);
+    D("cpio_size %u %p\n",(*cpio_size),nextbyte);
     
     return cpio_data;
     
@@ -808,46 +815,24 @@ char *str_recovery_brand(int ramdisk_brand){
     }
     return "unknown";
 }
-char *str_ramdisk_compression(int compression_type){
-  
-  switch(compression_type){
-    case RAMDISK_COMPRESSION_GZIP: return "gzip" ; 
-    case RAMDISK_COMPRESSION_LZMA: return "lzma" ; 
-    case RAMDISK_COMPRESSION_LZO: return "lzo" ; 
-    case RAMDISK_COMPRESSION_BZIP2: return "bz2";
-    case RAMDISK_COMPRESSION_XZ: return "xz";
-    default: return "none";
+char *str_ramdisk_compression(unsigned compression){
+        
+    char* return_value = get_compression_name_from_index(compression);
+    if(errno > 0 ) {
+        errno = 0 ; 
+        return "none";
     }
-    return "unknown";
-    
+    return return_value;
 }
-unsigned int_ramdisk_compression(char * compression_type){
+
+unsigned int_ramdisk_compression(char * compression){
     
-    D("compression_type=%s\n",compression_type);
-    unsigned compression_index = RAMDISK_COMPRESSION_UNKNOWN;
-    if(!compression_type){
-    return compression_index;
+    D("compression_type=%s\n",compression);
+    unsigned compression_index = get_compression_index_from_name(compression);
+    if ( errno > 0 ){
+        errno = 0 ;
+        compression_index = RAMDISK_COMPRESSION_NONE;
     }
-    D("compression_type[0]=%c\n",compression_type[0]);
-    switch(compression_type[0]){
-    case 'g':    compression_index = RAMDISK_COMPRESSION_GZIP;  break;      
-    case 'l':{
-        D("compression_type[2]=%c\n",compression_type[2]);
-        if(compression_type[1]=='z' && compression_type[2]){
-            if(compression_type[2]=='m')
-                compression_index = RAMDISK_COMPRESSION_LZMA;
-            if(compression_type[2]=='o')
-                compression_index = RAMDISK_COMPRESSION_LZO;
-            if(compression_type[2]=='4')
-                compression_index = RAMDISK_COMPRESSION_LZ4;
-        }
-        break;      
-    }    
-    case 'b':    compression_index = RAMDISK_COMPRESSION_BZIP2;  break;
-    case 'x':    compression_index = RAMDISK_COMPRESSION_XZ;    break;
-    default: break;
-    }
-    D("compression_index=%d\n",compression_index);
     return compression_index;
     
 }

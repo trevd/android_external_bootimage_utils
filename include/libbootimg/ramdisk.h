@@ -107,6 +107,9 @@ struct ramdisk_image {
 
     };
 
+char * str_ramdisk_compression(unsigned compression); 
+
+unsigned int_ramdisk_compression(char * compression);
 
 unsigned init_ramdisk_image(ramdisk_image* image);
 
@@ -123,15 +126,6 @@ unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name)
 unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size);
 
 unsigned print_ramdisk_info(ramdisk_image* rimage);
-
-char *str_ramdisk_compression(int compression_type);
-
-/* int_ramdisk_compression - returns an integer representing the compression type
- * if the ramdisk is compression type is unknown the then RAMDISK_COMPRESSION_UNKNOWN
- * 
- */ 
-
-unsigned int_ramdisk_compression(char * compression_type);
 
 char *str_ramdisk_type(int type);
 
