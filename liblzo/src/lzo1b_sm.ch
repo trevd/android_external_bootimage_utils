@@ -52,6 +52,7 @@
 #if (DD_BITS == 0)
 
         /* search ip in the dictionary */
+        
         DINDEX1(dindex,ip);
         GINDEX(m_pos,m_off,dict,dindex,in);
         if (LZO_CHECK_MPOS_NON_DET(m_pos,m_off,in,ip,M3_MAX_OFFSET))

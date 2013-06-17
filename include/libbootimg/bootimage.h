@@ -26,19 +26,14 @@
 #include <ramdisk.h>
 #include <bootimg.h>
 typedef struct boot_image boot_image;
-typedef union boot_image_header boot_image_header;
+
 
 #define BOOT_MAGIC_SIZE 8
 #define BOOT_NAME_SIZE 16
 #define BOOT_ARGS_SIZE 512
 
 
-// boot_image_header at times need either it's members
-// or the pointer
-union boot_image_header{
-    unsigned char* addr;
-    boot_img_hdr* members;
-};
+
 
 
 struct boot_image
@@ -76,6 +71,7 @@ struct boot_image
    
     
 };
+
 unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
 unsigned load_boot_image_from_file(const char *filename, boot_image* image);
 unsigned write_boot_image(char *filename, boot_image* image);
@@ -83,6 +79,7 @@ unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image
 unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image);
 unsigned set_boot_image_defaults(boot_image* image);
 unsigned set_boot_image_content_hash(boot_image* image);
+
 unsigned set_boot_image_padding(boot_image* image);
 unsigned set_boot_image_offsets(boot_image* image);
 unsigned print_boot_image_info(boot_image* image);

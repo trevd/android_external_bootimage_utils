@@ -35,12 +35,15 @@
 #define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
 #endif
 
-// Debug Functionality. use the init_debug() function to turn on debug messages
 
+#define FILE_TYPE_UNKNOWN 0
+#define FILE_TYPE_BINARY 1
+#define FILE_TYPE_TEXT_UNIX 2
+#define FILE_TYPE_TEXT_WINDOWS 3
 
 extern int utils_debug ;
     
-#include <errno.h>
+#include <bitapi_error.h>
 static int internal_errno = 0 ; 
 #define D(  ...) \
         if (utils_debug){ \
@@ -51,7 +54,7 @@ static int internal_errno = 0 ;
             errno = internal_errno ; \
         }
         
-#define DC( ac, av , ...) \
+#define DC( ac, av ) \
         if (utils_debug){ \
             fprintf(stderr, "DEBUG: %s::%s():Array Count:%d\n", __FILE__, __FUNCTION__,ac,av); \
             int c = 0 ; \
@@ -92,5 +95,7 @@ static int internal_errno = 0 ;
     char* get_md5_sum(unsigned char* data ,unsigned size) ;
     int is_md5_match(unsigned char* data_a ,unsigned size_a,unsigned char* data_b ,unsigned size_b);
     int get_exe_path(char* buffer,size_t buffer_size);
-
+    void convert_uinx_to_out(const char* in,char* out ) ;
+    void convert_dos_to_unix(const char* in,char* out) ;
+    unsigned get_stream_type(char *stream);
 #endif

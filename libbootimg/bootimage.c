@@ -22,11 +22,13 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <bootimage.h>
 #include <utils.h>
+
+// include api error header
+#include <bitapi_error.h>
 
 // include the android boot image header from the mkbootimg
 // in the Android AOSP sources ( /system/core/mkbootimg/bootimg.h )
@@ -43,9 +45,13 @@
 #endif
 
 
-// The current maximum page size as used by google's mkbootimg program
+// The current maximum page size that has been seen in the wild
+// 16384 - is used by google's mkbootimg program
+// [2013-06-01] 131072 - seen on various oem images
+
+
 #ifndef MAXIMUM_KNOWN_PAGE_SIZE
-#define MAXIMUM_KNOWN_PAGE_SIZE 16384
+#define MAXIMUM_KNOWN_PAGE_SIZE 131072
 #endif
 
 // Allow for "Non Standard" Pagesizes used by some images
@@ -56,20 +62,37 @@
 #define MAXIMUM_ALLOWED_PAGE_SIZE 0x00100000 // 1048576 bytes ( 1MB )
 #endif
 
-
+// Assign the 1MB ( MAXIMUM_KNOWN_PAGE_SIZE )
 static unsigned char padding[MAXIMUM_KNOWN_PAGE_SIZE] = { 0, };
 
-static size_t calculate_padding(size_t size,unsigned page_size){
+// calculate_padding - internal function to calculate the padding
+// if any required by to page align a boot image section
+// section_size - the size of a section without padding
+// page_size - the size of the specified boot image page
+// 
+// Returns the number of bytes required to padding the section
+// to the next page boundary on successful, Zero and sets the errno
+// on failure. 
+//
+// Callers must check errno for failure as Zero is a valid padding size
+static size_t calculate_padding( size_t section_size, unsigned page_size){
+    
+    errno = 0 ;  // clear the errno
+    if(page_size == 0 || section_size == 0){ 
+        D("Calculate Padding Error %d\n",errno);
+        errno = EINVAL ;
+        return  0 ;
+    }
     unsigned pagemask = page_size - 1;
-    size_t padding =page_size - (size & pagemask);
-    if(padding==page_size) padding =0 ; 
-    return padding ; 
+    size_t padding_size = page_size - (section_size & pagemask);
+    if(padding_size == page_size) padding_size = 0 ; 
+    D("Calculate Padding Returns %d\n",padding_size);
+    return padding_size ; 
 }
 // set_boot_image_defaults - when creating a new boot image
-unsigned set_boot_image_defaults(boot_image* image){
+unsigned set_boot_image_defaults(boot_image* image){    
     
-    D("set_boot_image_defaults\n") ;
-    
+     D("image: %p size:%d\n",image,sizeof(image)) ;
     image->header = calloc(1,sizeof(boot_img_hdr));
     
     memcpy(image->header->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
@@ -90,6 +113,7 @@ unsigned set_boot_image_defaults(boot_image* image){
     image->start_addr = (unsigned char *) image->header;
     
     image->header_size = sizeof(boot_img_hdr);
+    D("header: %p %d\n",image->header,image->header_size) ;
     image->header_padding = calculate_padding(image->header_size,image->header->page_size);
     
     image->header->second_size = 0;
@@ -110,27 +134,36 @@ unsigned set_boot_image_defaults(boot_image* image){
     
 } 
 
-
 // set_boot_image_padding - work out the padding for each section
 // Padding is required because boot images are page aligned 
 unsigned set_boot_image_padding(boot_image* image){
     
-    image->ramdisk_padding = calculate_padding(image->header->ramdisk_size,image->header->page_size);
+    errno = 0 ;
     
+    image->ramdisk_padding = calculate_padding(image->header->ramdisk_size,image->header->page_size);
+    if(errno != 0) return errno ;
+        
     image->header_padding = calculate_padding(image->header_size,image->header->page_size);
+    if(errno != 0) return errno ;
     
     image->kernel_padding = calculate_padding(image->header->kernel_size,image->header->page_size);
+    if(errno != 0) return errno ;
     
-    if(image->header->second_size > 0)
+    if(image->header->second_size > 0){
         image->second_padding = calculate_padding(image->header->second_size,image->header->page_size); 
-        
+        if(errno != 0) return errno ;
+    }
     return 0;
 }
 // set_boot_image_offsets - set the offsets in the image when creating a new image
 // Note: kernel size and ramdisk size need to be set prior to calling this function
 unsigned set_boot_image_offsets(boot_image*image)
-{
-    
+{   
+    errno = 0;
+    if(!image || !image->header || !image->header->ramdisk_size || !image->header->kernel_size) {
+        errno = EINVAL;
+        return 1 ;
+    }
     image->kernel_offset = image->header_offset + image->header->page_size;
     image->ramdisk_offset = image->kernel_offset + image->header->kernel_size + image->kernel_padding;
     if(image->header->second_size > 0){
@@ -138,7 +171,6 @@ unsigned set_boot_image_offsets(boot_image*image)
     }else{
         image->second_offset = -1;
     }
-    
     return 0;
 }
 
@@ -146,10 +178,8 @@ unsigned set_boot_image_content_hash(boot_image* image)
 {
     SHA_CTX ctx;
     SHA_init(&ctx);
-    D("hash:kaddr %p ksize:%u\n",image->kernel_addr,image->header->kernel_size);
     SHA_update(&ctx, image->kernel_addr, image->header->kernel_size);
     SHA_update(&ctx, &image->header->kernel_size, sizeof(image->header->kernel_size));
-    D("hash:raddr %p rsize:%u\n",image->ramdisk_addr,image->header->ramdisk_size);
     SHA_update(&ctx, image->ramdisk_addr, image->header->ramdisk_size);
     SHA_update(&ctx, &image->header->ramdisk_size, sizeof(image->header->ramdisk_size));
     SHA_update(&ctx, image->second_addr, image->header->second_size);
@@ -241,7 +271,11 @@ unsigned load_boot_image_header_from_disk(const char *filename, boot_image* imag
     if(header_file){
         char line[256];
         while ( fgets ( line, sizeof line, header_file ) ) {
-            
+            char * strret = strchr(line,'\r');
+            if((strret != NULL) && (strret[1]=='\n')) {
+                    strret[0]='\n' ;
+                    strret[1]='\0' ;
+            }
             if(!memcmp("kernel_address:",line,15)){
                 //fprintf(stderr,"%d %s\n",strlen(line+17),line+17);
                 char *value = line+17;
@@ -280,8 +314,11 @@ unsigned load_boot_image_header_from_disk(const char *filename, boot_image* imag
 }
 /* load_boot_image - load android boot image into memory 
  * 
+ * 
+ * 
  * returns zero when successful, return errno on failure
  * */
+// BI_API
 unsigned load_boot_image_from_file(const char *filename, boot_image* image){
 
     errno = 0;
@@ -359,9 +396,13 @@ unsigned write_boot_image(char *filename,boot_image* image){
     FILE* boot_image_file_fp = fopen(filename,"w+b");
     if(!boot_image_file_fp)
         return errno;
-    //memcpy(image->magic,"TWAT", 4);
+    
+    
+    
     D("writing boot image %s header_size %u\n",filename,image->header_size);
     D("writing boot image %p\n",image->header);
+    
+    
     //boot_img_hdr hdr;
     
     //memcpy(&hdr,image->header,sizeof(boot_img_hdr));
@@ -402,3 +443,4 @@ fail:
     fclose(boot_image_file_fp);
     return errno;   
 }
+

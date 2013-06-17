@@ -21,6 +21,8 @@
 # 
 #
  
+ 
+ 
 MAIN_PATH:= $(call my-dir)
 
 ifeq ($(HOST_OS),windows)
@@ -64,7 +66,9 @@ bootimage_tools_static_libraries := libbootimage\
 									liblzma-static
 
 bootimage_tools_module_name := bootimage-utils								  
-			
+		
+
+
 include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(bootimage_tools_include_dirs)
@@ -77,11 +81,14 @@ LOCAL_MODULE := $(bootimage_tools_module_name)
  
 include $(BUILD_HOST_EXECUTABLE)
 
+ifneq ($(HOST_OS),windows)
+
 include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(bootimage_tools_include_dirs)				
 
 LOCAL_STATIC_LIBRARIES := libc $(bootimage_tools_static_libraries)
+
 
 LOCAL_SRC_FILES := $(bootimage_tools_src_files)
 
@@ -92,3 +99,20 @@ LOCAL_MODULE := $(bootimage_tools_module_name)
 include $(BUILD_EXECUTABLE)
 
 
+
+
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := quick.c
+LOCAL_STATIC_LIBRARIES := libc
+LOCAL_MODULE := quick
+LOCAL_FORCE_STATIC_EXECUTABLE := true
+LOCAL_LDFLAGS := -D_REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES := quick.c
+LOCAL_MODULE := quick
+
+include $(BUILD_HOST_EXECUTABLE)
+
+endif

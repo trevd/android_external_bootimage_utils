@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <utils.h>
 #include <md5.h>
@@ -277,7 +278,7 @@ int mkdir_and_parents(const char *path,unsigned mode)
                 *p = '\0';
                 if((strlen(opath) > 0) && (access(opath, F_OK))){
                     D("in loop opath=%s\n",opath);  
-                    mkdir(opath, mode);
+                    __mkdir(opath, mode);
                 }
                 *p = '/';
            }
@@ -287,8 +288,73 @@ int mkdir_and_parents(const char *path,unsigned mode)
         if(access(opath, F_OK)){ 
             /* if path is not terminated with / */
             errno = 0 ;     
-            mkdir(opath, mode);
+            __mkdir(opath, mode);
         }
         D("opath=%s errno=%u %s\n",opath,errno,strerror(errno));
         return 0 ;
+}
+
+void convert_dos_to_unix(const char* in,char* out)
+{
+    //char* p = buf;
+    //char* q = buf;
+    while (*in) {
+        if (in[0] == '\r' && in[1] == '\n') {
+            // in
+            *out = '\n';
+            in += 2;
+            out += 1;
+        }
+        else if (in[0] == '\r') {
+            // old mac
+            *out = '\n';
+            in += 1;
+            out += 1;
+        }
+        else {
+            *out = *in;
+            in += 1;
+            out += 1;
+        }
+    }
+    *out = '\0';
+}
+
+void convert_uinx_to_windows(const char* in,char* out )
+{
+    //const char* p = in;
+    //char* q = buf2;
+    while (*in) {
+        if (*in == '\n') {
+            out[0] = '\r';
+            out[1] = '\n';
+            out += 2;
+            in += 1;
+        } else {
+            *out = *in;
+            out += 1;
+            in += 1;
+        }
+    }
+    *out = '\0';
+}
+unsigned get_stream_type(char *stream){
+    
+    unsigned return_value = FILE_TYPE_TEXT_UNIX ;
+    int maybe_windows = 0 ;  
+    
+    while(*stream){
+        if(!isascii(stream[0])){
+            return_value = FILE_TYPE_BINARY;
+            D("FILE_TYPE_BINARY\n");
+            break ;
+        }else if (stream[0]=='\r'){
+            return_value = FILE_TYPE_TEXT_WINDOWS ; 
+            
+        }
+            
+    }
+    if(return_value==FILE_TYPE_TEXT_WINDOWS)D("FILE_TYPE_TEXT_WINODWS\n");
+    if(return_value==FILE_TYPE_TEXT_UNIX)D("FILE_TYPE_TEXT_UNIX\n");
+    return return_value;
 }

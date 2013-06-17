@@ -433,7 +433,13 @@ int update_boot_image(update_action* action,global_action* gaction,boot_image* b
     return 0;
 }
 
-static int process_update_file(update_action* action,global_action* gaction ){
+// STEP 2 :
+// process_update_target_file - read the fill specified by action->filename
+// into memory and determine the file type. If the file is valid call the file type
+// specific update function - valid file types are
+// Android Boot Images, Linux Kernel zImage, Bzip2, Lzo, Gzip, XZ Cpio Ramdisks and
+// Standalone Cpio Ramdisks 
+static int process_update_target_file(update_action* action,global_action* gaction ){
 
    
     char* current_working_directory = NULL; 
@@ -506,7 +512,9 @@ static int process_update_file(update_action* action,global_action* gaction ){
 }
 
 
-
+// STEP 1:
+// process_update_action - parse command line switches for the update action
+// and check the intended target exists
 int process_update_action(unsigned argc,char ** argv,global_action* gaction){
 
     
@@ -730,7 +738,7 @@ int process_update_action(unsigned argc,char ** argv,global_action* gaction){
     }
     
     
-    process_update_file(&action,gaction);
+    process_update_target_file(&action,gaction);
        
     return 0;
 }

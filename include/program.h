@@ -25,9 +25,28 @@
 #ifndef _d40fb014_a3fc_11e2_ba4b_5404a601fa9d
 #define _d40fb014_a3fc_11e2_ba4b_5404a601fa9d
 
+#include <ramdisk.h>
+
+#define DEFAULT_RAMDISK_COMPRESSION RAMDISK_COMPRESSION_GZIP
+
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
+    #define DEFAULT_HEADER_NAME "header.txt"
+#else
+    #define DEFAULT_HEADER_NAME "header"
+#endif
+#define DEFAULT_RAMDISK_DIRECTORY_NAME      "ramdisk"
+#define DEFAULT_RAMDISK_CPIO_NAME           "ramdisk.cpio"
+#define DEFAULT_RAMDISK_IMAGE_NAME          "ramdisk.img"
+#define DEFAULT_KERNEL_NAME                 "kernel"    
+#define DEFAULT_SECOND_NAME                 "second"
+
+
+
 unsigned print_program_title();
 unsigned print_program_title_and_description();
 unsigned print_program_error_processing(char* filename);
+
+
 unsigned print_program_error_file_type_not_recognized(char * filename);
 unsigned print_program_error_file_name_not_found(char * filename);
 unsigned print_program_error_file_not_boot_image(char * filename);

@@ -62,7 +62,7 @@ int main(int argc,char ** argv){
     
     // first call - switch on debugging
     if(getenv("BITDEBUG")) utils_debug = 1;
-    DC(argc,argv);
+    //DC(argc,argv);
     //D("called with argc");
 
     // this should never happen but as we are

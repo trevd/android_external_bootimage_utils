@@ -48,8 +48,6 @@
 #include <actions.h>
 #include <program.h>
 
-#define DEFAULT_BOOTIMAGE_NAME "boot"
-
 // action specific structure
 
 typedef struct extract_action extract_action;
@@ -237,6 +235,10 @@ static int extract_bootimage(extract_action* action, global_action* gaction,boot
         }else{
             fprintf(stderr," extracted to \"%s\"\n",action->header_filename);
         }
+       
+        
+        
+            
         errno = 0;
     }
      
@@ -292,6 +294,11 @@ static int extract_bootimage(extract_action* action, global_action* gaction,boot
         if(!rimage.start_addr) return return_value;
         
         extract_ramdisk_image(action,gaction, &rimage);
+        
+        if(action->header_filename){
+             write_ramdisk_image_header_to_disk(action->header_filename,&rimage);
+         }
+        
     }
     }
 
@@ -413,7 +420,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
         
         if(argc == 1 || ( argv[1][0]=='-' && argv[1][1]=='o') ||argv[1][0]!='-'){ 
             D("extract all\n");
-            action.header_filename  = (char*)"header";
+            action.header_filename  = (char*)DEFAULT_HEADER_NAME;
             action.kernel_filename  = (char*)"kernel";
             action.ramdisk_cpioname     = (char*)"ramdisk.cpio";
             action.ramdisk_imagename    = (char*)"ramdisk.img";
@@ -434,7 +441,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
         // use the default filename if this is the last token
         // or if the next token is a switch
         if(argc == 1 || argv[1][0]=='-'){
-            action.header_filename = "header";
+            action.header_filename = DEFAULT_HEADER_NAME;
         }else{
             action.header_filename = argv[1];
             --argc; ++argv;
@@ -448,7 +455,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
         // use the default filename if this is the last token
         // or if the next token is a switch
         if(argc == 1 || (argv[1][0]=='-')){
-            action.kernel_filename = "kernel";
+            action.kernel_filename = DEFAULT_KERNEL_NAME;
         }else{
             action.kernel_filename = argv[1];
             --argc; ++argv;
@@ -460,7 +467,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
         // use the default filename if this is the last token
         // or if the next token is a switch
         if(argc == 1 || (argv[1][0]=='-')){
-            action.ramdisk_cpioname = "ramdisk.cpio";
+            action.ramdisk_cpioname = DEFAULT_RAMDISK_CPIO_NAME;
         }else{
             action.ramdisk_cpioname = argv[1];
             --argc; ++argv;
@@ -472,7 +479,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
         // use the default filename if this is the last token
         // or if the next token is a switch
         if(argc == 1 || (argv[1][0]=='-')){
-            action.ramdisk_directory = "ramdisk";
+            action.ramdisk_directory = DEFAULT_RAMDISK_DIRECTORY_NAME;
         }else{
             action.ramdisk_directory = argv[1];
             --argc; ++argv;
@@ -488,7 +495,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
         // use the default filename if this is the last token
         // or if the next token is a switch
         if(argc == 1 || (argv[1][0]=='-')){
-            action.ramdisk_imagename = "ramdisk.img";
+            action.ramdisk_imagename = DEFAULT_RAMDISK_IMAGE_NAME;
         }else{
             action.ramdisk_imagename = argv[1];
             --argc; ++argv;

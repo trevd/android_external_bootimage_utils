@@ -151,21 +151,21 @@ int info_file(info_action* action,global_action* gaction ){
     
     } 
     // We will look for a ramdisk cpio first
-    ramdisk_image* rimage = get_initialized_ramdisk_image();
-    if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,rimage)){
-    return_value = info_ramdisk(rimage,action,1);
-    free(rimage->start_addr); 
-    return return_value;
+    ramdisk_image rimage;
+    if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
+        return_value = info_ramdisk(&rimage,action,1);
+        free(rimage.start_addr); 
+        return return_value;
     }
     
-    return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,rimage);
+    return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
     if(!return_value){
-    D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage->entry_count); 
-    return_value = info_ramdisk(rimage,action,1);
-    free(rimage->start_addr); 
+    D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
+    return_value = info_ramdisk(&rimage,action,1);
+    free(rimage.start_addr); 
     return return_value;
     }
-    free(rimage);
+    //free(rimage);
 
     kernel_image kimage;
     errno = 0 ; 

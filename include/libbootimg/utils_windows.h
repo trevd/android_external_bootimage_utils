@@ -31,6 +31,10 @@
 #define S_IWGRP 00020
 #define S_ISLNK(m)  (((m) & S_IFMT) == S_IFLNK)
 
+#ifndef WINDOWS_EOL
+#define WINDOWS_EOL "\r\n"
+#endif
+
 #define CONVERT_LINE_ENDINGS 1==1
 #define EOL WINDOWS_EOL
 
@@ -39,7 +43,7 @@
 #define ENODATA 61
 
 // redefine mkdir on windows
-#define mkdir(path,mode) mkdir(path)
+#define __mkdir(path,mode) mkdir(path)
 
 // 
 int lstat(const char *path, struct stat *buf);

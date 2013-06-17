@@ -62,7 +62,7 @@
 
 #define RECOVERY_VERSION_UNKNOWN -1
 
-typedef struct ramdisk_image ramdisk_image;
+
 
 typedef struct ramdisk_entry ramdisk_entry;
 
@@ -89,6 +89,8 @@ struct ramdisk_entry{
     
     
     } ;
+
+typedef struct ramdisk_image ramdisk_image;
 
 struct ramdisk_image {
     
@@ -136,5 +138,7 @@ unsigned update_ramdisk_entry_cpio_newc_header_info(ramdisk_entry* entry);
 unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage);
 
 ramdisk_image* get_initialized_ramdisk_image();
+
+unsigned write_ramdisk_image_header_to_disk(const char *filename, ramdisk_image* image);
 
 #endif

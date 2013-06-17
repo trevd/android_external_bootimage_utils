@@ -23,15 +23,16 @@
 
 LOCAL_PATH:= $(call my-dir)
 
-libbootimg_src_files := bootimage.c \
+libbootimg_src_files := \
+			../../../system/core/libmincrypt/sha.c \
+			bootimage.c \
 			compression.c \
-			kernel.c \
-			ramdisk.c\
-			utils.c \
-			md5.c \
 			file.c \
-			../../../system/core/libmincrypt/sha.c
-			
+			kernel.c \
+			md5.c \
+			ramdisk.c \
+			utils.c 	
+
 			
 libbootimg_include_dirs := external/bootimage-tools/include \
 				external/bootimage-tools/include/libbootimg \
@@ -73,6 +74,9 @@ LOCAL_MODULE := $(libbootimg_module_name)
 include $(BUILD_HOST_STATIC_LIBRARY)
 
 
+ifneq ($(HOST_OS),windows)
+
+
 include $(CLEAR_VARS)
 
 LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
@@ -83,6 +87,10 @@ LOCAL_STATIC_LIBRARIES := $(libbootimg_static_libraries)
 
 LOCAL_MODULE := $(libbootimg_module_name)
 
+include $(BUILD_STATIC_LIBRARY)
+
+
+endif
 
 
 ###### Bootimage Loading Test ########

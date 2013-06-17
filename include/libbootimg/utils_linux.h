@@ -27,5 +27,5 @@
 #define EOL "\n"
 
 #include <sys/ioctl.h>
-
+#define __mkdir(path,mode) mkdir(path,mode)
 #endif

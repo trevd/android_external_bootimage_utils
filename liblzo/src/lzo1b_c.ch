@@ -14,6 +14,7 @@
    Copyright (C) 1999 Markus Franz Xaver Johannes Oberhumer
    Copyright (C) 1998 Markus Franz Xaver Johannes Oberhumer
    Copyright (C) 1997 Markus Franz Xaver Johannes Oberhumer
+   Copyright (C) 1997 Markus Franz Xaver Johannes Oberhumer
    Copyright (C) 1996 Markus Franz Xaver Johannes Oberhumer
    All Rights Reserved.
 
@@ -135,7 +136,7 @@ do_compress    ( const lzo_bytep in , lzo_uint  in_len,
 #if !defined(NDEBUG)
         const lzo_bytep m_pos_sav = NULL;
 #endif
-        lzo_uint m_off;
+        lzo_uint m_off = 0  ;
 #if (DD_BITS == 0)
         lzo_uint dindex;
 #endif

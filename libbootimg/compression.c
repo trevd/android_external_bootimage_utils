@@ -263,25 +263,25 @@ long compress_lzo_memory( unsigned char* uncompressed_data , size_t uncompressed
 /* report a zlib or i/o error */
 void zerr(int ret)
 {
-    D("zpipe: ", stderr);
+    //D("zpipe: ");
     switch (ret) {
     case Z_ERRNO:
         if (ferror(stdin))
-            D("error reading stdin\n", stderr);
+            D("error reading stdin\n");
         if (ferror(stdout))
-            D("error writing stdout\n", stderr);
+            D("error writing stdout\n");
         break;
     case Z_STREAM_ERROR:
-        D("invalid compression level\n", stderr);
+        D("invalid compression level\n");
         break;
     case Z_DATA_ERROR:
-        D("invalid or incomplete deflate data\n", stderr);
+        D("invalid or incomplete deflate data\n");
         break;
     case Z_MEM_ERROR:
-        D("out of memory\n", stderr);
+        D("out of memory\n");
         break;
     case Z_VERSION_ERROR:
-        D("zlib version mismatch!\n", stderr);
+        D("zlib version mismatch!\n");
     }
 }
 long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
@@ -305,7 +305,7 @@ long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_
             return_value= zInfo.total_out;
         }else{ 
             zerr(err);
-            D("error on inflate=%lu errno=%d\n",zInfo.avail_out,err);
+            D("error on inflate=%u errno=%ld\n",zInfo.avail_out,err);
             errno=err;
             return_value =0;
         }

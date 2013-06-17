@@ -79,13 +79,6 @@ struct cpio_newc_header {
 
 #define MAX_RAMDISK_SIZE (8192*1024)*4
 
-ramdisk_image* get_initialized_ramdisk_image(){
-    
-    ramdisk_image* image = calloc(1,sizeof(ramdisk_image));
-    init_ramdisk_image(image);
-    return image;
-    
-}
 
 unsigned init_ramdisk_image(ramdisk_image* image){
     
@@ -350,7 +343,7 @@ unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_imag
     unsigned data_size = 0;
     unsigned char* ramdisk_addr = read_item_from_disk(filename,&data_size);
     if(!ramdisk_addr){
-    fprintf(stderr,"Error %d\n",errno);
+        fprintf(stderr,"Error %d\n",errno);
     
     return errno;
 
@@ -638,6 +631,7 @@ void get_filesystem_entry_names( char *name, int level){
    
    return  ;
 }
+
 static unsigned char* append_cpio_header_to_stream(struct stat s,char *filename, unsigned char* output_header){
      static unsigned next_inode = 300000;
      unsigned  namesize =  strlen(filename)+1;
@@ -763,6 +757,31 @@ unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size)
     
     
 }
+
+unsigned write_ramdisk_image_header_to_disk(const char *filename, ramdisk_image* image){
+    
+    errno = 0 ;
+    FILE * header_file = fopen(filename,"a");
+    if(!header_file){
+        return errno;
+    }
+    
+    if(header_file){
+        D("Compression Type:%s\n",str_ramdisk_compression(image->compression_type));
+        fprintf(header_file,"compression_type:%s"EOL,
+        str_ramdisk_compression(image->compression_type));
+        
+        /*unsigned fn = fileno(header_file);
+        
+        if ( fn == -1 ) return errno;
+                
+        fsync(fn);*/
+        fclose(header_file);
+        
+        errno = 0 ;
+    }
+    return errno;
+}
 unsigned print_ramdisk_info(ramdisk_image* rimage){
     
     //fprintf(stderr,"\nramdisk_image struct values:\n");
@@ -772,16 +791,16 @@ unsigned print_ramdisk_info(ramdisk_image* rimage){
     fprintf(stderr,"  compression type  :%s\n",str_ramdisk_compression(rimage->compression_type));
     fprintf(stderr,"  image type        :%s\n",str_ramdisk_type(rimage->type));
     if(rimage->type == RAMDISK_TYPE_RECOVERY){
-    fprintf(stderr,"  recovery brand    :%s\n",str_recovery_brand(rimage->recovery_brand));
-    if(rimage->recovery_version && rimage->recovery_brand != RECOVERY_BRAND_UNKNOWN){
-        fprintf(stderr,"  recovery version  :%.*s",rimage->recovery_version_size,rimage->recovery_version);
-        // Do we need a new line
-        if(rimage->recovery_version[rimage->recovery_version_size-1]!='\n'){
-        fprintf(stderr,"\n");
+        fprintf(stderr,"  recovery brand    :%s\n",str_recovery_brand(rimage->recovery_brand));
+        if(rimage->recovery_version && rimage->recovery_brand != RECOVERY_BRAND_UNKNOWN){
+            fprintf(stderr,"  recovery version  :%.*s",rimage->recovery_version_size,rimage->recovery_version);
+            // Do we need a new line
+            if(rimage->recovery_version[rimage->recovery_version_size-1]!='\n'){
+                fprintf(stderr,"\n");
+            }
+            D("rimage->recovery_version_size=%d rimage->recovery_version[%d]='%d'\n",
+                rimage->recovery_version_size,rimage->recovery_version_size-1,rimage->recovery_version[rimage->recovery_version_size-1]);
         }
-        D("rimage->recovery_version_size=%d rimage->recovery_version[%d]='%d'\n",
-            rimage->recovery_version_size,rimage->recovery_version_size-1,rimage->recovery_version[rimage->recovery_version_size-1]);
-    }
     }
     fprintf(stderr,"  entry_count       :%u\n",rimage->entry_count);
     
@@ -863,37 +882,36 @@ unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage){
     unsigned cpio_size = 0;
     D("cpio_size:%u %p %p\n",cpio_size,data ,data_start);
     for ( i = 0 ; i < rimage->entry_count ; i++ ){
-    ramdisk_entry* entry = rimage->entries[i];  
-    //D("%d %.*s\n",sizeof(cpio_newc_header),sizeof(cpio_newc_header),entry->start_addr);   
-    //D("name_size:%u name:%.*s name_pad:%u data_size:%u data_pad:%u\n",entry->name_size,entry->name_size,entry->name_addr,
-    //              entry->name_padding,
-    //              entry->data_size,
-    //              entry->data_padding);   
-    //
-    memcpy(data,entry->start_addr,sizeof(cpio_newc_header));
+        
+        ramdisk_entry* entry = rimage->entries[i];  
+        //D("%d %.*s\n",sizeof(cpio_newc_header),sizeof(cpio_newc_header),entry->start_addr);   
+        //D("name_size:%u name:%.*s name_pad:%u data_size:%u data_pad:%u\n",entry->name_size,entry->name_size,entry->name_addr,
+        //              entry->name_padding,
+        //              entry->data_size,
+        //              entry->data_padding);   
+        //
+        memcpy(data,entry->start_addr,sizeof(cpio_newc_header));
     
-    cpio_size += sizeof(cpio_newc_header);
-    data += sizeof(cpio_newc_header);
+        cpio_size += sizeof(cpio_newc_header);
+        data += sizeof(cpio_newc_header);
     
-    memcpy(data,entry->name_addr,entry->name_size);
+        memcpy(data,entry->name_addr,entry->name_size);
     
-    cpio_size += entry->name_size;
-    data += entry->name_size;
+        cpio_size += entry->name_size;
+        data += entry->name_size;
     
-    memcpy(data,"\0\0\0\0",entry->name_padding);
-    cpio_size += entry->name_padding;
-    data += entry->name_padding;
+        memcpy(data,"\0\0\0\0",entry->name_padding);
+        cpio_size += entry->name_padding;
+        data += entry->name_padding;
     
-    memcpy(data,entry->data_addr,entry->data_size);
-    cpio_size += entry->data_size;
-    data += entry->data_size;
+        memcpy(data,entry->data_addr,entry->data_size);
+        cpio_size += entry->data_size;
+        data += entry->data_size;
     
-    memcpy(data,"\0\0\0\0",entry->data_padding);
-    cpio_size += entry->data_padding;
-    data += entry->data_padding;
-    
-    
-    
+        memcpy(data,"\0\0\0\0",entry->data_padding);
+        cpio_size += entry->data_padding;
+        data += entry->data_padding; 
+
     
     } 
     D("cpio_size:%u %p %p\n",cpio_size,data ,data_start);
