@@ -78,8 +78,7 @@ inline int update_ramdisk_archive_from_cpio(update_action* action,global_action*
     
     return 0 ;
 }
-inline int update_ramdisk_archive_from_files(update_action* action,global_action* gaction,ramdisk_image* rimage){
-    
+inline unsigned char* update_ramdisk_stream_from_files(update_action* action,global_action* gaction,ramdisk_image* rimage){
     errno = 0;
     
     unsigned entry_index = 0 ; 
@@ -114,16 +113,18 @@ inline int update_ramdisk_archive_from_files(update_action* action,global_action
             }
         }
     }
-    
-    
-    
-   unsigned cpio_ramdisk_size = rimage->size; 
+    return  pack_noncontiguous_ramdisk_entries(rimage);
 
-    unsigned char* cpio_data =  pack_noncontiguous_ramdisk_entries(rimage);
+}
+
+// update_ramdisk_archive_from_files 
+inline int update_ramdisk_archive_from_files(update_action* action,global_action* gaction,ramdisk_image* rimage){
+    
     unsigned char* ramdisk_data = NULL;
-    D("cpio_size:%u %p\n",cpio_ramdisk_size,cpio_data );
+    unsigned char* cpio_data = update_ramdisk_stream_from_files(action,gaction,rimage);
+    unsigned cpio_ramdisk_size = rimage->size;    
     write_item_to_disk(cpio_data,cpio_ramdisk_size,33188,"test.cpio");
-        
+    D("cpio_size:%u %p\n",cpio_ramdisk_size,cpio_data );
     if(cpio_data){
         ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
         unsigned ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
@@ -180,10 +181,24 @@ inline int update_boot_image_ramdisk_from_files(update_action* action,global_act
     
     return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
     D("Ramdisk Image Loaded=%p Count=%d\n",&rimage,rimage.entry_count);
-    unsigned entry_index = 0 ; 
-    unsigned filename_index = 0 ; 
-    update_ramdisk_archive_from_files(action,gaction,&rimage);
- 
+    
+    
+    unsigned char * cpio_data = update_ramdisk_stream_from_files(action,gaction,&rimage);
+    unsigned char* ramdisk_data = NULL;
+    unsigned cpio_ramdisk_size = rimage.size;    
+    D("cpio_size:%u %p\n",cpio_ramdisk_size,cpio_data );
+    write_item_to_disk(cpio_data,cpio_ramdisk_size,33188,"test.cpio");
+    
+    if(cpio_data){
+        ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
+        unsigned ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size);
+        free(cpio_data);
+         D("ramdisk_data=%p\n",ramdisk_data);
+        D("ramdisk_size=%u\n",ramdisk_size);
+        bimage->header->ramdisk_size = ramdisk_size;
+        bimage->ramdisk_addr = ramdisk_data;
+    }
+   
     return 0;
     
 }
@@ -692,9 +707,9 @@ int process_update_action(unsigned argc,char ** argv,global_action* gaction){
                 if ( equals_sign != NULL ){
                     
                     D("equals_sign+1 = at %s\n",equals_sign+1);
-                    D("action.ramdisk_filenames[targc]->destination_filename at %p\n",action.ramdisk_filenames[targc]);
+                    //D("action.ramdisk_filenames[targc]->destination_filename at %p\n",action.ramdisk_filenames[targc]);
                     action.ramdisk_filenames[targc]->source_filename = equals_sign+1;
-                    D("action.ramdisk_filenames[targc]->destination_filename at %s\n",action.ramdisk_filenames[targc]->destination_filename);
+                    D("action.ramdisk_filenames[targc]->source_filename at %s\n",action.ramdisk_filenames[targc]->source_filename);
                     
                     equals_sign[0]='\0';
                 }else {
