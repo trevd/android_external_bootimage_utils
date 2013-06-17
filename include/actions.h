@@ -43,6 +43,14 @@
 #define ACTION_CREATE_RAMDISK       15
 #define ACTION_CREATE_KERNEL        16
 #define ACTION_INSTALL              17
+#define ACTION_LIST_RAMDISK         18
+#define ACTION_REMOVE_RAMDISK_FILE  19
+#define ACTION_MOVE_RAMDISK_FILE    20
+#define ACTION_COPY_RAMDISK_FILE    21
+#define ACTION_CHMOD_RAMDISK_FILE   22
+#define ACTION_CHOWN_RAMDISK_FILE   23
+#define ACTION_MAKE_RAMDISK_DIR     24
+#define ACTION_CREATE_RAMDISK_FILE  25
 
 
 typedef struct global_action global_action;

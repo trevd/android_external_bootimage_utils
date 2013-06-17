@@ -46,11 +46,15 @@ int print_kernel_info(kernel_image* kimage){
     if(kimage->version) klen = strlen(kimage->version);
    
     fprintf(stderr,"  Compression Type   :%s\n",str_kernel_compression(kimage->compression_type));
+    fprintf(stderr,"  Uncompressed Size  :%u\n",kimage->size);
     fprintf(stderr,"  Version            :%s",kimage->version);
     if(klen > 0 && kimage->version[klen-1]!='\n') {
         D("Adding newline kimage->version[%d]='%d'",klen,kimage->version[klen-1]);
         fprintf(stderr,"\n");
     }
+    if(kimage->config_size > 0 ) 
+        fprintf(stderr,"  config.gz Size     :%u\n",kimage->config_size);
+   
     return 0;
     
 }
@@ -72,12 +76,13 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
     
     // Look for the kernel zImage Magic
     int return_value = 0 ;
-    
+    errno = 0 ;
     D("kernel_addr=%p kernel_size=%u\n",kernel_addr,kernel_size);
     unsigned char * kernel_magic_offset_p = find_in_memory(kernel_addr,kernel_size,KERNEL_ZIMAGE_MAGIC, KERNEL_ZIMAGE_MAGIC_SIZE );
     if(!kernel_magic_offset_p){
+        image->start_addr = NULL; 
         D("kernel_magic_offset not found\n")
-        return_value = ENOEXEC;
+        return_value = errno = ENOEXEC;
         goto exit;
     
     }

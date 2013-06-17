@@ -461,13 +461,7 @@ unsigned write_boot_image(char *filename,boot_image* image){
     D("writing boot image %s header_size %u\n",filename,image->header_size);
     D("writing boot image %p\n",image->header);
     
-    
-    //boot_img_hdr hdr;
-    
-    //memcpy(&hdr,image->header,sizeof(boot_img_hdr));
-    
-//  fprintf(stderr,"writing boot image %s header_size %u\n  ",filename,image->header->kernel_size);
-    
+   
     if(fwrite(image->header,1,image->header_size,boot_image_file_fp) !=  image->header_size) goto fail;
     D("writing boot image %p\n",image->header);
     //fclose(boot_image_file_fp);
