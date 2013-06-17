@@ -1,4 +1,4 @@
-/*
+    /*
  * bootimage.c
  * 
  * Copyright 2013 Trevor Drake <trevd1234@gmail.com>
@@ -40,10 +40,29 @@
 
 
 // Private defines
+// Header labels and sizes
+#define HEADER_LABEL_KERNEL_ADDRESS "kernel_address:0x"
+#define HEADER_LABEL_KERNEL_ADDRESS_LENGTH 17 // strlen( HEADER_LABEL_KERNEL_ADDRESS )
+#define HEADER_LABEL_RAMDISK_ADDRESS "ramdisk_address:0x"
+#define HEADER_LABEL_RAMDISK_ADDRESS_LENGTH 18 // strlen( HEADER_LABEL_RAMDISK_ADDRESS )
+#define HEADER_LABEL_SECOND_ADDRESS "second_address:0x"
+#define HEADER_LABEL_SECOND_ADDRESS_LENGTH 17 // strlen( HEADER_LABEL_SECOND_ADDRESS )
+#define HEADER_LABEL_TAGS_ADDRESS "tags_address:0x"
+#define HEADER_LABEL_TAGS_ADDRESS_LENGTH 15 // strlen( HEADER_LABEL_TAGS_ADDRESS )
+#define HEADER_LABEL_PAGE_SIZE "page_size:"
+#define HEADER_LABEL_PAGE_SIZE_LENGTH 10 // strlen( HEADER_LABEL_PAGE_SIZE )
+#define HEADER_LABEL_NAME "name:"
+#define HEADER_LABEL_NAME_LENGTH 5 // strlen( HEADER_LABEL_NAME )
+#define HEADER_LABEL_CMDLINE "cmdline:"
+#define HEADER_LABEL_CMDLINE_LENGTH 8 // strlen( HEADER_LABEL_CMDLINE )
+
+#define NUMBER_BASE_HEX 16
+#define NUMBER_BASE_DECIMAL 10
+
+
 #ifndef BOOT_IMAGE_SIZE_MAX
 #define BOOT_IMAGE_SIZE_MAX (8192*1024)*4
 #endif
-
 
 // The current maximum page size that has been seen in the wild
 // 16384 - is used by google's mkbootimg program
@@ -208,19 +227,20 @@ unsigned print_boot_image_additional_info(boot_image* image){
         fprintf(stderr,"  second_padding   :%08d\n",image->second_padding);
     }
     return 0;
-    }
+}
+
 unsigned print_boot_image_header_info(boot_image* image){
 
-    fprintf(stderr,"  kernel_size      :%u\n",image->header->kernel_size);
-    fprintf(stderr,"  kernel_addr      :0x%08x\n",image->header->kernel_addr);
-    fprintf(stderr,"  ramdisk_size     :%u\n",image->header->ramdisk_size);
-    fprintf(stderr,"  ramdisk_addr     :0x%08x\n",image->header->ramdisk_addr);
-    fprintf(stderr,"  second_size      :%u\n",image->header->second_size);
-    fprintf(stderr,"  second_addr      :0x%08x\n",image->header->second_addr);
-    fprintf(stderr,"  tags_addr        :0x%08x\n",image->header->tags_addr);
-    fprintf(stderr,"  page_size        :%u\n",image->header->page_size);
-    fprintf(stderr,"  name             :%s\n",image->header->name);
-    fprintf(stderr,"  cmdline          :%s\n",image->header->cmdline);
+    fprintf(stderr,"  kernel_size      :%u\n",      image->header->kernel_size);
+    fprintf(stderr,"  kernel_addr      :0x%08x\n",  image->header->kernel_addr);
+    fprintf(stderr,"  ramdisk_size     :%u\n",      image->header->ramdisk_size);
+    fprintf(stderr,"  ramdisk_addr     :0x%08x\n",  image->header->ramdisk_addr);
+    fprintf(stderr,"  second_size      :%u\n",      image->header->second_size);
+    fprintf(stderr,"  second_addr      :0x%08x\n",  image->header->second_addr);
+    fprintf(stderr,"  tags_addr        :0x%08x\n",  image->header->tags_addr);
+    fprintf(stderr,"  page_size        :%u\n",      image->header->page_size);       
+    fprintf(stderr,"  name             :%.*s\n",    BOOT_IMAGE_NAME_SIZE,image->header->name);
+    fprintf(stderr,"  cmdline          :%.*s\n",    BOOT_IMAGE_ARGS_SIZE,image->header->cmdline);
     return 0;
 }
 unsigned print_boot_image_header_hashes(boot_image* image){
@@ -248,10 +268,18 @@ unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image
     
     if(header_file){
         
-        fprintf(header_file,"kernel_size:%u"EOL"kernel_address:0x%08x"EOL"ramdisk_size:%u"EOL"ramdisk_address:0x%08x"EOL"second_size:%u"EOL"second_address:0x%08x"EOL
-        "tags_address:0x%08x"EOL"page_size:%u"EOL"name:%s"EOL"cmdline:%s"EOL,
-        image->header->kernel_size,image->header->kernel_addr,image->header->ramdisk_size,image->header->ramdisk_addr,
-        image->header->second_size,image->header->second_addr,image->header->tags_addr,image->header->page_size,image->header->name,image->header->cmdline);
+        fprintf(header_file,"kernel_size:%u"EOL,image->header->kernel_size);
+        fprintf(header_file,HEADER_LABEL_KERNEL_ADDRESS"%08x"EOL,image->header->kernel_addr); 
+        fprintf(header_file,"ramdisk_size:%u"EOL,image->header->ramdisk_size);
+        fprintf(header_file,HEADER_LABEL_RAMDISK_ADDRESS"%08x"EOL,image->header->ramdisk_addr);
+        fprintf(header_file,"second_size:%u"EOL,image->header->second_size);
+        fprintf(header_file,HEADER_LABEL_RAMDISK_ADDRESS"%08x"EOL,image->header->second_addr);
+        fprintf(header_file,HEADER_LABEL_TAGS_ADDRESS"%08x"EOL,image->header->tags_addr);
+        fprintf(header_file,HEADER_LABEL_PAGE_SIZE"%u"EOL,image->header->page_size);
+        fprintf(header_file,HEADER_LABEL_NAME"%.*s"EOL,BOOT_IMAGE_NAME_SIZE,image->header->name);
+        fprintf(header_file,HEADER_LABEL_CMDLINE"%.*s"EOL,BOOT_IMAGE_ARGS_SIZE,image->header->cmdline);
+       
+        
         
         /*unsigned fn = fileno(header_file);
         
@@ -264,49 +292,80 @@ unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image
     }
     return errno;
 }
+
+// load_boot_image_header_from_disk - populates a boot_img_hdr which is pointed to by image->header 
+// structure using the filename supplied.
+// 
+// NOTES: image must be a valid to a boot_image structure
 unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image){
+    
+    errno = 0 ;
+    if((image == NULL) || (image->header == NULL )){
+        errno = BITAPI_ERROR_INVAL ;
+        return 0;
+    }
     
     D("filename=%s\n",filename);
     FILE * header_file = fopen(filename,"r");
     if(header_file){
-        char line[256];
-        while ( fgets ( line, sizeof line, header_file ) ) {
-            char * strret = strchr(line,'\r');
-            if((strret != NULL) && (strret[1]=='\n')) {
-                    strret[0]='\n' ;
-                    strret[1]='\0' ;
+        char line[1024] ; 
+        while ( fgets ( line, sizeof (line), header_file ) ) {
+            char * strret = strchr(line,'\n');
+            if((strret != NULL)) {
+                    //D("Remove \\r in %s 0=%d \n",line,strret[0])//,strret[1])
+                    strret[0]='\0' ; //strret[1]='\0' ;
             }
-            if(!memcmp("kernel_address:",line,15)){
-                //fprintf(stderr,"%d %s\n",strlen(line+17),line+17);
-                char *value = line+17;
-                image->header->kernel_addr = strtol(value,NULL,16 ); /* write the line */
-                D("kernel address=x%08x\n",image->header->kernel_addr);
+            
+            if(!memcmp(HEADER_LABEL_KERNEL_ADDRESS  ,   line,   HEADER_LABEL_KERNEL_ADDRESS_LENGTH)){
+                D("Matched Kernel Address\n");
+                image->header->kernel_addr = strtol(line + HEADER_LABEL_SECOND_ADDRESS_LENGTH,NULL, NUMBER_BASE_HEX );
+                D(HEADER_LABEL_KERNEL_ADDRESS"%08x\n",image->header->kernel_addr);
             }
-            if(!memcmp("ramdisk_address:",line,16)){
-                image->header->ramdisk_addr = strtol(line+16,NULL,16 ); /* write the line */
+            if(!memcmp(HEADER_LABEL_RAMDISK_ADDRESS  ,   line,   HEADER_LABEL_RAMDISK_ADDRESS_LENGTH)){                                
+                D("Matched Ramdisk Address\n");
+                image->header->ramdisk_addr = strtol(line + HEADER_LABEL_RAMDISK_ADDRESS_LENGTH ,NULL,NUMBER_BASE_HEX ); 
+                D(HEADER_LABEL_RAMDISK_ADDRESS"%08x\n",image->header->ramdisk_addr);
             }
-            if(!memcmp("tags_address:",line,13)){
-                image->header->tags_addr = strtol(line+15,NULL,16 ); /* write the line */
+            if(!memcmp(HEADER_LABEL_TAGS_ADDRESS  ,   line,   HEADER_LABEL_TAGS_ADDRESS_LENGTH)){                                
+                D("Matched Tags Address\n");
+                image->header->tags_addr = strtol(line + HEADER_LABEL_TAGS_ADDRESS_LENGTH ,NULL,NUMBER_BASE_HEX ); 
+                D(HEADER_LABEL_TAGS_ADDRESS"%08x\n",image->header->tags_addr);
             }
-            if(!memcmp("second_address:",line,15)){
-                image->header->second_addr = strtol(line+17,NULL,16 ); /* write the line */
+            if(!memcmp(HEADER_LABEL_SECOND_ADDRESS  ,   line,   HEADER_LABEL_SECOND_ADDRESS_LENGTH)){  
+                D("Matched Second Address\n");                              
+                image->header->second_addr = strtol(line + HEADER_LABEL_SECOND_ADDRESS_LENGTH ,NULL,NUMBER_BASE_HEX ); 
+                D(HEADER_LABEL_SECOND_ADDRESS"%08x\n",image->header->second_addr);
             }
-            if(!memcmp("page_size:",line,10)){
-                //fprintf(stderr,"page_size: %s\n",line+10);
-                image->header->page_size = strtol(line+10,NULL,10 ); /* write the line */
+            if(!memcmp(HEADER_LABEL_PAGE_SIZE,line,HEADER_LABEL_PAGE_SIZE_LENGTH)){
+                D("Matched PageSize Address\n");
+                image->header->page_size = strtol(line + HEADER_LABEL_PAGE_SIZE_LENGTH ,NULL, NUMBER_BASE_DECIMAL ); 
+                D(HEADER_LABEL_PAGE_SIZE"%d\n",image->header->page_size);
             }
-            if(!memcmp("name:",line,5)){
-                memcpy(image->header->name,line+5,strlen(line+5));
-                image->header->name[strlen(line+5)-1]='\0';
+            if(!memcmp(HEADER_LABEL_NAME,line,HEADER_LABEL_NAME_LENGTH)){
+                
+                int line_length = strlen( line+HEADER_LABEL_NAME_LENGTH ) ; 
+                if(line_length > BOOT_IMAGE_NAME_SIZE) line_length = BOOT_IMAGE_NAME_SIZE;
+                D("Matched Label Name line_length %d %d\n",line_length,line[HEADER_LABEL_NAME_LENGTH]);
+                memcpy(image->header->name,line+HEADER_LABEL_NAME_LENGTH,line_length);
+                D(HEADER_LABEL_NAME"%s",image->header->name);
             }
-            if(!memcmp("cmdline:",line,8)){
-                memcpy(image->header->cmdline,line+8,strlen(line+8));
-                image->header->cmdline[strlen(line+8)-1]='\0';
-                //fprintf(stderr,"%d %d %s %s\n",strlen(line+8),strlen(image->cmdline),line+8 , image->cmdline);
+            
+           
+            if(!memcmp(HEADER_LABEL_CMDLINE,line,HEADER_LABEL_CMDLINE_LENGTH)){
+                D("Matched CmdLine\n");
+                int line_length = strlen( line+HEADER_LABEL_CMDLINE_LENGTH ) ; 
+                if(line_length > BOOT_IMAGE_ARGS_SIZE) line_length = BOOT_IMAGE_ARGS_SIZE;
+                D("Matched CmdLine line_length %d %d\n",line_length,line[HEADER_LABEL_CMDLINE_LENGTH]);
+                memcpy(image->header->cmdline,line+HEADER_LABEL_CMDLINE_LENGTH,line_length);
+                
+                D(HEADER_LABEL_CMDLINE"%s",image->header->cmdline);
+                
                 
             }
+              
         
         }
+ 
         fclose(header_file);
     }
     

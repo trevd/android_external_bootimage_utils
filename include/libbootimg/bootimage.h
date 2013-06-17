@@ -27,12 +27,13 @@
 #include <bootimg.h>
 typedef struct boot_image boot_image;
 
-
+#ifndef BOOT_MAGIC_SIZE
 #define BOOT_MAGIC_SIZE 8
+#endif
 #define BOOT_NAME_SIZE 16
 #define BOOT_ARGS_SIZE 512
-
-
+#define BOOT_IMAGE_NAME_SIZE BOOT_NAME_SIZE
+#define BOOT_IMAGE_ARGS_SIZE BOOT_ARGS_SIZE
 
 
 
