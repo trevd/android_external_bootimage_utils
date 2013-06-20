@@ -33,22 +33,38 @@ libbootimg_src_files := \
 			ramdisk.c \
 			utils.c 	
 
+
+
 			
-libbootimg_include_dirs := external/bootimage-tools/include \
-				external/bootimage-tools/include/libbootimg \
-				external/bootimage-tools/liblzop \
+libbootimg_include_dirs := $(LOCAL_PATH)/../include \
+				external/bootimage_tools/include/libbootimg \
+				external/bootimage_tools/liblzop \
 				system/core/mkbootimg \
 				system/core/include/mincrypt \
 				external/zlib \
 				external/bzip2 \
-				external/bootimage-tools/liblzma/api \
-				external/bootimage-tools/liblzo/include
+				external/bootimage_tools/liblzma/api \
+				external/bootimage_tools/liblzo/include
+
+##
+## Hack to work around difference in the android_filesystem_config.h
+##
+$(info "CM_VERSION $(CM_VERSION)")
+
+ifneq ( $(CM_VERSION) , )
+# Building in AOSP
+	libbootimg_include_dirs += $(LOCAL_PATH)/cm
+else
+	libbootimg_include_dirs += system/core/include/private
+	
+endif
+
 				
 libbootimg_static_libraries := 	libz \
-								libbz \
-								liblzop-static \
-								liblzo-static \
-								liblzma-static
+				libbz \
+				liblzop-static \
+				liblzo-static \
+				liblzma-static
 								
 libbootimg_module_name := libbootimage
 

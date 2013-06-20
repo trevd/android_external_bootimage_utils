@@ -35,7 +35,7 @@
 #include <ctype.h>
 #include <kernel.h>
 
-#include <private/android_filesystem_config.h>
+#include <android_filesystem_config.h>
 
 
 

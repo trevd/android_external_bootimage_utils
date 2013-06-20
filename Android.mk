@@ -59,11 +59,11 @@ bootimage_tools_include_dirs := $(LOCAL_PATH) \
 				system/core/mkbootimg
 							
 bootimage_tools_static_libraries := libbootimage\
-									libz \
-									libbz \
-									liblzop-static \
-									liblzo-static \
-									liblzma-static
+					libz \
+					libbz \
+					liblzop-static \
+					liblzo-static \
+					liblzma-static
 
 bootimage_tools_module_name := bootimage-utils								  
 		
@@ -107,12 +107,12 @@ LOCAL_STATIC_LIBRARIES := libc
 LOCAL_MODULE := quick
 LOCAL_FORCE_STATIC_EXECUTABLE := true
 LOCAL_LDFLAGS := -D_REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
-include $(BUILD_EXECUTABLE)
+#include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES := quick.c
 LOCAL_MODULE := quick
 
-include $(BUILD_HOST_EXECUTABLE)
+#include $(BUILD_HOST_EXECUTABLE)
 
 endif
