@@ -48,7 +48,7 @@ struct info_action{
     int     second  ;
 };
 
-#define VALID_ACTION_SWITCHES "ahkrs"
+#define VALID_ACTION_SWITCHES "aHkrs"
 
 int info_kernel( kernel_image* kimage,info_action* action,int print_title){
     
@@ -78,7 +78,7 @@ int info_ramdisk(ramdisk_image* rimage,info_action* action,int print_title){
     
 }
 
-int info_boot_image(info_action* action,global_action* gaction ,boot_image* bimage){
+int info_boot_image(info_action* action,program_options* options ,boot_image* bimage){
        
     
     print_program_title();
@@ -103,7 +103,8 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
     kernel_image kimage;
     if(action->kernel && !load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage)){
         info_kernel(&kimage,action,0) ;
-    if(kimage.start_addr != NULL  )  free(kimage.start_addr);
+        //if(kimage.start_addr != NULL  )  free(kimage.start_addr);
+        //if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         
     }
     if(action->ramdisk){
@@ -115,7 +116,7 @@ int info_boot_image(info_action* action,global_action* gaction ,boot_image* bima
     }
     return 0 ;
 }
-int info_file(info_action* action,global_action* gaction ){
+int info_file(info_action* action,program_options* options ){
 
    
     char* current_working_directory = NULL; 
@@ -127,29 +128,46 @@ int info_file(info_action* action,global_action* gaction ){
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
     
-    if(!action_data && errno){
-        print_program_error_processing(action->filename);
-        return 0;    
-    }
+        if(!action_data && errno){
+                print_program_error_processing(action->filename);
+                return 0;    
+        }
 
     
-    D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
-    boot_image bimage;
+        D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
+        boot_image bimage;
     
-    if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
+        if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
     
-    D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
-    return_value = info_boot_image(action, gaction,&bimage);
+                D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
+                return_value = info_boot_image(action, options,&bimage);
     
-    D("info_boot_image returned %d\n",return_value);
-    if(bimage.start_addr != NULL ) free(bimage.start_addr); 
-    return return_value;   
+                D("info_boot_image returned %d\n",return_value);
+                if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+                        return return_value;   
     
-    }else{
+        }else{
     
-    if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+                if(bimage.start_addr != NULL ) free(bimage.start_addr); 
     
-    } 
+        } 
+        
+        
+        // Do The Kernel before the ramdisk because we can have ramdisk in the kernel
+        // image and we want to find both
+        kernel_image kimage;
+        errno = 0 ; 
+        if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
+                D("load_kernel_image_from_memory returns:%d\n", return_value); 
+                return_value = info_kernel(&kimage,action,1);
+                if(kimage.rimage != NULL  )  free(kimage.rimage->start_addr);
+                if(kimage.start_addr != NULL  )  
+                        free(kimage.start_addr);
+                        
+        
+                return return_value;
+        }
+        
     // We will look for a ramdisk cpio first
     ramdisk_image rimage;
     if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
@@ -167,15 +185,7 @@ int info_file(info_action* action,global_action* gaction ){
     }
     //free(rimage);
 
-    kernel_image kimage;
-    errno = 0 ; 
-    if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
-    D("load_kernel_image_from_memory returns:%d\n", return_value); 
     
-    return_value = info_kernel(&kimage,action,1);
-    if(kimage.start_addr != NULL  )  free(kimage.start_addr);
-        return return_value;
-    }
         
     
     print_program_error_file_type_not_recognized(action->filename); 
@@ -184,13 +194,14 @@ int info_file(info_action* action,global_action* gaction ){
 }
 
 
-int process_info_action(unsigned argc,char ** argv,global_action* gaction){
+int process_info_action(unsigned argc,char ** argv,program_options* options){
     
     
     D("argc=%d argv[0]=%s\n",argc,argv[0]);
-    if(!strlcmp(argv[0],"--help") || !strlcmp(argv[0],"-h")){
     
-    return print_info_action_help(gaction);
+    
+    if((argv[0] == NULL )){
+        return print_info_action_help(options);
     }
     
     info_action action ;
@@ -201,23 +212,29 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
     action.second   = 0     ;
     action.additional   = 0     ;
     
-    // a variable for the file check
-    FILE*file; 
+        // a variable for the file check
+        FILE*file; 
        
-    // work out a possible file name just in case we need it for 
-    // error reporting , the possible filename should be at position zero 
-    // but it maybe elsewhere, as info printing doesn't require any require 
-    // filenames for switches we can look for the first argv that doesn't begin with "-"
-    char* possible_filename = NULL;
-    unsigned i = 0 ;
-    for(i = 0 ; i < argc ; i++){
-        if(argv[i][0]!='-'){
-            possible_filename = argv[i];
-            D("possible_filename at position %d - %s %s\n",i,argv[i],possible_filename);
-            break ;
+        // work out a possible file name just in case we need it for 
+        // error reporting , the possible filename should be at position zero 
+        // but it maybe elsewhere, as info printing doesn't require any require 
+        // filenames for switches we can look for the first argv that doesn't begin with "-"
+        char* possible_filename = NULL;
+        unsigned i = 0 ;
+        
+        for(i = 0 ; i < argc ; i++){
+                if(argv[i][0]!='-'){
+                        possible_filename = argv[i];
+                        D("possible_filename at position %d - %s %s\n",i,argv[i],possible_filename);
+                        break ;
+                }
         }
-    }
-    
+        
+        if(possible_filename==NULL){
+                D("possible_filename not set to %s\n",possible_filename)
+                return print_program_error_file_name_not_found(possible_filename);  
+        }
+    D("possible_filename set to %s\n",possible_filename)
     
     // this is set to 1 if any action item has been set
     unsigned action_set = 0 ; 
@@ -230,7 +247,7 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
         if(!action_set){
             // if this is the last token the following token are global action only
             // then print full information
-            if(argc == 1 || argv[1][0]!='-' || !only_global_actions(argc-1,argv+1,gaction)  ){ 
+            if(argc == 1 || argv[1][0]!='-' || !only_program_options(argc-1,argv+1,options)  ){ 
                 D("printing full info argc=%d\n",argc);
                 action.kernel = action.header = action.ramdisk =  action.second =  action.additional   = 1     ;
         }
@@ -250,7 +267,7 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
         action.ramdisk = 1;
         action_set = 1 ;
         D("action.ramdisk:%d\n",action.ramdisk);
-    }else if(!strlcmp(argv[0],"--header") || !strncmp(argv[0],"-h",2) ){
+    }else if(!strlcmp(argv[0],"--header") || !strncmp(argv[0],"-H",2) ){
         
         // we have a ramdisk setting
         action.header = 1;
@@ -263,10 +280,13 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
         action_set = 1 ;
         D("action.additional:%d\n",action.additional);
     }
-    if( ( strlen(argv[0]) >= 2 ) && (argv[0][1] != '-') && (argv[0][0] == '-') ){
+    if( ( strlen(argv[0]) >= 2 )  && ((argv[0][1] != '-') && (argv[0][0] == '-')) ){
+        
         argv[0]++; 
         argv[0][0]='-';
+        D("checking switches:%s=%c",VALID_ACTION_SWITCHES,argv[0][1]);    
         if(!strchr(VALID_ACTION_SWITCHES,argv[0][1])){
+            D("error switches:%s",VALID_ACTION_SWITCHES);    
             errno = EINVAL ; 
             return print_program_error_invalid_option(argv[0][1]);
         }
@@ -279,11 +299,11 @@ int process_info_action(unsigned argc,char ** argv,global_action* gaction){
    
     
     // we must have at least a boot image to process
-    if(!action.filename) 
+    if(!action.filename) {
         return print_program_error_file_name_not_found(possible_filename);
+    }
     
     
-    
-    info_file(&action,gaction);
+    info_file(&action,options);
     return 0;
 }

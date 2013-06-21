@@ -34,7 +34,7 @@
 #include <utils.h> 
 #include <help.h> 
 
-int process_install_action(unsigned argc,char ** argv,global_action* gaction){
+int process_install_action(unsigned argc,char ** argv,program_options* options){
     
     
     char exe_path[PATH_MAX];

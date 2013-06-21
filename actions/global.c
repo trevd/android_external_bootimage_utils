@@ -32,156 +32,192 @@
 #include <string.h> 
 #include <ctype.h>
 // internal program headers
-#include <actions.h>
+#include <program.h>
 #include <utils.h>
 
-
-// get_program_action - internal function call from the init_global_action function 
+#define DEBUG_AND_RETURN_INT(value) { D("returning %d\n",value); return value ; }
+// get_program_action - internal function call from the init_program_options function 
 // and figures out the main action to be performed - this is either based on the 
 // executing file name or on the first argument after
-static int get_program_action(unsigned argc,char ** argv, global_action* action){
+static int get_program_action(unsigned argc,char ** argv, program_options* options){
 
     
-    D("called with argc=%d argv=%p action=%p\n",argc,argv,action);
-    if(argc < 2 )  return -1 ;
-
-    if(!argv || !argv[0]) return -2;
+    D("called with argc=%d argv=%p action=%p\n",argc,argv,options);
     
-    if(!action) return -3;
+    //
+    if(argc < 1 )  DEBUG_AND_RETURN_INT(-1)  ;
+
+    if(!argv || !argv[0]) DEBUG_AND_RETURN_INT(-2);
+    
+    // exe name - bootimage-utils but argc = 1 
+    if(!argv[1] && (strstr(options->program_name_action[0],"-utils"))) DEBUG_AND_RETURN_INT(-6); 
+    
+     if(!options) DEBUG_AND_RETURN_INT(-3);
          
-    if(!action->program_name || !strlen(action->program_name) ) return -4 ;
+    if(!options->program_name_action[0] || !strlen(options->program_name_action[0]) ) DEBUG_AND_RETURN_INT(-4) ;
      
-    D("action->program_name=%s\n",action->program_name);
+   
+       
+        int i = 0 ;
+        
+        
+        if ((strstr(options->program_name_action[0],"-utils") && argv[1]!=NULL)){  
+                argv++;
+                options->program_name_action[1] = argv[0];
+                
+        }
+        D("options->program_name_action[0]=%s\n",options->program_name_action[0]);
+        D("options->program_name_action[1]=%s\n",options->program_name_action[1]);
+        for ( ; i <= AI_MAX_INDEX ; i++ ){
+                D("argv[0]=%s actioninfo[%d]=%s\n",argv[0],i,actioninfo[i].long_name);
+            if(strstr(argv[0],actioninfo[i].long_name)){
+                 options->action_info = &actioninfo[i];
+                 break ;
+            
+                }
+        }
+    //if(options->action_info==NULL){
+        D("options->action_info=%p\n",options->action_info); 
+            
+    //}
+       
     
-    action->process_action = ACTION_NONE ;
+    /*else if (strstr(options->program_name_action[0],"-extract-kernel") )
+        options->action_info = ACTION_EXTRACT_KERNEL;
+    else if (strstr(options->program_name_action[0],"-extract-ramdisk") )
+        options->process_action = ACTION_EXTRACT_RAMDISK;
+    else if (strstr(options->program_name_action[0],"-extract-header") )
+        options->process_action = ACTION_EXTRACT_HEADER;
     
-    // switch multicall on, we can turn it back off if we don't find one
-    // cheeky logic, saves on code.
-    action->multicall = 1 ;
-    
-    // Note : When adding new action make sure single verb words are checked
-    // last, otherwise incorrect values maybe set    
-    if(strstr(action->program_name,"-info"))
-        action->process_action = ACTION_INFO;
-    else if (strstr(action->program_name,"-extract-kernel") )
-        action->process_action = ACTION_EXTRACT_KERNEL;
-    else if (strstr(action->program_name,"-extract-ramdisk") )
-        action->process_action = ACTION_EXTRACT_RAMDISK;
-    else if (strstr(action->program_name,"-extract-header") )
-        action->process_action = ACTION_EXTRACT_HEADER;
-    else if (strstr(action->program_name,"-extract") )
-        action->process_action = ACTION_EXTRACT;
-    else if (strstr(action->program_name,"-create-ramdisk") )
-        action->process_action = ACTION_CREATE_RAMDISK;
-    else if (strstr(action->program_name,"-create"))
-        action->process_action = ACTION_CREATE_BOOT_IMAGE;
-    else if (strstr(action->program_name,"-update-properties"))
-        action->process_action = ACTION_UPDATE_PROPERTIES;
-    else if (strstr(action->program_name,"-update-files"))
-        action->process_action = ACTION_UPDATE_FILES;
-    else if (strstr(action->program_name,"-update-kernel"))
-        action->process_action = ACTION_UPDATE_KERNEL;
-    else if (strstr(action->program_name,"-update-ramdisk"))
-        action->process_action = ACTION_UPDATE_RAMDISK;
-    else if (strstr(action->program_name,"-update"))
-        action->process_action = ACTION_UPDATE;
-    else if (strstr(action->program_name,"-scan")) 
-        action->process_action = ACTION_SCAN;
-    else if (strstr(action->program_name,"-copy-kernel"))
-        action->process_action = ACTION_COPY_KERNEL;
-    else if (strstr(action->program_name,"-copy-ramdisk"))
-        action->process_action = ACTION_COPY_RAMDISK;
-    else {
-        // not a multicall, check the next argument for the process action
-        action->multicall = 0 ;
-        argc -- ; argv ++ ;
+    else if (strstr(options->program_name_action[0],"-create-ramdisk") )
+        
+
+    else if (strstr(options->program_name_action[0],"-update-properties"))
+        options->process_action = ACTION_UPDATE_PROPERTIES;
+    else if (strstr(options->program_name_action[0],"-update-files"))
+        options->process_action = ACTION_UPDATE_FILES;
+    else if (strstr(options->program_name_action[0],"-update-kernel"))
+        options->process_action = ACTION_UPDATE_KERNEL;
+    else if (strstr(options->program_name_action[0],"-update-ramdisk"))
+        options->process_action = ACTION_UPDATE_RAMDISK;
+
+    else if (strstr(options->program_name_action[0],"-scan")) 
+        options->process_action = ACTION_SCAN;
+    else if (strstr(options->program_name_action[0],"-copy-kernel"))
+        options->process_action = ACTION_COPY_KERNEL;
+    else if (strstr(options->program_name_action[0],"-copy-ramdisk"))
+        options->process_action = ACTION_COPY_RAMDISK;*/
+    //else {
+        
+     /*   argc -- ; argv ++ ;
         if(!argc) return -5 ;
         
         if(!argv[0]) return -6;
-    
+        D("not a multicall\n");
+        options->program_name_action[1] = argv[0] ; 
         if(!strlcmp(argv[0],"extract") || !strlcmp(argv[0],"x"))
-            action->process_action = ACTION_EXTRACT;
+            options->process_action = ACTION_EXTRACT;
         if(!strlcmp(argv[0],"info") || !strlcmp(argv[0],"i"))
-            action->process_action = ACTION_INFO;
+            options->action_info = &actioninfo[AI_INFO_INDEX];
         if(!strlcmp(argv[0],"update") || !strlcmp(argv[0],"u"))
-            action->process_action = ACTION_UPDATE;
+            options->process_action = ACTION_UPDATE;
         if(!strlcmp(argv[0],"scan") || !strlcmp(argv[0],"s"))
-            action->process_action = ACTION_SCAN;
+            options->process_action = ACTION_SCAN;
         if(!strlcmp(argv[0],"create") || !strlcmp(argv[0],"c"))
-            action->process_action = ACTION_CREATE_BOOT_IMAGE;
+            options->process_action = ACTION_CREATE_BOOT_IMAGE;
         if(!strlcmp(argv[0],"create-ramdisk") || !strlcmp(argv[0],"r"))
-            action->process_action = ACTION_CREATE_RAMDISK;
+            options->process_action = ACTION_CREATE_RAMDISK;
         if(!strlcmp(argv[0],"copy-ramdisk"))
-            action->process_action = ACTION_COPY_RAMDISK;
+            options->process_action = ACTION_COPY_RAMDISK;
         if(!strlcmp(argv[0],"copy-kernel"))
-            action->process_action = ACTION_COPY_KERNEL;
+            options->process_action = ACTION_COPY_KERNEL;
         if(!strlcmp(argv[0],"update-kernel"))
-            action->process_action = ACTION_UPDATE_KERNEL;
+            options->process_action = ACTION_UPDATE_KERNEL;
         if(!strlcmp(argv[0],"update-ramdisk"))
-            action->process_action = ACTION_UPDATE_RAMDISK;
+            options->process_action = ACTION_UPDATE_RAMDISK;
         if(!strlcmp(argv[0],"install"))
-            action->process_action = ACTION_INSTALL;
+            options->process_action = ACTION_INSTALL;
         
-    
+    */
+        return 0;
     }
-    if(action->process_action == ACTION_NONE) return -7;
-    
-    return 0;
+    //if(options->process_action == ACTION_NONE) return -7;
+      
 
-}
-// init_global_action - initialize our global structure. 
+// init_program_options - initialize our global structure. 
 // This is called from the main function
-int init_global_actions(unsigned argc,char ** argv, global_action* action){
+int init_program_options(unsigned argc,char ** argv, program_options * options){
     
     errno = 0;
-    if(!action){
+    if(!options){
         errno = EINVAL ;
         return errno;
     }
     
     if(getenv("BITDEBUG")){
-        action->debug = 1 ;
+        options->debug = 1 ;
         // initialize debug printing for libbootimage
         utils_debug = 1 ;
-        D("debug output enabled action->debug=%d\n", action->debug) ;
+        D("debug output enabled options->debug=%d\n", options->debug) ;
     }
     
-    action->debug = 0;
-    action->log = 0;
-    action->verbose = 0 ;
-    action->multicall = 0 ;
-    action->program_name = argv[0] ;
-    action->process_action = ACTION_NONE ; 
-    get_program_action(argc,argv,action);
+    options->debug = 0;
+    options->log_level = 0;
+    options->verbose = 0 ;
+    options->action_info = NULL ;
+    options->program_name_action[0] = argv[0] ;
+    options->program_name_action[1] = NULL ; 
+    get_program_action(argc,argv,options);
         
     while(argc > 0){
-          
-        if(!strlcmp(argv[0],"--verbose")){
-            action->verbose = 1 ;
-        }else if(!strlcmp(argv[0],"--log")){
-            action->log = 1 ;
+        
+        if(!strlcmp(argv[0],PROGRAM_OPTION_LONG_PREFIX""PROGRAM_OPTION_LONG_VERBOSE)){
+                options->verbose = 1 ;
         }
+        if(!strlcmp(argv[0],PROGRAM_OPTION_LONG_PREFIX""PROGRAM_OPTION_LONG_LOG_LEVEL)){
+                long log_level = strtol(argv[1],NULL,10);
+               
+                options->log_level = errno = ERANGE ? 0 : log_level ;
+                argc--; argv++;
+        }
+        if(!strlcmp(argv[0],PROGRAM_OPTION_LONG_PREFIX""PROGRAM_OPTION_LONG_LOG_FILE)){
+                options->log_filename = argv[1] ;
+                argc--; argv++;
+        }
+        
+        if(!strlcmp(argv[0],PROGRAM_OPTION_LONG_PREFIX""PROGRAM_OPTION_LONG_DEBUG)){
+                options->debug = 1 ;
+        }
+        if(!strlcmp(argv[0],PROGRAM_OPTION_LONG_PREFIX""PROGRAM_OPTION_LONG_INTERACTIVE)){
+                options->interactive = 1 ;
+        }
+        if(!strlcmp(argv[0],PROGRAM_OPTION_LONG_PREFIX""PROGRAM_OPTION_LONG_VERSION)){
+        }
+        
+        if(!strlcmp(argv[0],PROGRAM_OPTION_LONG_PREFIX""PROGRAM_OPTION_LONG_HELP)){
+        }
+        
         argc--; argv++;
     }
     
     
-    D("action->process_action=%d\n",action->process_action);
+    //D("options->process_action=%d\n",options->process_action);
+    D("options->process_action=%p\n",options->action_info);
     
-    
-    
+      
     return 0;
 }
 
-//  only_global_actions will check the argument list for parameters other than global actions
+//  only_program_optionss will check the argument list for parameters other than global actions
 //  returns 0 if the list contains only global actions
 //  returns 1 if the list contains extra parameters
-int only_global_actions(unsigned argc,char ** argv,global_action* action){
+int only_program_options(unsigned argc,char ** argv,program_options* options){
     
     errno = 0;
-    D("only_global_actions: debug=%d\n",action->debug);
+    D("only_program_optionss: debug=%d\n",options->debug);
     int return_value = 0;
     while(argc > 0){
-        D("only_global_actions argv[0]=%s\n",argv[0]);
+        D("only_program_optionss argv[0]=%s\n",argv[0]);
         if(!(argv[0],"--verbose") || !strlcmp(argv[0],"--log")){
            return_value = 0 ;
         }else{
@@ -190,6 +226,6 @@ int only_global_actions(unsigned argc,char ** argv,global_action* action){
         }
         argc--; argv++;
     }
-    D("only_global_actions returning %d\n",return_value);
+    D("only_program_optionss returning %d\n",return_value);
     return return_value;
 }

@@ -27,36 +27,38 @@
 #include <sys/stat.h>
 #include <string.h> 
 #include <utils.h>
-#include <actions.h>
+#include <program.h>
 #include <help.h>
 
-int get_action(unsigned argc,char ** argv,global_action* gaction){
 
-    D("argv[0]=%s  gaction->process_action %d \n",argv[0],gaction->process_action);
-    switch(gaction->process_action){                
-        case ACTION_INFO:               process_info_action( --argc, ++argv, gaction);              break;              
-        case ACTION_UPDATE:             process_update_action( --argc, ++argv, gaction);            break;          
+
+/*int get_action(unsigned argc,char ** argv,program_options* options){
+
+    D("argv[0]=%s  options->process_action %d \n",argv[0],options->process_action);
+    switch(options->process_action){                
+        //case ACTION_INFO:               process_info_action( --argc, ++argv, options);              break;              
+        case ACTION_UPDATE:             process_update_action( --argc, ++argv, options);            break;          
         case ACTION_UPDATE_KERNEL:      break;
         case ACTION_UPDATE_RAMDISK:     break;
         case ACTION_UPDATE_PROPERTIES:  break;
         case ACTION_UPDATE_FILES:       break;      
-        case ACTION_EXTRACT:            process_extract_action(--argc,++argv,gaction);          break;          
+        case ACTION_EXTRACT:            process_extract_action(--argc,++argv,options);          break;          
         case ACTION_EXTRACT_KERNEL:     break;  
         case ACTION_EXTRACT_RAMDISK:    break;  
         case ACTION_EXTRACT_HEADER:     break;  
-        case ACTION_SCAN:               process_scan_action(--argc,++argv,gaction);             break;              
-        case ACTION_COPY_KERNEL:        process_copy_kernel_action(--argc,++argv,gaction);      break;      
-        case ACTION_COPY_RAMDISK:       process_copy_ramdisk_action(--argc,++argv,gaction);     break;
-        case ACTION_CREATE_BOOT_IMAGE:  process_create_action(--argc,++argv,gaction);           break;
-        case ACTION_CREATE_RAMDISK:     process_create_ramdisk_action(--argc,++argv,gaction);   break;
+        case ACTION_SCAN:               process_scan_action(--argc,++argv,options);             break;              
+        case ACTION_COPY_KERNEL:        process_copy_kernel_action(--argc,++argv,options);      break;      
+        case ACTION_COPY_RAMDISK:       process_copy_ramdisk_action(--argc,++argv,options);     break;
+        case ACTION_CREATE_BOOT_IMAGE:  process_create_action(--argc,++argv,options);           break;
+        case ACTION_CREATE_RAMDISK:     process_create_ramdisk_action(--argc,++argv,options);   break;
         case ACTION_CREATE_KERNEL:      break;
-        case ACTION_INSTALL:            process_install_action(--argc,++argv,gaction);          break;
+        case ACTION_INSTALL:            process_install_action(--argc,++argv,options);          break;
         default:                        break;
         }    
         
     return  0 ;
 
-}
+}*/
 int main(int argc,char ** argv){
 
     
@@ -76,21 +78,21 @@ int main(int argc,char ** argv){
     // the program was called using on of the many multicall 
     // binary shortcut commands
      
-    global_action gaction ;
-    init_global_actions(argc,argv,&gaction);
-    
-    // only on argument past and that can only be
+    program_options options ;
+    init_program_options(uargc,argv,&options);
+
+    // only one argument past and that can only be
     // the filename, print some nice help to guide
     // the users on their way ;
-    if(argc==1){
-        
-        print_help_message( &gaction ) ;    
+    D("options.program_name_action[1]:%s argc:%d options.action_info=%p\n",options.program_name_action[1],argc,options.action_info);
+    if((argc==1) || ( (argc==2) && options.program_name_action[1] != NULL)){
+        print_help_message( &options ) ;    
         return 0;
     }
 
 
-    D("gaction.debug:%d argc:%d\n",gaction.debug,argc);
-    if(gaction.debug){
+    D("options.debug:%d argc:%d\n",options.debug,argc);
+    if(options.debug){
         unsigned  i = 0 ;
         for(i = 0 ; i < uargc ; i ++ ){
             D("argv[%d]=%s\n",i,argv[i]);
@@ -98,21 +100,24 @@ int main(int argc,char ** argv){
     }
     
     // was this a multicall, if not then move the arg pointer along
-    D("action.multicall=%u %s\n",gaction.multicall,argv[2]);
-    if(!gaction.multicall){
+    //D("action.multicall=%u %s\n",options.program_name_action[1],argv[2]);
+     
+    
+
         // not a multicall
-        if(!strlcmp(argv[1],"--help") || !strlcmp(argv[1],"-h")  || !strlcmp(argv[2],"help")  ){
+        if(!strlcmp(argv[1],"--help") || !strlcmp(argv[1],"-h")  || !strlcmp(argv[1],"help")  ){
              //standard help requested 
              D("Printing Standard Help\n");
-             print_help_message(    &gaction ) ;    
+             print_help_message(    &options ) ;    
              return 0;
          }
+    if(!options.program_name_action[1]==NULL){
         --argc ; ++argv ;
     }
+    D("options.action_info:%p argc:%d\n",options.action_info,argc);
+    (*options.action_info->processor) (--argc , ++argv, &options );
     
-    
-    
-    get_action(argc , argv, &gaction );
+    //get_action(
         
     return 0;
 

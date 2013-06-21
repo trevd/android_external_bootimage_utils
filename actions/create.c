@@ -65,7 +65,7 @@ struct create_action{
     unsigned    ramdisk_filenames_count ;
 };
 
-int create_bootimage(create_action* action, global_action* gaction){
+int create_bootimage(create_action* action, program_options* options){
     
     // setup a new boot_image_struct to receive the new information
     print_program_title();
@@ -199,7 +199,7 @@ cleanup_bootimage:
 // although this code is repetitive we will favour readability
 // over codesize ...... Ask me in 3 months time whether it was
 // a good idea.
-int process_create_action(unsigned argc,char ** argv,global_action* gaction){
+int process_create_action(unsigned argc,char ** argv,program_options* options){
     
     // Initialize the action struct with NULL values
     create_action action;
@@ -395,7 +395,7 @@ int process_create_action(unsigned argc,char ** argv,global_action* gaction){
     
     
     
-    create_bootimage(&action,gaction);
+    create_bootimage(&action,options);
        
     return 0;
 }

@@ -28,7 +28,7 @@
 #include <limits.h>
 #include <unistd.h>
 // internal program headers
-#include <actions.h>
+#include <program.h>
 #include <utils.h>
 #include <bootimage.h>
 #include <compression.h>
@@ -70,7 +70,7 @@ int create_ramdisk(create_ramdisk_action* action){
     return 0;
     
 }
-int process_create_ramdisk_action(unsigned argc,char ** argv,global_action* gaction){
+int process_create_ramdisk_action(unsigned argc,char ** argv,program_options* options){
     
 
     

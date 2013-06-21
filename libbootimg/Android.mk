@@ -1,5 +1,5 @@
 #
-# Android.mk
+# Android.mk - Android make file for libbootimage
 # 
 # Copyright 2013 Trevor Drake <trevd1234@gmail.com>
 # 

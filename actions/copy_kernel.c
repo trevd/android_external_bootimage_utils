@@ -122,7 +122,7 @@ fail_hard:
 
     
 }
-int process_copy_kernel_action(unsigned argc,char ** argv,global_action* gaction){
+int process_copy_kernel_action(unsigned argc,char ** argv,program_options* options){
     
     copy_kernel_action action;
     action.source   = NULL  ;

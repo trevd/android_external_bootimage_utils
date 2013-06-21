@@ -86,9 +86,9 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
                                                             haystack_len,compressed_magic_offset_p,
                                                             compression_types[counter].magic, 
                                                             compression_types[counter].magic_size );
-        
+        D("compressed_magic_offset_p %p\n",compressed_magic_offset_p);
         if(compressed_magic_offset_p){
-            D("compressed_magic_offset_p %p\n",compressed_magic_offset_p);
+            
             if(compression_types[counter].uncompress_function != NULL){
                 errno = 0 ;
                 (* compression_types[counter].uncompress_function) (compressed_magic_offset_p,haystack_len,uncompressed_data,MAX_DECOMPRESS_SIZE);
@@ -96,9 +96,10 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
                     // invalid data block search again
                     compressed_magic_offset_p+=1 ;
                     
-                    D("false positive for %s\n",compression_types[counter].name);
-                    D("compressed_magic_offset_p %p\n",compressed_magic_offset_p);
+                    D("false positive for %s counter %d\n",compression_types[counter].name,counter);
+                    
                     counter--;
+                    D("compressed_magic_offset_p %p counter %d\n",compressed_magic_offset_p,counter);
                     //compressed_magic_offset_p = NULL ; 
                     errno = 0 ;
                     continue ;
@@ -120,6 +121,7 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
     return NULL;
     
 }
+
 unsigned char * find_compressed_data_in_memory( unsigned char *haystack, unsigned haystack_len, int* compression ){
     
     return find_compressed_data_in_memory_start_at(haystack,haystack_len,haystack,compression);

@@ -30,63 +30,90 @@
 #include <utils.h>
 
 #include <actions.h>
-#include <help.h>
 #include <program.h>
+#include <help.h>
 
 
-int print_action_help_usage(global_action* gaction,char shortarg, char* longarg){
-    
-    fprintf(stderr," Usage: %s ",gaction->program_name);
-    if(!gaction->multicall){
-        fprintf(stderr," [%c|%s] ",shortarg,longarg);
+
+// print_program_action - Helper function to print
+// the program_name Prints the action specified
+static void print_program_name_action(program_options* options)
+{
+    fprintf(stderr," %s ",options->program_name_action[0]);
+    if(options->program_name_action[1] != NULL ){
+        fprintf(stderr,"%s ",options->program_name_action[1]);
     }
-    return 0;
+    
+    return;
 }
-int print_info_action_help(global_action* gaction){
-    
-    
-    print_program_title();
-  
-    fprintf(stderr," %s ",gaction->program_name);
-    if(!gaction->multicall){
-    fprintf(stderr,"info ");
+
+static int print_action_help_usage(program_options* options){
+        action_info* ai = options->action_info;
         
-    }
-    fprintf(stderr,"- prints information for the specified boot image, kernel file or ramdisk\n\n");
+        fprintf(stderr," Usage: %s ",options->program_name_action[0]);
+        if(options->program_name_action[1] != NULL ){
+                
+                fprintf(stderr," [%c|%s] " ,ai->short_name ,ai->long_name)       ;
+        }
+        return 0;
     
-    print_action_help_usage(gaction,'i',"info");
+}
+static int print_action_help_header(program_options* options){
+        
+        
+        print_program_title();
+        print_program_name_action(options);
+        fprintf(stderr,"- %s\n\n",options->action_info->description);
+        print_action_help_usage(options);    
+        
+        return 0;
+        
+        
+}
+
+int print_info_action_help(program_options* options){
     
+    D("options=%p\n",options);
+   
+        print_action_help_header(options);
     fprintf(stderr," <filename> [ <switches> ]\n\n");
     fprintf(stderr," filename: The file specified by <filename> must be one of the following types:\n");
     fprintf(stderr,"           Android Boot Image, Linux Kernel zImage, ASCII cpio archive,\n");
     fprintf(stderr,"           Compressed gzipped cpio archive. block device\n\n");
     fprintf(stderr," switches: \n\n");
-    fprintf(stderr," -h, --headers\n");
-    fprintf(stderr," -k, --kernel\n");
-    fprintf(stderr," -r, --ramdisk\n");
-    fprintf(stderr," -s, --second\n");
-    fprintf(stderr," -a, --additional\n\n");
+    fprintf(stderr," -H, --headers      print the file header information\n");
+    fprintf(stderr,"                    including device offset addresses, section sizes,\n");
+    fprintf(stderr,"                    cmdline and board name\n");
+    fprintf(stderr," -k, --kernel       prints information for the kernel contained within the boot image. \n");
+    fprintf(stderr,"                    includes the compression type, kernel version\n");
+    fprintf(stderr,"                    uncompressed size and config.gz size\n");
+    fprintf(stderr," -r, --ramdisk,     prints information for the ramdisk contained within the boot image\n");
+    fprintf(stderr,"                    includes compression type, uncompressed size, file count and ramdisk type\n");
+    fprintf(stderr," -s, --second       prints information for the second section contained within the boot image\n");
+    fprintf(stderr," -a, --additional   prints additional information for the boot image\n");
+    fprintf(stderr,"                    includes section position and padding information\n\n");
+    
     
     
     return 0; 
 }
 // print_install_action_help - prints the help for the install action
-int print_install_action_help(global_action* gaction){
+int print_install_action_help(program_options* options){
     
     // the help for install is a lot simpler than most because it does not
     // have a multicall version 
     print_program_title();
-    fprintf(stderr," %s install - install multicall symlinks\n\n",gaction->program_name);
-    fprintf(stderr," Usage: %s install [ path ]\n\n",gaction->program_name);
+    fprintf(stderr," %s install - install multicall symlinks\n\n",options->program_name_action[0]);
+    fprintf(stderr," Usage: %s install [ path ]\n\n",options->program_name_action[0]);
     fprintf(stderr," path: The location to create the symlinks\n\n");
     return 0;
 }
 
-int print_standard_help(global_action* gaction){
+int print_standard_help(program_options* options){
     
     print_program_title_and_description();
     
-    fprintf(stderr," Usage: %s <action> [ ... ]\n\n",gaction->program_name);
+    fprintf(stderr," Usage: %s <action> [ ... ]\n\n",options->program_name_action[0]);
     fprintf(stderr," actions:\n\n");
     fprintf(stderr," install                        install actions as a standalone commands\n\n");
     
@@ -106,37 +133,30 @@ int print_standard_help(global_action* gaction){
     return 0;
     
 }
-
-int print_help_message(global_action* gaction){
+int print_update_action_help(program_options* options){
+        print_action_help_header(options);
+        fprintf(stderr," <filename> [ <switches> ]\n\n");
+        return 0;
+}
+int print_create_action_help(program_options* options){
+        print_action_help_header(options);
+        fprintf(stderr," <filename> [ <switches> ]\n\n");
+        return 0;
+}
+int print_extract_action_help(program_options* options){
+        print_action_help_header(options);
+        fprintf(stderr," <filename> [ <switches> ]\n\n");
+        return 0;
+}
+int print_help_message(program_options* options){
         
-    D("gaction->multicall=%d\n",gaction->multicall);
-    D("gaction->process_action=%d\n",gaction->process_action);
+   D("options->program_name_action[0]=%s options->action_info=%p\n",options->program_name_action[0],options->action_info);
     
-    if(!gaction->multicall &&  gaction->process_action==ACTION_NONE ) {
-        return print_standard_help(gaction);
-         
+    if(options->action_info==NULL || options->action_info->help_processor==NULL ) {
+        return print_standard_help(options); 
+    }else{
+        options->action_info->help_processor(options);
     }
-    
-    switch(gaction->process_action){                
-        case ACTION_INFO:               print_info_action_help(gaction); break;             
-        case ACTION_UPDATE:             break;          
-        case ACTION_UPDATE_KERNEL:      break;
-        case ACTION_UPDATE_RAMDISK:     break;
-        case ACTION_UPDATE_PROPERTIES:  break;
-        case ACTION_UPDATE_FILES:       break;      
-        case ACTION_EXTRACT:            break;          
-        case ACTION_EXTRACT_KERNEL:     break;  
-        case ACTION_EXTRACT_RAMDISK:    break;  
-        case ACTION_EXTRACT_HEADER:     break;  
-        case ACTION_SCAN:               break;              
-        case ACTION_COPY_KERNEL:        break;      
-        case ACTION_COPY_RAMDISK:       break;
-        case ACTION_CREATE_BOOT_IMAGE:  break;
-        case ACTION_CREATE_RAMDISK:     break;
-        case ACTION_CREATE_KERNEL:      break;
-        case ACTION_INSTALL:            print_install_action_help(gaction); break;
-        default:                        break;
-        }    
         
     return  0 ; 
 }

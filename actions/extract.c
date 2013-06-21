@@ -66,8 +66,17 @@ struct extract_action{
     unsigned    ramdisk_filenames_count     ;
     char*       current_working_directory   ;
 };
+static int extract_kernel_image(extract_action* action, program_options* options,kernel_image* kimage){
+        
+        
+        save_kernel_config_gzip(kimage);
+        write_item_to_disk(kimage->start_addr, kimage->size,33188,"image");
+        
+        return 0;
+}
 
-static int extract_ramdisk_files_from_ramdisk_image(extract_action* action, global_action* gaction, ramdisk_image* rimage){
+
+static int extract_ramdisk_files_from_ramdisk_image(extract_action* action, program_options* options, ramdisk_image* rimage){
     
     unsigned entry_index = 0 ; 
     unsigned filename_index = 0 ; 
@@ -115,7 +124,7 @@ static int extract_ramdisk_files_from_ramdisk_image(extract_action* action, glob
 }
 
 /* */
-static int extract_ramdisk_files_from_boot_image(extract_action* action, global_action* gaction, boot_image* bimage){
+static int extract_ramdisk_files_from_boot_image(extract_action* action, program_options* options, boot_image* bimage){
     
     D("action->ramdisk_filenames_count=%d\n",action->ramdisk_filenames_count);
     errno = 0;
@@ -125,7 +134,7 @@ static int extract_ramdisk_files_from_boot_image(extract_action* action, global_
     if(load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage))
         return errno ;
         
-    if(extract_ramdisk_files_from_ramdisk_image(action,gaction,&rimage))
+    if(extract_ramdisk_files_from_ramdisk_image(action,options,&rimage))
         return errno ;
     
     
@@ -133,14 +142,14 @@ static int extract_ramdisk_files_from_boot_image(extract_action* action, global_
     return 0;
 }
 /* extract_ramdisk_cpio_image - expects rimage to be a prointer to the start of a cpio archive*/
-static int extract_ramdisk_cpio_image(extract_action* action, global_action* gaction,ramdisk_image* rimage){
+static int extract_ramdisk_cpio_image(extract_action* action, program_options* options,ramdisk_image* rimage){
     
     D("rimage_size %d\n",rimage->size);
     
     // The input file is a cpio file, this makes action->ramdisk_directory and action->ramdisk_filenames_count
     // mutually exclusive
     if(action->ramdisk_filenames_count){
-         if(extract_ramdisk_files_from_ramdisk_image(action,gaction,rimage))
+         if(extract_ramdisk_files_from_ramdisk_image(action,options,rimage))
             return 0 ;
         else
             return errno;
@@ -166,7 +175,7 @@ static int extract_ramdisk_cpio_image(extract_action* action, global_action* gac
  * one has been set in action->ramdisk_cpioname
  * expects rimage to be a prointer to the start of a cpio archive
  */
-static int extract_ramdisk_image(extract_action* action, global_action* gaction,ramdisk_image* rimage){
+static int extract_ramdisk_image(extract_action* action, program_options* options,ramdisk_image* rimage){
     
     D("rimage_size %d\n",rimage->size);
     errno = 0 ;
@@ -184,7 +193,7 @@ static int extract_ramdisk_image(extract_action* action, global_action* gaction,
         
     }
     if(action->ramdisk_filenames_count){
-         if(extract_ramdisk_files_from_ramdisk_image(action,gaction,rimage))
+         if(extract_ramdisk_files_from_ramdisk_image(action,options,rimage))
             return 0 ;
         else
             return errno;
@@ -205,7 +214,7 @@ static int extract_ramdisk_image(extract_action* action, global_action* gaction,
     return 0 ; 
 }
 
-static int extract_bootimage(extract_action* action, global_action* gaction,boot_image* bimage){
+static int extract_bootimage(extract_action* action, program_options* options,boot_image* bimage){
     
     errno = 0;
     int return_value=0;
@@ -268,7 +277,7 @@ static int extract_bootimage(extract_action* action, global_action* gaction,boot
     if(action->ramdisk_filenames_count ) {
         
         D("action->ramdisk_filenames_count=%u\n",action->ramdisk_filenames_count);
-        extract_ramdisk_files_from_boot_image(action,gaction,bimage);
+        extract_ramdisk_files_from_boot_image(action,options,bimage);
     
     }else {
     
@@ -293,7 +302,7 @@ static int extract_bootimage(extract_action* action, global_action* gaction,boot
         
         if(!rimage.start_addr) return return_value;
         
-        extract_ramdisk_image(action,gaction, &rimage);
+        extract_ramdisk_image(action,options, &rimage);
         
         if(action->header_filename){
              write_ramdisk_image_header_to_disk(action->header_filename,&rimage);
@@ -307,7 +316,7 @@ static int extract_bootimage(extract_action* action, global_action* gaction,boot
 }
 /* process_extract_file - determines the file type we are dealing with and branches
           accordingly */
-static int process_extract_file(extract_action* action, global_action* gaction){
+static int process_extract_file(extract_action* action, program_options* options){
 
     
     int return_value=0;
@@ -331,7 +340,7 @@ static int process_extract_file(extract_action* action, global_action* gaction){
     boot_image bimage;
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
         
-        return_value = extract_bootimage(action, gaction,&bimage);
+        return_value = extract_bootimage(action, options,&bimage);
         free(bimage.start_addr); 
         fprintf(stderr,"\n");
         return return_value;   
@@ -346,7 +355,7 @@ static int process_extract_file(extract_action* action, global_action* gaction){
         print_program_title();
         fprintf(stderr," Extracting Ramdisk components from \"%s\"\n",action->filename);
         D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
-        return_value = extract_ramdisk_image(action,gaction, &rimage);
+        return_value = extract_ramdisk_image(action,options, &rimage);
         fprintf(stderr,"\n");
         free(rimage.start_addr); 
         return return_value;
@@ -358,12 +367,22 @@ static int process_extract_file(extract_action* action, global_action* gaction){
         print_program_title();
         fprintf(stderr," Extracting Ramdisk components from \"%s\"\n",action->filename);
         D("cpio file rimage.entry_count=%d\n",rimage.entry_count);
-        return_value = extract_ramdisk_cpio_image(action,gaction, &rimage);
+        return_value = extract_ramdisk_cpio_image(action,options, &rimage);
         fprintf(stderr,"\n");
         free(rimage.start_addr); 
         return return_value;
     }
     
+    kernel_image kimage;
+    errno = 0 ; 
+    if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
+    D("load_kernel_image_from_memory returns:%d\n", return_value); 
+    
+    return_value = extract_kernel_image(action,options,&kimage  );
+    if(kimage.start_addr != NULL  )  free(kimage.start_addr);
+        return return_value;
+    }
+        
     return print_program_error_file_type_not_recognized(action->filename);
 }
 
@@ -373,7 +392,7 @@ static int process_extract_file(extract_action* action, global_action* gaction){
 // although this code is repetitive we will favour readability
 // over codesize ...... Ask me in 3 months time whether it was
 // a good idea.
-int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
+int process_extract_action(unsigned argc,char ** argv,program_options* options){
     
     // Initialize the action struct with NULL values
     extract_action action;
@@ -572,7 +591,7 @@ int process_extract_action(unsigned argc,char ** argv,global_action* gaction){
     if(!action.filename) 
     return print_program_error_file_name_not_found(action.filename);
       
-    process_extract_file(&action,gaction);
+    process_extract_file(&action,options);
        
     return 0;
 }

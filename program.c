@@ -47,7 +47,7 @@ unsigned print_program_title_and_description(){
     
     static unsigned printed ;
     if(!printed){
-        fprintf(stderr,"\n %s %s\n",PROGRAM_TITLE,PROGRAM_VERSION);
+        print_program_title();
         fprintf(stderr,"\n %s \n\n",PROGRAM_DESCRIPTON);
         printed = 1 ; 
     }
@@ -73,7 +73,7 @@ unsigned print_program_error_file_type_not_recognized(char* filename){
 unsigned print_program_error_file_name_not_found(char * filename){
     
     print_program_title();
-    if(!filename){
+    if(filename == NULL){
         fprintf(stderr," no file specified!\n\n");
         errno = EINVAL ;
     }else{

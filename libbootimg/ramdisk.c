@@ -452,6 +452,7 @@ unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsi
     // look for a gzip magic to make sure the ramdisk is the correct type
     unsigned char * archive_magic_offset_p = get_archive_compression_type_and_offset(ramdisk_addr,ramdisk_size,image);
     if(!archive_magic_offset_p){
+        D("archive_magic_offset_p not set %p\n",archive_magic_offset_p);
         errno = ENOEXEC ;
         return ENOEXEC;
     }
@@ -860,6 +861,7 @@ unsigned update_ramdisk_entry_cpio_newc_header_info(ramdisk_entry* entry){
     
     char filesize_string[8];
     
+    // write the data_size
     sprintf(filesize_string,"%08x",entry->data_size);
 
     D("old data_padding:%u\n",entry->data_padding);
@@ -873,11 +875,15 @@ unsigned update_ramdisk_entry_cpio_newc_header_info(ramdisk_entry* entry){
     memmove(head->c_filesize,filesize_string,8);
     return 0;
 }
+// pack_noncontiguous_ramdisk_entries - returns a contigous memory block
+// containing the ramdisk entries containing in the rimage->entries structure
+// Returns a pointer to the start of the contiguous block
 unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage){
     
     unsigned i = 0;
     unsigned char* data = calloc(rimage->size , sizeof(unsigned char));
     
+    // 
     unsigned char* data_start = data;
     unsigned cpio_size = 0;
     D("cpio_size:%u %p %p\n",cpio_size,data ,data_start);
