@@ -37,14 +37,14 @@ libbootimg_src_files := \
 
 			
 libbootimg_include_dirs := $(LOCAL_PATH)/../include \
-				external/bootimage_tools/include/libbootimg \
-				external/bootimage_tools/liblzop \
+				$(LOCAL_PATH)/../include/libbootimg \
+				$(LOCAL_PATH)/../liblzop \
 				system/core/mkbootimg \
 				system/core/include/mincrypt \
 				external/zlib \
 				external/bzip2 \
-				external/bootimage_tools/liblzma/api \
-				external/bootimage_tools/liblzo/include
+				$(LOCAL_PATH)/../liblzma/api \
+				$(LOCAL_PATH)/../liblzo/include
 
 ##
 ## Hack to work around difference in the android_filesystem_config.h
