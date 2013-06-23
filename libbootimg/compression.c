@@ -70,17 +70,16 @@ unsigned get_compression_index_from_name(char *name){
 }
 
 
-unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack, unsigned haystack_len,unsigned char *haystack_offset, int* compression ){
+unsigned long find_compressed_data_in_memory_start_at(unsigned char *haystack, unsigned haystack_len,unsigned char *haystack_offset, compression_helper* helper ){
     
     
     D("haystack=%p haystack_len=%u\n", haystack,haystack_len);
     unsigned char * compressed_magic_offset_p = haystack_offset ;
-    unsigned char * uncompressed_data = calloc(MAX_DECOMPRESS_SIZE,sizeof(unsigned char)) ;
-    
-    long uncompressed_kernel_size = 0;
     int counter = 0 ;
+    helper->uncompressed_data_start = calloc(MAX_DECOMPRESS_SIZE,sizeof(unsigned char));
+    helper->uncompressed_data_size = 0 ;
     for(counter = 1 ; counter <= COMPRESSION_INDEX_MAX ; counter ++){
-        
+
         D("looking for %s magic at offset %p\n", compression_types[counter].name , haystack_offset);
         compressed_magic_offset_p = find_in_memory_start_at(haystack,
                                                             haystack_len,compressed_magic_offset_p,
@@ -91,7 +90,9 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
             
             if(compression_types[counter].uncompress_function != NULL){
                 errno = 0 ;
-                (* compression_types[counter].uncompress_function) (compressed_magic_offset_p,haystack_len,uncompressed_data,MAX_DECOMPRESS_SIZE);
+                helper->compressed_data_start = compressed_magic_offset_p;
+                
+                helper->uncompressed_data_size = (* compression_types[counter].uncompress_function) (compressed_magic_offset_p,haystack_len,helper->uncompressed_data_start,MAX_DECOMPRESS_SIZE);
                 if(errno != 0 ){
                     // invalid data block search again
                     compressed_magic_offset_p+=1 ;
@@ -99,14 +100,14 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
                     D("false positive for %s counter %d\n",compression_types[counter].name,counter);
                     
                     counter--;
-                    D("compressed_magic_offset_p %p counter %d\n",compressed_magic_offset_p,counter);
+                   D("compressed_magic_offset_p %p counter %d\n",compressed_magic_offset_p,counter);
                     //compressed_magic_offset_p = NULL ; 
                     errno = 0 ;
                     continue ;
                     
                 }
             }
-           (*compression) = compression_types[counter].index ; 
+           helper->compression_type = compression_types[counter].index ; 
            D("compression_type=%s\n",compression_types[counter].name);
            break ; 
         }
@@ -114,20 +115,24 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
         compressed_magic_offset_p = haystack_offset  ;
         D("resetting offset for next type %p\n",compressed_magic_offset_p);
     }
-    return compressed_magic_offset_p;
+    D(  "\ncompression helper values\n"
+        "compression_type=%d\n"
+        "compressed_data_size=%lu\n"
+        "uncompressed_data_size=%lu\n",
+        helper->compression_type,helper->compressed_data_size,helper->uncompressed_data_size);
+    
+    
+    return  helper->uncompressed_data_size;
    
     D("compression_type=NOT FOUND\n");
     
-    return NULL;
+    return 0;
     
 }
 
-unsigned char * find_compressed_data_in_memory( unsigned char *haystack, unsigned haystack_len, int* compression ){
-    
-    return find_compressed_data_in_memory_start_at(haystack,haystack_len,haystack,compression);
-}
 
-long uncompress_bzip2_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+
+unsigned long uncompress_bzip2_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
 
     D("compressed_data_size=%u\n",compressed_data_size);
    
@@ -136,11 +141,11 @@ long uncompress_bzip2_memory( unsigned char* compressed_data , size_t compressed
     return uncompressed_max_size;
    
 }
-long compress_bzip2_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+unsigned long compress_bzip2_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
     return 0 ;
 }
 
-long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+unsigned long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
     
     errno = 0 ;
     lzma_action action = LZMA_RUN;
@@ -183,14 +188,14 @@ long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_da
     return return_value; 
     
 }
-long compress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+unsigned long compress_xz_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
     
 
     return 0;
     
 }
 
-long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
+unsigned long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size){
 
     
     
@@ -253,7 +258,7 @@ long uncompress_lzo_memory( unsigned char* compressed_data , size_t compressed_d
     D("LZO DECOMPRESSED SIZE:%lu\n",decompressed_size);
     return decompressed_size;
 }
-long compress_lzo_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size){
+unsigned long compress_lzo_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size){
     
     /*lzo_bytep wrkmem = (lzo_bytep) calloc(LZO1X_1_MEM_COMPRESS,sizeof(char));
     long compressed_len = 0;
@@ -286,7 +291,7 @@ void zerr(int ret)
         D("zlib version mismatch!\n");
     }
 }
-long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
+unsigned long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
 {
 
     errno = 0 ;
@@ -300,7 +305,7 @@ long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_
     zInfo.next_out= uncompressed_data;
     size_t return_value= 0;
     long err= inflateInit2( &zInfo,16+MAX_WBITS );               // zlib function
-
+errno = 0 ;
     if ( err == Z_OK ) {
         err= inflate( &zInfo, Z_FINISH );     // zlib function
         if ( err == Z_STREAM_END ) {
@@ -320,7 +325,7 @@ long uncompress_gzip_memory( unsigned char* compressed_data , size_t compressed_
     return( return_value ); 
 }
 
-long compress_gzip_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size)
+unsigned long compress_gzip_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size)
 {
    
     z_stream zInfo = {0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 

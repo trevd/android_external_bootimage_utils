@@ -38,30 +38,46 @@
 
 typedef struct info_action info_action;
 
+typedef enum {
+        INFO_FILE_TYPE_UNKNOWN  = 0,
+        INFO_FILE_TYPE_BOOT_IMAGE,
+        INFO_FILE_TYPE_KERNEL,
+        INFO_FILE_TYPE_RAMDISK_ARCHIVE,
+        INFO_FILE_TYPE_RAMDISK_CPIO
+        
+} INFO_FILE_TYPE ;
+
 struct info_action{
     
-    char *  filename;
-    int     header  ;
-    int     additional ;
-    int     kernel  ;
-    int     ramdisk ;
-    int     second  ;
+        char *          filename;
+        int             header  ;
+        int             additional ;
+        int             kernel  ;
+        int             ramdisk ;
+        int             second  ;
+        INFO_FILE_TYPE  filetype;
 };
 
 #define VALID_ACTION_SWITCHES "aHkrs"
 
 int info_kernel( kernel_image* kimage,info_action* action,int print_title){
     
-    if(print_title){
-    print_program_title();
-    fprintf(stderr," Printing Kernel Information for \"%s\"\n\n",action->filename);
-    }else{
-    fprintf(stderr," Kernel:\n");
-    }
-    
-    print_kernel_info(kimage);
-    fprintf(stderr,"\n");
-    
+        if(print_title){
+                print_program_title();
+                fprintf(stderr," Printing Kernel Information for \"%s\"\n\n",action->filename);
+        }else{
+                fprintf(stderr," Kernel:\n");
+        }
+        biki_write_details(stderr,kimage);
+        
+        if(kimage->ramdisk_size){
+                ramdisk_image rimage ; 
+                biki_rd_read(kimage,&rimage);
+        
+                fprintf(stderr,"\n Embedded Ramdisk Information:\n");
+                print_ramdisk_info(&rimage);
+                        fprintf(stderr,"\n");
+        }
     return 0 ;
 }
 int info_ramdisk(ramdisk_image* rimage,info_action* action,int print_title){
@@ -101,29 +117,30 @@ int info_boot_image(info_action* action,program_options* options ,boot_image* bi
     
     
     kernel_image kimage;
-    if(action->kernel && !load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage)){
+    if(action->kernel && !bibi_ki_read(bimage,&kimage)){
         info_kernel(&kimage,action,0) ;
         //if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         //if(kimage.start_addr != NULL  )  free(kimage.start_addr);
         
     }
     if(action->ramdisk){
-    ramdisk_image rimage;
-    if(!load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage)){
-        info_ramdisk(&rimage,action,0);
-        free(rimage.start_addr);
-    }
-    }
+        ramdisk_image rimage;
+        if(!bird_read(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage)){
+                info_ramdisk(&rimage,action,0);
+                free(rimage.start_addr);
+        }
+}
     return 0 ;
 }
-int info_file(info_action* action,program_options* options ){
+int process_info_file(info_action* action,program_options* options ){
 
    
     char* current_working_directory = NULL; 
     errno = 0 ; 
     int saved_error = 0 ;
     int return_value=0;
-    unsigned action_size = 0;     
+    unsigned action_size = 0;  
+    int primary_typeset = 0 ;   
     getcwd(current_working_directory,PATH_MAX);
     
     unsigned char* action_data = read_item_from_disk(action->filename , &action_size);
@@ -136,10 +153,11 @@ int info_file(info_action* action,program_options* options ){
     
         D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
         boot_image bimage;
-    
-        if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
-    
+        
+        if(!(return_value=bibi_read(action_data,action_size,&bimage))){
+                primary_typeset = 1;
                 D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
+                
                 return_value = info_boot_image(action, options,&bimage);
     
                 D("info_boot_image returned %d\n",return_value);
@@ -157,12 +175,11 @@ int info_file(info_action* action,program_options* options ){
         // image and we want to find both
         kernel_image kimage;
         errno = 0 ; 
-        if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
+        if(!(return_value = biki_read(action_data,action_size,&kimage))){
                 D("load_kernel_image_from_memory returns:%d\n", return_value); 
+                
                 return_value = info_kernel(&kimage,action,1);
-                if(kimage.rimage != NULL  )  free(kimage.rimage->start_addr);
-                if(kimage.start_addr != NULL  )  
-                        free(kimage.start_addr);
+                if(kimage.ramdisk_addr != NULL  )  free(kimage.ramdisk_addr);
                         
         
                 return return_value;
@@ -170,13 +187,13 @@ int info_file(info_action* action,program_options* options ){
         
     // We will look for a ramdisk cpio first
     ramdisk_image rimage;
-    if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
+    if(!bird_read(action_data,action_size,&rimage)){
         return_value = info_ramdisk(&rimage,action,1);
         free(rimage.start_addr); 
         return return_value;
     }
     
-    return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
+    return_value =  bird_read(action_data,action_size,&rimage);
     if(!return_value){
     D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
     return_value = info_ramdisk(&rimage,action,1);
@@ -206,11 +223,12 @@ int process_info_action(unsigned argc,char ** argv,program_options* options){
     
     info_action action ;
     action.filename     = NULL  ;
-    action.kernel   = 0     ;
-    action.header   = 0     ;
-    action.ramdisk  = 0     ;
-    action.second   = 0     ;
+    action.kernel       = 0     ;
+    action.header       = 0     ;
+    action.ramdisk      = 0     ;
+    action.second       = 0     ;
     action.additional   = 0     ;
+    action.filetype     = 0     ;
     
         // a variable for the file check
         FILE*file; 
@@ -304,6 +322,6 @@ int process_info_action(unsigned argc,char ** argv,program_options* options){
     }
     
     
-    info_file(&action,options);
+    process_info_file(&action,options);
     return 0;
 }

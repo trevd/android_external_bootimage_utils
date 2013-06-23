@@ -92,15 +92,15 @@ static struct compression_type {
     unsigned name_size ;
     char * magic ;
     unsigned magic_size ;
-    long ( *uncompress_function) (unsigned char* , size_t , unsigned char* ,size_t );
+    unsigned long ( *uncompress_function) (unsigned char* , size_t , unsigned char* ,size_t );
     
 } const compression_types[] = { 
     { 0                     ,(char*)NULL        ,0                      ,(char*)NULL        ,0                          ,NULL   },
     { GZIP_DEFLATE_INDEX    ,GZIP_DEFLATE_NAME  ,GZIP_DEFLATE_NAME_SIZE ,GZIP_DEFLATE_MAGIC ,GZIP_DEFLATE_MAGIC_SIZE    ,uncompress_gzip_memory },
+    { BZIP2_INDEX           ,BZIP2_NAME         ,BZIP2_NAME_SIZE        ,BZIP2_MAGIC        ,BZIP2_MAGIC_SIZE           ,uncompress_bzip2_memory   },
     { LZOP_INDEX            ,LZOP_NAME          ,LZOP_NAME_SIZE         ,LZOP_MAGIC         ,LZOP_MAGIC_SIZE            ,uncompress_lzo_memory  },
     { XZ_INDEX              ,XZ_NAME            ,XZ_NAME_SIZE           ,XZ_MAGIC           ,XZ_MAGIC_SIZE              ,uncompress_xz_memory   },
     { LZMA_INDEX            ,LZMA_NAME          ,LZMA_NAME_SIZE         ,LZMA_MAGIC         ,LZMA_MAGIC_SIZE            ,uncompress_xz_memory   },
-    { BZIP2_INDEX           ,BZIP2_NAME         ,BZIP2_NAME_SIZE        ,BZIP2_MAGIC        ,BZIP2_MAGIC_SIZE           ,uncompress_bzip2_memory   },
     { LZ4_INDEX             ,LZ4_NAME           ,LZ4_NAME_SIZE          ,LZ4_MAGIC          ,LZ4_MAGIC_SIZE             ,NULL   },
     { 0                     ,NULL               ,0                      ,NULL               ,0                          ,NULL   }
     

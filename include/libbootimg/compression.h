@@ -23,12 +23,29 @@
 #ifndef _25aa2a1a_9068_11e2_8847_5404a601fa9d
 #define _25aa2a1a_9068_11e2_8847_5404a601fa9d
 
-#define COMPRESSION_GZIP_DEFLATE    1
-#define COMPRESSION_LZOP            2
-#define COMPRESSION_XZ              3
-#define COMPRESSION_LZMA            4
-#define COMPRESSION_BZIP2           5
-#define COMPRESSION_LZ4             6
+
+
+// The compression help is passed into the find 
+typedef struct compression_helper compression_helper;
+
+struct compression_helper {
+ 
+        unsigned compression_type;
+        unsigned char* compressed_data_start ;
+        unsigned long compressed_data_size  ;
+        unsigned char* uncompressed_data_start ;
+        unsigned long uncompressed_data_size ;
+};
+    
+
+#define COMPRESSION_NOT_SET             0
+#define COMPRESSION_GZIP_DEFLATE        1
+#define COMPRESSION_LZOP                2
+#define COMPRESSION_XZ                  3
+#define COMPRESSION_LZMA                4
+#define COMPRESSION_BZIP2               5
+#define COMPRESSION_LZ4                 6
+#define COMPRESSION_NONE                7
 
 /* get_compression_name_from_index(int index)
  * 
@@ -42,33 +59,32 @@
 char * get_compression_name_from_index(unsigned index); 
 unsigned get_compression_index_from_name(char *name) ;
 
-unsigned char * find_compressed_data_in_memory( unsigned char *haystack, unsigned haystack_len, int* compression );
 
-unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack, unsigned haystack_len,
-                unsigned char *haystack_offset, int* compression );
+unsigned long find_compressed_data_in_memory_start_at( unsigned char *haystack, unsigned haystack_len,
+                unsigned char *haystack_offset, compression_helper* helper );
 
-long uncompress_gzip_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+unsigned long uncompress_gzip_memory(unsigned char* compressed_data , size_t compressed_data_size, 
                 unsigned char* uncompressed_data,size_t uncompressed_max_size);
     
-long compress_gzip_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+unsigned long compress_gzip_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
 
-long uncompress_lzo_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+unsigned long uncompress_lzo_memory(unsigned char* compressed_data , size_t compressed_data_size, 
                 unsigned char* uncompressed_data,size_t uncompressed_max_size);
 
-long compress_lzo_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+unsigned long compress_lzo_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
                 
-long uncompress_xz_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+unsigned long uncompress_xz_memory(unsigned char* compressed_data , size_t compressed_data_size, 
                 unsigned char* uncompressed_data,size_t uncompressed_max_size);
 
-long compress_xz_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+unsigned long compress_xz_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
 
-long uncompress_bzip2_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+unsigned long uncompress_bzip2_memory(unsigned char* compressed_data , size_t compressed_data_size, 
                 unsigned char* uncompressed_data,size_t uncompressed_max_size);
 
-long compress_bzip2_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+unsigned long compress_bzip2_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
 
 #endif

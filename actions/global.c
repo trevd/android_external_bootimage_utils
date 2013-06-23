@@ -69,8 +69,13 @@ static int get_program_action(unsigned argc,char ** argv, program_options* optio
         D("options->program_name_action[0]=%s\n",options->program_name_action[0]);
         D("options->program_name_action[1]=%s\n",options->program_name_action[1]);
         for ( ; i <= AI_MAX_INDEX ; i++ ){
-                D("argv[0]=%s actioninfo[%d]=%s\n",argv[0],i,actioninfo[i].long_name);
-            if(strstr(argv[0],actioninfo[i].long_name)){
+            if(strlen(argv[0])==1){
+                 D("1 CHAR argv[0]=%s actioninfo[%d]=%s\n",argv[0],i,actioninfo[i].long_name);
+                if(argv[0][0]==actioninfo[i].short_name)
+                        options->action_info = &actioninfo[i];
+                
+            } else if(strstr(argv[0],actioninfo[i].long_name)){
+                 D("argv[0]=%s actioninfo[%d]=%s\n",argv[0],i,actioninfo[i].long_name);
                  options->action_info = &actioninfo[i];
                  break ;
             

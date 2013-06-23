@@ -83,7 +83,7 @@ int create_bootimage(create_action* action, program_options* options){
     
     if (action->header_filename) {
         fprintf(stderr, " Creating Header From : \"%s\"\n",action->header_filename) ;
-        load_boot_image_header_from_disk(action->header_filename,&bimage);
+        bibi_open_header(action->header_filename,&bimage);
     }
     
     //
@@ -102,7 +102,7 @@ int create_bootimage(create_action* action, program_options* options){
         // A Directory was specified as our ramdisk source
         // we need to pack the directory into a cpio-ball
         unsigned cpio_ramdisk_size = 0; 
-        unsigned char* cpio_data = pack_ramdisk_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
+        bird_open_directory(action->ramdisk_directory,&cpio_ramdisk_size) ;
         if(!cpio_data){
             // Not good... shit in fact. failed at the first hurdle
             print_program_error_processing(action->ramdisk_directory);
@@ -169,16 +169,11 @@ int create_bootimage(create_action* action, program_options* options){
     fprintf(stderr, " Creating Second From : \"%s\"\n",action->second_filename) ;
     
     }
-    fprintf(stderr, " Calculating Padding\n") ;    
-    set_boot_image_padding(&bimage);
-    fprintf(stderr, " Calculating Content Hashes\n") ;    
-    set_boot_image_content_hash(&bimage);
-    set_boot_image_offsets(&bimage);
     
     //print_boot_image_info(&bimage);
         
    fprintf(stderr, " Writing Booting Image\n") ;    
-   if(write_boot_image(action->bootimage_filename,&bimage)){
+   if(bibi_write(action->bootimage_filename,&bimage)){
     
     }
    

@@ -33,34 +33,40 @@
 #define CPIO_TRAILER_MAGIC "TRAILER!!!"
 #define CPIO_TRAILER_MAGIC_SIZE 10
 
-
+#define MAX_RAMDISK_SIZE (8192*1024)*4
 #define RAMDISK_ENTRY_DATA_NON_CONTIGOUS -1
 
 
-#define RAMDISK_COMPRESSION_UNKNOWN 0
+#define RAMDISK_COMPRESSION_NOT_SET COMPRESSION_NOT_SET   
 #define RAMDISK_COMPRESSION_GZIP    COMPRESSION_GZIP_DEFLATE
 #define RAMDISK_COMPRESSION_LZO     COMPRESSION_LZOP        
 #define RAMDISK_COMPRESSION_XZ      COMPRESSION_XZ          
 #define RAMDISK_COMPRESSION_LZMA    COMPRESSION_LZMA        
 #define RAMDISK_COMPRESSION_BZIP2   COMPRESSION_BZIP2       
-#define RAMDISK_COMPRESSION_LZ4     COMPRESSION_LZ4         
-#define RAMDISK_COMPRESSION_NONE    9
+#define RAMDISK_COMPRESSION_LZ4     COMPRESSION_LZ4       
+#define RAMDISK_COMPRESSION_NONE    COMPRESSION_NONE
+#define RAMDISK_COMPRESSION_CPIO    
+       
 
-#define RAMDISK_TYPE_UNKNOWN -1
+
+#define RAMDISK_TYPE_NOT_SET 0
 #define RAMDISK_TYPE_NORMAL 1
 #define RAMDISK_TYPE_RECOVERY 2
 #define RAMDISK_TYPE_UBUNTU 3
 
-#define RECOVERY_BRAND_UNKNOWN -1
-#define RECOVERY_BRAND_NONE 0
+#define RECOVERY_BRAND_NOT_SET 0
 #define RECOVERY_BRAND_STOCK 1
 #define RECOVERY_BRAND_CLOCKWORK 2
 #define RECOVERY_BRAND_CWM 3
 #define RECOVERY_BRAND_COT 4
 #define RECOVERY_BRAND_TWRP 5
 #define RECOVERY_BRAND_4EXT 6
+#define RECOVERY_BRAND_UNKNOWN 7
+#define RECOVERY_BRAND_NONE 8
 
 #define RECOVERY_VERSION_UNKNOWN -1
+#define RECOVERY_VERSION_NOT_SET 0
+
 
 
 
@@ -115,17 +121,19 @@ unsigned int_ramdisk_compression(char * compression);
 
 unsigned init_ramdisk_image(ramdisk_image* image);
 
-unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image);
+unsigned bird_open(const char *filename, ramdisk_image* image);
 
-unsigned load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image);
+unsigned bird_read(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
-unsigned load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
+unsigned bird_write_entries(const char *directory_name,ramdisk_image* image);
+unsigned bird_write(const char *filename_name,ramdisk_image* image);
 
-unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
+unsigned bird_open_directory(const char* directory_name, ramdisk_image* image);
+        
+unsigned bird_open_entries(const char* directory_name, ramdisk_image* image);
 
-unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name);
+unsigned bird_read_entries(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image );
 
-unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size);
 
 unsigned print_ramdisk_info(ramdisk_image* rimage);
 
@@ -139,6 +147,6 @@ unsigned char* pack_noncontiguous_ramdisk_entries(ramdisk_image* rimage);
 
 ramdisk_image* get_initialized_ramdisk_image();
 
-unsigned write_ramdisk_image_header_to_disk(const char *filename, ramdisk_image* image);
+//unsigned write_ramdisk_image_header_to_disk(const char *filename, ramdisk_image* image);
 
 #endif

@@ -79,7 +79,7 @@ unsigned char *find_in_memory_start_at(unsigned char *haystack, unsigned haystac
 }
 
 // a simple wrapper to handle filename with out discovered lengths, keeps strlen all in one place
-unsigned long write_item_to_disk(unsigned char *data,unsigned data_size,unsigned mode,char* name){
+unsigned long write_item_to_disk(unsigned char *data,unsigned data_size,unsigned mode,const char* name){
     
     errno = 0 ;
     if(!name){
@@ -91,12 +91,12 @@ unsigned long write_item_to_disk(unsigned char *data,unsigned data_size,unsigned
 
 
 // write_file_to_disk - handles the extraction of the parent path creation if required 
-unsigned long write_item_to_disk_extended(unsigned char *data,unsigned data_size,unsigned mode,char* name,unsigned name_size){
+unsigned long write_item_to_disk_extended(unsigned char *data,unsigned data_size,unsigned mode,const char* name,unsigned name_size){
     
     errno = 0; 
-    D("mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
+    //D("mode: %u %08x %d %s\n",mode,mode,S_ISDIR(mode), name);
     if(S_ISDIR(mode)){
-        D("%s is a directory\n",name);
+        //D("%s is a directory\n",name);
         mkdir_and_parents(name,mode);
     }else{
 
@@ -108,14 +108,14 @@ unsigned long write_item_to_disk_extended(unsigned char *data,unsigned data_size
             (*directory_seperator) ='/';
         }
         if(S_ISREG(mode)){
-            D("%s is a regular file\n",name);
+            D("writing %s - regular file\n",name);
             FILE* filefp = fopen(name,"wb");
             if(!filefp) return errno;
             fwrite(data,data_size,1,filefp);
             fclose(filefp);
             chmod(name,mode);
         }else if(S_ISLNK(mode)){
-            D("%s is a symlink\n",name);
+            //D("%s is a symlink\n",name);
             symlink( (const char*)data ,name);            
         }
                 

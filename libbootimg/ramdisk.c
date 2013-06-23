@@ -76,17 +76,176 @@ struct cpio_newc_header {
        char    c_namesize[8];
        char    c_check[8];
 } ;
+static unsigned char* append_cpio_header_to_stream(struct stat s,char *filename, unsigned char* output_header){
+     static unsigned next_inode = 300000;
+     unsigned  namesize =  strlen(filename)+1;
+     unsigned filesize = S_ISDIR(s.st_mode) ? 0 : s.st_size;
+     unsigned long namealign = ((4 - ((sizeof(cpio_newc_header)+namesize) % 4)) % 4);
+    
+     uint64_t capabilities;
+     fs_config(filename, S_ISDIR(s.st_mode),(unsigned*) &s.st_uid, (unsigned*)&s.st_gid, (unsigned*)&s.st_mode,&capabilities);  
+    
+     sprintf((char*)output_header,"%06x%08x%08x%08x%08x%08x%08x"
+           "%08x%08x%08x%08x%08x%08x%08x%s",
+           0x070701,
+           next_inode++,  //  s.st_ino,
+           s.st_mode,
+           0, // s.st_uid,
+           0, // s.st_gid,
+           1, // s.st_nlink,
+           0, // s.st_mtime,
+           filesize ,
+           0, // volmajor
+           0, // volminor
+           0, // devmajor
+           0, // devminor,
+          namesize  ,
+           0,filename
+           );     
+    D("namealign:%s %lu %p %p\n",filename,namealign,output_header,output_header);
+    output_header+=(sizeof(cpio_newc_header)+namesize);
+    strncat((char*)output_header,"\0\0\0\0",namealign);
+    //fprintf(stderr,"Out:%p\n", output_header);
+    output_header+=namealign;
+    return output_header;
+}
+static unsigned char* append_file_contents_to_stream(struct stat s,char *filename, unsigned char* output_header){
+    
+    
+    if(S_ISDIR(s.st_mode)){
+    }else {
+    unsigned long filealign = ((4 - ((s.st_size) % 4)) % 4);
+    if(S_ISREG(s.st_mode)){
+        D("open reg %s\n",filename);
+        FILE* fp = fopen(filename,"r+b");
+        fread(output_header,s.st_size,1,fp);
+        output_header+=s.st_size;
+        fclose(fp);
+    }else if(S_ISLNK(s.st_mode)){
+        
+        readlink(filename,(char*)output_header,PATH_MAX);
+        
+        output_header+=s.st_size;
+    }
+    output_header+=filealign;
+    }
+    
+    return output_header; 
+    
+}
 
-#define MAX_RAMDISK_SIZE (8192*1024)*4
+unsigned count_ramdisk_archive_entries(ramdisk_image* image){
+    
+    unsigned return_value = 0; 
+    unsigned char * cpio_magic_offset_p = find_in_memory( image->start_addr, image->size,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );
+    while(cpio_magic_offset_p){
+    if(isdigit((cpio_magic_offset_p+CPIO_HEADER_MAGIC_SIZE)[0])){
+        return_value += 1;  
+    }
+    cpio_magic_offset_p+=CPIO_HEADER_MAGIC_SIZE;
+    cpio_magic_offset_p = find_in_memory_start_at(image->start_addr,image->size,cpio_magic_offset_p,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );
+    }
+    return return_value;
+    
+}
+static unsigned total;
+void count_filesystem_entries( const char *name, int level){
+    
+    
+    static unsigned total_size ;
+    static int root_len; 
+    if(level == 0 ) root_len = strlen(name)+1;
+    DIR *dir;
+    struct dirent *entry;
+    
+    if (!(dir = opendir(name)))
+       return ;
+    if (!(entry = readdir(dir)))
+       return  ;
+    
+    do {
+    struct stat sb; 
+    lstat(name,&sb);
+    
+        if (S_ISDIR(sb.st_mode)) {
+            char path[PATH_MAX];
+            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+        total_size += 0;
+        
+        //names[total]=strdup(path+root_len);
+        //fprintf(stderr,"names[%u]:%s\n",total,names[total]);
+        total++;
+            count_filesystem_entries(path, level + 1);
+        }
+        else{
+        char path[PATH_MAX];
+        int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+        //names[total]=strdup(path+root_len);
+        //fprintf("names[%d]:%s\n",total,names[total]);
+        total++;
+    }   
+    } while ((entry = readdir(dir)));
+    closedir(dir);
+   
+   return  ;
+}
+static char ** names;
 
+void get_filesystem_entry_names( char *name, int level){
+    
+    static unsigned total_size ;
+    static int root_len; 
+    if(level == 0 ) root_len = strlen(name)+1;
+    DIR *dir;
+    struct dirent *entry;
+    
+    if (!(dir = opendir(name)))
+       return ;
+    if (!(entry = readdir(dir)))
+       return  ;
+    
+    do {
+    struct stat sb; 
+    lstat(name,&sb);
+    
+        if (S_ISDIR(sb.st_mode)) {
+            char path[PATH_MAX];
+            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+            
+            // Skip self and previous directory entries
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                continue;
+        
+        
+        total_size += 0;
+        
+        names[total]=strdup(path+root_len);
+        D("names[%u]:%s\n",total,names[total]);
+        total++;
+            get_filesystem_entry_names(path, level + 1);
+        }
+        else{
+        char path[PATH_MAX];
+        int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
+        names[total]=strdup(path+root_len);
+        //fprintf("names[%d]:%s\n",total,names[total]);
+        total++;
+    }   
+    } while ((entry = readdir(dir)));
+    closedir(dir);
+   
+   return  ;
+}
 
 unsigned init_ramdisk_image(ramdisk_image* image){
     
-    image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
+    image->compression_type = RAMDISK_COMPRESSION_NOT_SET ;
     image->start_addr = NULL ;
     image->size = 0 ;
-    image->type = RAMDISK_TYPE_UNKNOWN;
-    image->recovery_brand = RECOVERY_BRAND_UNKNOWN;
+    image->type = RAMDISK_TYPE_NOT_SET;
+    image->recovery_brand = RECOVERY_BRAND_NOT_SET;
     image->recovery_version = NULL;
     image->recovery_version_size = 0 ;
         
@@ -146,7 +305,7 @@ unsigned get_ramdisk_type(ramdisk_image* image){
     if(!strlcmp((char*)image->entries[i]->name_addr,RECOVERY_FILE_NAME)){
         
         image->type = RAMDISK_TYPE_RECOVERY ;
-        image->recovery_brand = RECOVERY_BRAND_UNKNOWN ;
+        image->recovery_brand = RECOVERY_BRAND_NOT_SET ;
         image->recovery_version = NULL ;
         D("recovery image found at %d\n",i);
         unsigned char * recovery_name_offset = NULL; 
@@ -322,22 +481,10 @@ static int qsort_comparer(const void* a, const void* b) {
   return strlcmp(*(const char**)a, *(const char**)b);
 }
 
-unsigned count_ramdisk_archive_entries(ramdisk_image* image){
-    
-    unsigned return_value = 0; 
-    unsigned char * cpio_magic_offset_p = find_in_memory( image->start_addr, image->size,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );
-    while(cpio_magic_offset_p){
-    if(isdigit((cpio_magic_offset_p+CPIO_HEADER_MAGIC_SIZE)[0])){
-        return_value += 1;  
-    }
-    cpio_magic_offset_p+=CPIO_HEADER_MAGIC_SIZE;
-    cpio_magic_offset_p = find_in_memory_start_at(image->start_addr,image->size,cpio_magic_offset_p,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );
-    }
-    return return_value;
-    
-}
 
-unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_image* image){
+
+
+unsigned bird_open(const char *filename, ramdisk_image* image){
      
     errno = 0;
     unsigned data_size = 0;
@@ -349,26 +496,81 @@ unsigned load_ramdisk_image_from_archive_file(const char *filename, ramdisk_imag
 
     }
     fprintf(stderr,"ramdisk_addr %p %u\n",ramdisk_addr,data_size);
-    unsigned return_value = load_ramdisk_image_from_archive_memory(ramdisk_addr,data_size,image);
+    unsigned return_value = bird_read(ramdisk_addr,data_size,image);
 
     return  return_value; 
 }
-unsigned load_ramdisk_image_from_cpio_file(const char *filename, ramdisk_image* image){
+
+unsigned bird_write(const char *filename, ramdisk_image* image){
     
-    errno = 0;
-    unsigned data_size = 0;
-    unsigned char* ramdisk_addr = read_item_from_disk(filename,&data_size);
-    if(!ramdisk_addr){
-    fprintf(stderr,"Error %d\n",errno);
-    return errno;
-
-    }
-    fprintf(stderr,"ramdisk_addr %p %u\n",ramdisk_addr,data_size);
-    int return_value = load_ramdisk_image_from_cpio_memory(ramdisk_addr,data_size,image);
-
-    return  return_value; 
+    return write_item_to_disk(image->start_addr,image->size,33188,filename);
 }
-unsigned load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
+/* bootimage_ramdisk_open_directory - recursivel reads the entries
+ * in the directory specified by directory_name a */
+unsigned bird_open_directory(const char *directory_name, ramdisk_image* image){
+        
+    struct stat sb;
+    errno = 0 ;
+    if(lstat(directory_name,&sb) == -1){
+        return errno = EBADF;
+        
+    }   
+    // STEP 1: Information Gathering.
+    // Find out how many files we as dealing with
+    size_t filesystem_entries =0 ;
+    count_filesystem_entries(directory_name,0);
+    D("filesystem_entries %u %u\n",filesystem_entries,total);
+    filesystem_entries = total;
+    unsigned i; 
+    
+    // allocate the memory required for the filenames list
+    names = calloc(filesystem_entries, sizeof(names));
+    for(i = 0; i < filesystem_entries; i++) {
+        names[i] = (char *)calloc(PATH_MAX,sizeof(char));   
+        if (names[i] == NULL) {
+            D("Memory cannot be allocated to arr[]");
+        }
+     D("i: %d \n",i);
+    }
+    total = 0;
+    get_filesystem_entry_names((char*)directory_name,0);
+    qsort(names, filesystem_entries, sizeof(char*), qsort_comparer);
+
+    errno = 0;
+    char cwd[PATH_MAX];
+    getcwd(cwd,PATH_MAX);
+    chdir(directory_name);
+    unsigned char* cpio_data = calloc(MAX_RAMDISK_SIZE,sizeof(char));
+    unsigned char* nextbyte = &cpio_data[0];
+    for(i = 0; i < filesystem_entries; i++){
+    
+        struct stat sb;
+        if(lstat(names[i],&sb) == -1)
+            continue;
+        
+        D("nextbyte %p errno=%d\n",nextbyte,errno);
+        nextbyte = append_cpio_header_to_stream(sb,names[i],nextbyte);
+        nextbyte = append_file_contents_to_stream(sb,names[i],nextbyte);
+    
+    }
+    struct stat s ; memset(&s, 0, sizeof(s));
+    D("errno:%d\n",errno); 
+    nextbyte =append_cpio_header_to_stream(s,CPIO_TRAILER_MAGIC,nextbyte);
+    D("errno:%d chrdir(%s)\n",errno,cwd); 
+    chdir(cwd) ;
+    unsigned cpsz = 0 ;
+    unsigned* cpio_size = &cpsz;
+    (*cpio_size) = nextbyte - &cpio_data[0] ;
+    // align the file size to the next 256 boundary
+    while((*cpio_size) & 0xff) 
+        (*cpio_size)++;
+    
+    D("cpio_size %u %p\n",(*cpio_size),nextbyte);
+    
+    return cpsz;
+    
+}
+unsigned bird_read_entries(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
     
     errno = 0 ; 
     if(!ramdisk_addr || !ramdisk_size ){
@@ -422,74 +624,54 @@ error_cpio_magic:
 // get_archive_compression_type_and_offset - search the memory from ramdisk_addr for known compression magic 
 // numbers. returns the offset to the start of the archive or NULL if no known archive is found 
 // image->compression_type is also updated
-unsigned char* get_archive_compression_type_and_offset(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image){
+unsigned long bird_try_decompress(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image){
     
     // First we need to make sure we have an actual ramdisk and not some thing else
     // which can contain archives, such as a kernel image
-    unsigned char * kernel_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,KERNEL_ZIMAGE_MAGIC, KERNEL_ZIMAGE_MAGIC_SIZE );
+    unsigned char * kernel_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,KERNEL_ZIMAGE_MAGIC, KERNEL_ZIMAGE_MAGIC_SIZE );   
     if(kernel_magic_offset_p){
-        image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
-        return NULL ;
+        image->compression_type = RAMDISK_COMPRESSION_NOT_SET ;
+        return 0 ;
+    }
+    unsigned char * cpio_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,CPIO_HEADER_MAGIC, CPIO_HEADER_MAGIC_SIZE );   
+    if(cpio_magic_offset_p != NULL ){
+        //      image->compression_type = RAMDISK_COMPRESSION_CPIO ;
+        D("compression_type=%s\n",str_ramdisk_compression(image->compression_type));
+        image->size = ramdisk_size;
+        image->start_addr = ramdisk_addr;       
+        return  ramdisk_size ;
     }
     
     
     D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
-    int compression = 0 ;
-    unsigned char * archive_magic_offset_p = find_compressed_data_in_memory(ramdisk_addr,ramdisk_size,&compression);
-    if(archive_magic_offset_p){
-        D("compression_type=%s\n",str_ramdisk_compression(compression));
-        image->compression_type = compression ;
-        return archive_magic_offset_p;
+    
+    compression_helper helper ;
+    helper.uncompressed_data_start = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ; 
+    helper.uncompressed_data_size = MAX_RAMDISK_SIZE;
+    
+    if(find_compressed_data_in_memory_start_at(ramdisk_addr,ramdisk_size,ramdisk_addr,&helper)> 0 ){
+        D("compression_type=%s\n",str_ramdisk_compression(helper.compression_type));
+        image->compression_type = helper.compression_type ;
+        image->size = helper.uncompressed_data_size;
+        image->start_addr = helper.uncompressed_data_start;
+        return helper.uncompressed_data_size;
     }
-    return NULL;
+    return 0;
 }
 
-unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
+unsigned bird_read(unsigned char* ramdisk_addr,unsigned ramdisk_size,ramdisk_image* image ){
 
     D("ramdisk_addr=%p ramdisk_size=%u\n", ramdisk_addr,ramdisk_size);
    
     errno = 0;
     // look for a gzip magic to make sure the ramdisk is the correct type
-    unsigned char * archive_magic_offset_p = get_archive_compression_type_and_offset(ramdisk_addr,ramdisk_size,image);
-    if(!archive_magic_offset_p){
-        D("archive_magic_offset_p not set %p\n",archive_magic_offset_p);
-        errno = ENOEXEC ;
-        return ENOEXEC;
-    }
-    D("image->compression_type=%d\n",image->compression_type);
-    unsigned char *uncompressed_ramdisk_data = calloc(MAX_RAMDISK_SIZE,sizeof(unsigned char)) ;
-    unsigned uncompressed_ramdisk_size = 0;
+        unsigned long uncompressed_ramdisk_size = bird_try_decompress(ramdisk_addr,ramdisk_size,image);
+        if(!uncompressed_ramdisk_size){
+                D("uncompressed_ramdisk_size error\n");
+                goto error_uncompressed;
+        }
     
-    switch(image->compression_type){
-        case RAMDISK_COMPRESSION_GZIP:
-           uncompressed_ramdisk_size = uncompress_gzip_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-           break ;
-        case RAMDISK_COMPRESSION_LZO:{
-            uncompressed_ramdisk_size = uncompress_lzo_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-            break;
-        }
-        case RAMDISK_COMPRESSION_XZ:{
-            uncompressed_ramdisk_size = uncompress_xz_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-            break;
-        }
-        case RAMDISK_COMPRESSION_BZIP2:{
-            uncompressed_ramdisk_size = uncompress_bzip2_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-            break;
-        }
-        case RAMDISK_COMPRESSION_LZMA:{
-            uncompressed_ramdisk_size = uncompress_xz_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
-            break;
-        }
-        default:
-            break;
-    }
-    
-    if(!uncompressed_ramdisk_size){
-        D("uncompressed_ramdisk_size error\n");
-        goto error_uncompressed;
-    }
-    
-    if(load_ramdisk_image_from_cpio_memory(uncompressed_ramdisk_data,uncompressed_ramdisk_size,image)){
+    if(bird_read_entries(image->start_addr,image->size,image)){
         D("load_ramdisk_image_from_cpio_memory error\n");
         goto error_uncompressed;
     }
@@ -498,14 +680,15 @@ unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsi
     return 0;
     
 error_uncompressed:
-    image->start_addr = NULL ;
-    free(uncompressed_ramdisk_data);
+    //image->start_addr = NULL ;
     errno = EINVAL;
     D("error_uncompressed %s\n", strerror(errno));
     return  EINVAL;
 
 }
-unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name){
+
+
+unsigned bird_write_entries(const char *directory_name,ramdisk_image* image){
 
     D("called with image=%p directory_name=%s\n", image,directory_name);
     char cwd[PATH_MAX];
@@ -520,7 +703,7 @@ unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name)
         chdir((char *)directory_name);
     }
     
-    unsigned i = 0;
+    unsigned i = 0;     
     D("ramdisk_entry_count=%u\n", image->entry_count);
     for(i = 0 ; i < image->entry_count ; i++){
     
@@ -542,222 +725,8 @@ unsigned save_ramdisk_entries_to_disk(ramdisk_image* image,char *directory_name)
     return 0;
     
 }
-static unsigned total;
-void count_filesystem_entries( char *name, int level){
-    
-    
-    static unsigned total_size ;
-    static int root_len; 
-    if(level == 0 ) root_len = strlen(name)+1;
-    DIR *dir;
-    struct dirent *entry;
-    
-    if (!(dir = opendir(name)))
-       return ;
-    if (!(entry = readdir(dir)))
-       return  ;
-    
-    do {
-    struct stat sb; 
-    lstat(name,&sb);
-    
-        if (S_ISDIR(sb.st_mode)) {
-            char path[PATH_MAX];
-            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                continue;
-        total_size += 0;
-        
-        //names[total]=strdup(path+root_len);
-        //fprintf(stderr,"names[%u]:%s\n",total,names[total]);
-        total++;
-            count_filesystem_entries(path, level + 1);
-        }
-        else{
-        char path[PATH_MAX];
-        int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
-        //names[total]=strdup(path+root_len);
-        //fprintf("names[%d]:%s\n",total,names[total]);
-        total++;
-    }   
-    } while ((entry = readdir(dir)));
-    closedir(dir);
-   
-   return  ;
-}
-static char ** names;
 
-void get_filesystem_entry_names( char *name, int level){
-    
-    static unsigned total_size ;
-    static int root_len; 
-    if(level == 0 ) root_len = strlen(name)+1;
-    DIR *dir;
-    struct dirent *entry;
-    
-    if (!(dir = opendir(name)))
-       return ;
-    if (!(entry = readdir(dir)))
-       return  ;
-    
-    do {
-    struct stat sb; 
-    lstat(name,&sb);
-    
-        if (S_ISDIR(sb.st_mode)) {
-            char path[PATH_MAX];
-            int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
-            
-            // Skip self and previous directory entries
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                continue;
-        
-        
-        total_size += 0;
-        
-        names[total]=strdup(path+root_len);
-        D("names[%u]:%s\n",total,names[total]);
-        total++;
-            get_filesystem_entry_names(path, level + 1);
-        }
-        else{
-        char path[PATH_MAX];
-        int len = snprintf(path, sizeof(path)-1, "%s/%s", name, entry->d_name);
-        names[total]=strdup(path+root_len);
-        //fprintf("names[%d]:%s\n",total,names[total]);
-        total++;
-    }   
-    } while ((entry = readdir(dir)));
-    closedir(dir);
-   
-   return  ;
-}
 
-static unsigned char* append_cpio_header_to_stream(struct stat s,char *filename, unsigned char* output_header){
-     static unsigned next_inode = 300000;
-     unsigned  namesize =  strlen(filename)+1;
-     unsigned filesize = S_ISDIR(s.st_mode) ? 0 : s.st_size;
-     unsigned long namealign = ((4 - ((sizeof(cpio_newc_header)+namesize) % 4)) % 4);
-    
-     uint64_t capabilities;
-     fs_config(filename, S_ISDIR(s.st_mode),(unsigned*) &s.st_uid, (unsigned*)&s.st_gid, (unsigned*)&s.st_mode,&capabilities);  
-    
-     sprintf((char*)output_header,"%06x%08x%08x%08x%08x%08x%08x"
-           "%08x%08x%08x%08x%08x%08x%08x%s",
-           0x070701,
-           next_inode++,  //  s.st_ino,
-           s.st_mode,
-           0, // s.st_uid,
-           0, // s.st_gid,
-           1, // s.st_nlink,
-           0, // s.st_mtime,
-           filesize ,
-           0, // volmajor
-           0, // volminor
-           0, // devmajor
-           0, // devminor,
-          namesize  ,
-           0,filename
-           );     
-    D("namealign:%s %lu %p %p\n",filename,namealign,output_header,output_header);
-    output_header+=(sizeof(cpio_newc_header)+namesize);
-    strncat((char*)output_header,"\0\0\0\0",namealign);
-    //fprintf(stderr,"Out:%p\n", output_header);
-    output_header+=namealign;
-    return output_header;
-}
-static unsigned char* append_file_contents_to_stream(struct stat s,char *filename, unsigned char* output_header){
-    
-    
-    if(S_ISDIR(s.st_mode)){
-    }else {
-    unsigned long filealign = ((4 - ((s.st_size) % 4)) % 4);
-    if(S_ISREG(s.st_mode)){
-        D("open reg %s\n",filename);
-        FILE* fp = fopen(filename,"r+b");
-        fread(output_header,s.st_size,1,fp);
-        output_header+=s.st_size;
-        fclose(fp);
-    }else if(S_ISLNK(s.st_mode)){
-        
-        readlink(filename,(char*)output_header,PATH_MAX);
-        
-        output_header+=s.st_size;
-    }
-    output_header+=filealign;
-    }
-    
-    return output_header; 
-    
-}
-
-unsigned char *pack_ramdisk_directory(char* directory_name, unsigned *cpio_size){
-    
-    
-    
-    struct stat sb;
-    errno = 0 ;
-    if(lstat(directory_name,&sb) == -1){
-        errno = EBADF;
-        return NULL;
-    }
-    
-    // STEP 1: Information Gathering.
-    // Find out how many files we as dealing with
-    size_t filesystem_entries =0 ;
-    count_filesystem_entries(directory_name,0);
-    D("filesystem_entries %u %u\n",filesystem_entries,total);
-    filesystem_entries = total;
-    unsigned i; 
-    
-    // allocate the memory required for the filenames list
-    names = calloc(filesystem_entries, sizeof(names));
-    for(i = 0; i < filesystem_entries; i++) {
-        names[i] = (char *)calloc(PATH_MAX,sizeof(char));   
-        if (names[i] == NULL) {
-            D("Memory cannot be allocated to arr[]");
-        }
-     D("i: %d \n",i);
-    }
-    total = 0;
-    get_filesystem_entry_names(directory_name,0);
-    qsort(names, filesystem_entries, sizeof(char*), qsort_comparer);
-
-    errno = 0;
-    char cwd[PATH_MAX];
-    getcwd(cwd,PATH_MAX);
-    chdir(directory_name);
-    unsigned char* cpio_data = calloc(MAX_RAMDISK_SIZE,sizeof(char));
-    unsigned char* nextbyte = &cpio_data[0];
-    for(i = 0; i < filesystem_entries; i++){
-    
-        struct stat sb;
-        if(lstat(names[i],&sb) == -1)
-            continue;
-        
-        D("nextbyte %p errno=%d\n",nextbyte,errno);
-        nextbyte = append_cpio_header_to_stream(sb,names[i],nextbyte);
-        nextbyte = append_file_contents_to_stream(sb,names[i],nextbyte);
-    
-    }
-    struct stat s ; memset(&s, 0, sizeof(s));
-    D("errno:%d\n",errno); 
-    nextbyte =append_cpio_header_to_stream(s,CPIO_TRAILER_MAGIC,nextbyte);
-    D("errno:%d chrdir(%s)\n",errno,cwd); 
-    chdir(cwd) ;
-    
-    (*cpio_size) = nextbyte - &cpio_data[0] ;
-    // align the file size to the next 256 boundary
-    while((*cpio_size) & 0xff) 
-        (*cpio_size)++;
-    
-    D("cpio_size %u %p\n",(*cpio_size),nextbyte);
-    
-    return cpio_data;
-    
-    
-    
-}
 
 unsigned write_ramdisk_image_header_to_disk(const char *filename, ramdisk_image* image){
     
@@ -793,7 +762,7 @@ unsigned print_ramdisk_info(ramdisk_image* rimage){
     fprintf(stderr,"  image type        :%s\n",str_ramdisk_type(rimage->type));
     if(rimage->type == RAMDISK_TYPE_RECOVERY){
         fprintf(stderr,"  recovery brand    :%s\n",str_recovery_brand(rimage->recovery_brand));
-        if(rimage->recovery_version && rimage->recovery_brand != RECOVERY_BRAND_UNKNOWN){
+        if( (rimage->recovery_version) &&  ((rimage->recovery_brand != RECOVERY_BRAND_NOT_SET) || (rimage->recovery_brand != RECOVERY_BRAND_NOT_SET))){
             fprintf(stderr,"  recovery version  :%.*s",rimage->recovery_version_size,rimage->recovery_version);
             // Do we need a new line
             if(rimage->recovery_version[rimage->recovery_version_size-1]!='\n'){
@@ -812,7 +781,7 @@ unsigned print_ramdisk_info(ramdisk_image* rimage){
 char *str_ramdisk_type(int ramdisk_type){
     
     switch(ramdisk_type){
-    case RAMDISK_TYPE_UNKNOWN: return "unknown" ; 
+    case RAMDISK_TYPE_NOT_SET: return "not set" ; 
     case RAMDISK_TYPE_NORMAL: return "android" ; 
     case RAMDISK_TYPE_RECOVERY: return "recovery" ; 
     case RAMDISK_TYPE_UBUNTU: return "ubuntu";
@@ -838,6 +807,9 @@ char *str_recovery_brand(int ramdisk_brand){
 char *str_ramdisk_compression(unsigned compression){
         
     char* return_value = get_compression_name_from_index(compression);
+    //if(compression==RAMDISK_COMPRESSION_CPIO){
+      //  return "cpio";
+    //}
     if(errno > 0 ) {
         errno = 0 ; 
         return "none";
@@ -875,6 +847,7 @@ unsigned update_ramdisk_entry_cpio_newc_header_info(ramdisk_entry* entry){
     memmove(head->c_filesize,filesize_string,8);
     return 0;
 }
+
 // pack_noncontiguous_ramdisk_entries - returns a contigous memory block
 // containing the ramdisk entries containing in the rimage->entries structure
 // Returns a pointer to the start of the contiguous block

@@ -179,7 +179,7 @@ inline int update_boot_image_ramdisk_from_files(update_action* action,program_op
     int return_value ; 
     ramdisk_image rimage; 
     
-    return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
+    return_value = bird_read(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
     D("Ramdisk Image Loaded=%p Count=%d\n",&rimage,rimage.entry_count);
     
     
@@ -236,6 +236,7 @@ inline int update_boot_image_ramdisk_from_imagename(update_action* action,progra
 inline int update_boot_image_ramdisk_from_cpio(update_action* action,program_options* options,boot_image** pbimage){
     
     boot_image* bimage = (*pbimage);
+    
     D("action->ramdisk_cpioname=%s\n",action->ramdisk_cpioname);
     errno = 0 ;
     unsigned cpio_ramdisk_size = 0; 
@@ -327,8 +328,8 @@ inline int update_boot_image_kernel_from_file(update_action* action,program_opti
     // Tell 'em how it's going down
     kernel_image kimage_current, kimage_new ;
     
-    load_kernel_image_from_memory(new_addr,new_size,&kimage_new);
-    load_kernel_image_from_memory(bimage->kernel_addr,bimage->header->kernel_size,&kimage_current);
+    biki_read(new_addr,new_size,&kimage_new);
+    biki_read(bimage->kernel_addr,bimage->header->kernel_size,&kimage_current);
     
     
         
@@ -384,12 +385,9 @@ int update_boot_image(update_action* action,program_options* options,boot_image*
     D("old ramdisk:%p new_ramdisk:%p\n",ram_addr,bimage->ramdisk_addr);
     }
     
-    set_boot_image_padding(bimage);
-    set_boot_image_content_hash(bimage);
-    set_boot_image_offsets(bimage);
-    
+   
     D("writing action->output_filename %s\n",action->output_filename);
-    write_boot_image(action->output_filename,bimage);
+    bibi_write(action->output_filename,bimage);
     
     D("kernel_processed=%d %p\n",kernel_processed,bimage->kernel_addr);
     if(!kernel_processed)
@@ -432,7 +430,7 @@ static int process_update_target_file(update_action* action,program_options* opt
     
     // Probe the file type - First check if we have a boot.img file
     boot_image bimage;
-    if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
+    if(!(return_value=bibi_read(action_data,action_size,&bimage))){
         D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
         return_value = update_boot_image(action, options,&bimage);
         D("update_boot_image returned %d\n",return_value);
@@ -446,7 +444,7 @@ static int process_update_target_file(update_action* action,program_options* opt
         
     // Probe the file type - Second check if we have a linux kernel file
     kernel_image kimage;
-    return_value = load_kernel_image_from_memory(action_data,action_size,&kimage);
+    return_value = biki_read(action_data,action_size,&kimage);
     if(errno == 0){
         D("load_kernel_image_from_memory returns:%d\n", return_value); 
         return_value = update_kernel_image(action,options,&kimage);
@@ -462,7 +460,7 @@ static int process_update_target_file(update_action* action,program_options* opt
     D("looking for ramdisk\n"); 
     // Probe the file type - Third check if we have a compressed ramdisk
     ramdisk_image rimage ; //=  get_initialized_ramdisk_image();
-    if(!(return_value =  load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage))){
+    if(!(return_value =  bird_read(action_data,action_size,&rimage))){
         D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
         return_value = update_ramdisk_archive(action,options,&rimage);
         if(rimage.start_addr != NULL ) free(rimage.start_addr); 
@@ -472,7 +470,7 @@ static int process_update_target_file(update_action* action,program_options* opt
         errno = 0 ; 
     }
     
-     if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
+     if(!bird_read(action_data,action_size,&rimage)){
     return_value = update_ramdisk_cpio(action,options,&rimage);
     free(rimage.start_addr); 
     return return_value;

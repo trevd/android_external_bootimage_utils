@@ -73,16 +73,24 @@ struct boot_image
     
 };
 
-unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
-unsigned load_boot_image_from_file(const char *filename, boot_image* image);
-unsigned write_boot_image(char *filename, boot_image* image);
-unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image);
-unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image);
-unsigned set_boot_image_defaults(boot_image* image);
-unsigned set_boot_image_content_hash(boot_image* image);
+unsigned bibi_read(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
+unsigned bibi_ki_read(boot_image* image , kernel_image* kimage);
+unsigned bibi_rd_read(boot_image* image , ramdisk_image* rimage);
+unsigned bibi_rd_compress_directory_(boot_image* image , ramdisk_image* rimage);
+unsigned bibi_open(const char *filename, boot_image* image);
+unsigned bibi_open_header(const char *filename, boot_image* image);
 
-unsigned set_boot_image_padding(boot_image* image);
-unsigned set_boot_image_offsets(boot_image* image);
+// Write Functions
+unsigned bibi_write(const char *filename, boot_image* image);
+unsigned bibi_write_header(const char *filename, boot_image* image);
+unsigned bibi_write_kernel(const char *filename, boot_image* image);
+unsigned bibi_write_second(const char *filename, boot_image* image);
+unsigned bibi_write_ramdisk(const char *filename, boot_image* image);
+
+
+
+unsigned set_boot_image_defaults(boot_image* image);
+;
 unsigned print_boot_image_info(boot_image* image);
 unsigned print_boot_image_header_info(boot_image* image);
 unsigned print_boot_image_additional_info(boot_image* image);

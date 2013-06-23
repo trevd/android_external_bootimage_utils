@@ -23,17 +23,17 @@
 #ifndef _f7d18500_9064_11e2_b0f1_5404a601fa9d
 #define _f7d18500_9064_11e2_b0f1_5404a601fa9d
  
-#include <bootimage.h>
 #include <ramdisk.h>
 #include <compression.h>
 
-#define KERNEL_COMPRESSION_NONE 0
-#define KERNEL_COMPRESSION_GZIP     COMPRESSION_GZIP_DEFLATE
-#define KERNEL_COMPRESSION_LZO      COMPRESSION_LZOP
-#define KERNEL_COMPRESSION_LZMA     COMPRESSION_LZMA
-#define KERNEL_COMPRESSION_XZ       COMPRESSION_XZ
-#define KERNEL_COMPRESSION_BZIP2    COMPRESSION_BZIP2
-
+#define KERNEL_COMPRESSION_NOT_SET      COMPRESSION_NOT_SET
+#define KERNEL_COMPRESSION_GZIP         COMPRESSION_GZIP_DEFLATE
+#define KERNEL_COMPRESSION_LZO          COMPRESSION_LZOP
+#define KERNEL_COMPRESSION_LZMA         COMPRESSION_LZMA
+#define KERNEL_COMPRESSION_XZ           COMPRESSION_XZ
+#define KERNEL_COMPRESSION_BZIP2        COMPRESSION_BZIP2
+#define KERNEL_COMPRESSION_NONE         COMPRESSION_NONE
+#define KERNEL_COMPRESSION_NONE         COMPRESSION_NONE
 
 // The magic number for a compressed arm linux kernel image 
 #define KERNEL_ZIMAGE_MAGIC "\x18\x28\x6F\x01"
@@ -47,28 +47,46 @@ typedef struct kernel_image kernel_image;
 
 struct kernel_image {
     
-    //
-    unsigned char* start_addr ;
-    unsigned char* ramdisk_addr ;
-    unsigned char* config_gz_addr ;
-    unsigned char* config_addr ;
-    
-    char* version ;
-    char* version_number ;
-    int version_number_length ;
-    
-    unsigned compression_type;
-    unsigned size;
-    unsigned config_gz_size;
-    unsigned config_size;
-    unsigned ramdisk_size;
-    
-    ramdisk_image* rimage ;
-    };
+        /* start_addr - A Pointer to the memory location contain
+         * the start of an uncompressed kernel image */ 
+        unsigned char*  start_addr ;
+        
+        /* size - The Size in bytes of the uncompressed kernel 
+         * in memory - end_addr is implied and a result of 
+         * start_addr+size  */
+        unsigned        size;
+        
+        /* ramdisk_addr - A Pointer to the embedded ramdisk data
+         * as it is packed in the kernel.
+         */
+        unsigned char*  ramdisk_addr ;
+        unsigned        ramdisk_size;
+        unsigned        ramdisk_compression_type;
+        unsigned char*  config_gz_addr ;
+        unsigned char*  config_addr ;
 
-int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image );
-int print_kernel_info(kernel_image* kimage);
-char *str_kernel_compression(unsigned compression) ;
-unsigned save_kernel_config_gzip(kernel_image* image);
+        char*           version ;
+        char*           version_number ;
+        int             version_number_length ;
+
+        unsigned        compression_type;
+                
+        unsigned        config_gz_size;
+        unsigned        config_size;
+        
+};
+#define boot_image_kernel_image_read
+
+unsigned biki_read(unsigned char* kernel_addr,unsigned kernel_size,kernel_image* image );
+unsigned biki_rd_read(kernel_image* image,ramdisk_image* rimage );
+
+//int print_kernel_info(kernel_image* kimage);
+//char *str_kernel_compression(unsigned compression) ;
+
+unsigned biki_write(const char *filename,kernel_image* image);
+unsigned biki_write_ramdisk(const char *filename,kernel_image* image);
+unsigned biki_write_details(const char *filename,kernel_image* image);
+unsigned biki_write_config(const char *filename,kernel_image* image);
+unsigned biki_write_config_gzip(const char *filename,kernel_image* image);
 
 #endif

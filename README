@@ -1,6 +1,37 @@
  Android Boot Image Utilities x.xx Alpha Release
 
  A collection of utilities to manipulate every aspect of android boot images 
+ 
+ The Bootimage-utils tool and the supportting libbootimage has a couple of goals. 
+ 
+ 1. Cross Platform - Windows, Linux, OSX, Android, anywhere and everywhere
+ 
+ 2. Standalone  - No Cygwin, No External Compressor or Decompressor are 
+                  required. No Notepad2.
+ 
+ 3. Never Unpack a bootimage
+ 
+ 4. A simple, consistant API.
+ 
+ 
+ Although this tool has been developed in a Linux environment I think it's 
+ important that Windows is not left as a second class citizen and the tool
+ should work with the native os
+ 
+ 2. No Dependecies 
+ Implement Compression and Decompression of gzip, bzip2 , lzma, xz, lz4
+ 
+ While not 100% accurate as the tool is dependent on the C Runtime library
+ of the native os. This tool will never depend on Cygwin , Although an highly
+ useful project 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
  Usage: bootimage-utils <action> [ ... ]
 
@@ -21,7 +52,7 @@
 
 
 Unpack: unpacks a boot image into it's constituent parts
-Usage:  	bootimg-tools unpack <boot image file> <switches>
+Usage:          bootimg-tools unpack <boot image file> <switches>
 Switches:
     -h, --header [filename]           Extract the boot image header and additional useful
                                       information to [filename] leave filename empty to use
@@ -45,7 +76,7 @@ Notes: <boot image file>  is required and must be a valid android boot image
                                       
 
 Unpack: creates a boot image from constituent parts
-Usage:  	bootimg-tools pack <bootimage file> <switches>
+Usage:          bootimg-tools pack <bootimage file> <switches>
 Switches:
     -h, --header [filename]           Use cmdline and pagesize information contained in [filename]
                                       leave filename empty to use default filename ( default=header)

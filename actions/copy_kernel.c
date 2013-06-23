@@ -46,7 +46,7 @@ int copy_kernel(copy_kernel_action* action){
     errno = 0;
     print_program_title();
     // load the source boot image
-    int return_value=load_boot_image_from_file(action->source,&bimage_source);
+    int return_value=bibi_open(action->source,&bimage_source);
     if(errno){
     return_value = print_program_error_file_not_boot_image(action->source);
     
@@ -54,7 +54,7 @@ int copy_kernel(copy_kernel_action* action){
     }
     // load the destination boot image
     errno = 0;
-    return_value=load_boot_image_from_file(action->destination,&bimage_dest);
+    return_value=bibi_open(action->destination,&bimage_dest);
     if(errno){
     fprintf(stderr," cannot open file \"%s\" as boot image - error %d - %s\n\n",action->destination ,errno , strerror(errno));
     goto fail_hard;
@@ -73,13 +73,13 @@ int copy_kernel(copy_kernel_action* action){
     
     }
     // load the source kernel details 
-    return_value = load_kernel_image_from_memory(bimage_source.kernel_addr,bimage_source.header->kernel_size,&kimage_source);
+    return_value = bibi_read(bimage_source.kernel_addr,bimage_source.header->kernel_size,&kimage_source);
     if(errno){
     fprintf(stderr," cannot get kernel information in \"%s\" - error %d - %s\n",action->source ,errno , strerror(errno));
     goto fail_hard;
     }
     // load the source kernel details 
-    return_value = load_kernel_image_from_memory(bimage_dest.kernel_addr,bimage_dest.header->kernel_size,&kimage_dest);
+    return_value = bibi_read(bimage_dest.kernel_addr,bimage_dest.header->kernel_size,&kimage_dest);
     if(errno){
     fprintf(stderr," cannot get kernel information in \"%s\" - error %d - %s\n",action->destination ,errno , strerror(errno));
     goto fail_hard;
@@ -100,13 +100,10 @@ int copy_kernel(copy_kernel_action* action){
     bimage_dest.header->kernel_size = bimage_source.header->kernel_size ;
     bimage_dest.kernel_addr = bimage_source.kernel_addr;
     D("bimage_dest.header->kernel_size:%u\n",bimage_dest.header->kernel_size);
-    set_boot_image_padding(&bimage_dest);
-    set_boot_image_content_hash(&bimage_dest);
-    set_boot_image_offsets(&bimage_dest);
     
     //print_boot_image_info(&bimage_dest);
     
-    write_boot_image(action->destination,&bimage_dest);
+    bibi_write(action->destination,&bimage_dest);
     if(kimage_source.start_addr != NULL  ) free(kimage_source.start_addr);
     if(kimage_dest.start_addr != NULL  ) free(kimage_dest.start_addr);
 fail_hard:

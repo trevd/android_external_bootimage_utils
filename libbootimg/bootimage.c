@@ -111,7 +111,7 @@ static size_t calculate_padding( size_t section_size, unsigned page_size){
 // set_boot_image_defaults - when creating a new boot image
 unsigned set_boot_image_defaults(boot_image* image){    
     
-     D("image: %p size:%d\n",image,sizeof(image)) ;
+    D("image: %p size:%d\n",image,sizeof(image)) ;
     image->header = calloc(1,sizeof(boot_img_hdr));
     
     memcpy(image->header->magic, BOOT_MAGIC, BOOT_MAGIC_SIZE);
@@ -256,14 +256,28 @@ unsigned print_boot_image_header_hashes(boot_image* image){
     return 0;
 }
 
+/* write functions */
+unsigned bibi_write_ramdisk(const char *filename, boot_image* image)
+{
+        return write_item_to_disk(image->ramdisk_addr,image->header->ramdisk_size,33188,filename);           
+}
 
-
-unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image){
+unsigned bibi_write_kernel(const char *filename, boot_image* image)
+{     
+        return write_item_to_disk(image->kernel_addr,image->header->kernel_size,33188,filename);           
+}
+unsigned bibi_write_second(const char *filename, boot_image* image)
+{     
+        
+        return write_item_to_disk(image->second_addr,image->header->second_size,33188,filename);           
+}
+unsigned bibi_write_header(const char *filename, boot_image* image)
+{
     
     errno = 0 ;
     FILE * header_file = fopen(filename,"w");
     if(!header_file){
-        return errno;
+        return -1;
     }
     
     if(header_file){
@@ -290,14 +304,14 @@ unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image
         
         errno = 0 ;
     }
-    return errno;
+    return 0;
 }
 
 // load_boot_image_header_from_disk - populates a boot_img_hdr which is pointed to by image->header 
 // structure using the filename supplied.
 // 
 // NOTES: image must be a valid to a boot_image structure
-unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image){
+unsigned bibi_open_header(const char *filename, boot_image* image){
     
     errno = 0 ;
     if((image == NULL) || (image->header == NULL )){
@@ -378,7 +392,7 @@ unsigned load_boot_image_header_from_disk(const char *filename, boot_image* imag
  * returns zero when successful, return errno on failure
  * */
 // BI_API
-unsigned load_boot_image_from_file(const char *filename, boot_image* image){
+unsigned bibi_open(const char *filename, boot_image* image){
 
     errno = 0;
     unsigned boot_image_size = 0;
@@ -389,14 +403,26 @@ unsigned load_boot_image_from_file(const char *filename, boot_image* image){
         
     }
     D("boot_image_addr %p %u\n",boot_image_addr,boot_image_size);
-    unsigned return_value = load_boot_image_from_memory(boot_image_addr,boot_image_size,image);
+    unsigned return_value = bibi_read(boot_image_addr,boot_image_size,image);
     //free(boot_image_addr);
     
     return  return_value;
     
     // Look for the Android Boot Magic
 }
-unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image){
+unsigned bibi_ki_read(boot_image* image,kernel_image* kimage){
+        
+        D("CALLING KERNEL READ FROM BOOT IMAGE WRAPPER\n");
+        return biki_read(image->kernel_addr,image->header->kernel_size,kimage);
+        D("DONE KERNEL READ FROM BOOT IMAGE WRAPPER\n");
+}
+unsigned bibi_rd_read(boot_image* image,ramdisk_image* rimage){
+        
+        D("CALLING KERNEL READ FROM BOOT IMAGE WRAPPER\n");
+        return bird_read(image->ramdisk_addr,image->header->ramdisk_addr,rimage);
+        D("DONE KERNEL READ FROM BOOT IMAGE WRAPPER\n");
+}
+unsigned bibi_read(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image){
 
 
     D("boot_image_size=%u\n",boot_image_size);
@@ -449,9 +475,17 @@ unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boo
 }
 
 
-unsigned write_boot_image(char *filename,boot_image* image){
+unsigned bibi_write(const char *filename,boot_image* image){
     
     errno = 0;
+    
+    fprintf(stderr, " Calculating Padding\n") ;    
+    set_boot_image_padding(image);
+    fprintf(stderr, " Calculating Content Hashes\n") ;    
+    set_boot_image_content_hash(image);
+    set_boot_image_offsets(image);
+    
+    
     FILE* boot_image_file_fp = fopen(filename,"w+b");
     if(!boot_image_file_fp)
         return errno;
