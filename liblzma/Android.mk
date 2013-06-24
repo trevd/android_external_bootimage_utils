@@ -96,7 +96,7 @@ LOCAL_CFLAGS += \
 	-DHAVE_CONFIG_H \
 	-std=c99
 
-LOCAL_MODULE:= liblzma-static
+LOCAL_MODULE:= libxz-static
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -118,6 +118,6 @@ ifeq ($(HOST_OS),windows)
 	LOCAL_CFLAGS += -DHAVE_WINDOWS
 endif
 
-LOCAL_MODULE:= liblzma-static
+LOCAL_MODULE:= libxz-static
 
 include $(BUILD_HOST_STATIC_LIBRARY)

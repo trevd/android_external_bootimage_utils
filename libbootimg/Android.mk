@@ -43,6 +43,7 @@ libbootimg_include_dirs := $(LOCAL_PATH)/../include \
 				system/core/include/mincrypt \
 				external/zlib \
 				external/bzip2 \
+				$(LOCAL_PATH)/../lzma-9.22/C \
 				$(LOCAL_PATH)/../liblzma/api \
 				$(LOCAL_PATH)/../liblzo/include
 
@@ -64,7 +65,9 @@ libbootimg_static_libraries := 	libz \
 				libbz \
 				liblzop-static \
 				liblzo-static \
+				libxz-static \
 				liblzma-static
+				
 								
 libbootimg_module_name := libbootimage
 

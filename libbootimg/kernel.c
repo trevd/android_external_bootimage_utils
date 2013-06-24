@@ -97,8 +97,9 @@ unsigned get_kernel_version_information(kernel_image* image){
                 D("Error find space char image->version_number was : %s\n",image->version_number);
                 image->version_number = 0 ; 
         }
-        D("first_space : %p image->version_number  %p: %s\n",first_space,image->version_number,image->version_number);
         image->version_number_length = first_space - image->version_number;
+        D("first_space : %p image->version_number  %p: %.*s\n",first_space,image->version_number,image->version_number_length,image->version_number);
+        
         D("image->version_number_length : %d\n",image->version_number_length);
         return 0;
     

@@ -56,6 +56,8 @@ bootimage_tools_include_dirs := $(LOCAL_PATH) \
 				$(LOCAL_PATH)/include/libbootimg \
 				$(LOCAL_PATH)/liblzop \
 				$(LOCAL_PATH)/liblzo/include \
+				$(LOCAL_PATH)/lzma-9.22/C \
+				$(LOCAL_PATH)/lzma-9.22/C/Util/Lzma \
 				system/core/mkbootimg
 							
 bootimage_tools_static_libraries := libbootimage\
@@ -63,6 +65,7 @@ bootimage_tools_static_libraries := libbootimage\
 					libbz \
 					liblzop-static \
 					liblzo-static \
+					libxz-static \
 					liblzma-static
 
 bootimage_tools_module_name := bootimage-utils								  

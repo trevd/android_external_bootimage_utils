@@ -52,28 +52,27 @@ struct info_action{
 
 int info_kernel( kernel_image* kimage,info_action* action,int print_title){
     
-    if(print_title){
-    print_program_title();
-    fprintf(stderr," Printing Kernel Information for \"%s\"\n\n",action->filename);
-    }else{
-    fprintf(stderr," Kernel:\n");
-    }
-    
-    print_kernel_info(kimage);
-    fprintf(stderr,"\n");
-    
-    return 0 ;
+        if(print_title){
+                print_program_title();
+                fprintf(stderr," Printing Kernel Information for \"%s\"\n\n",action->filename);
+        }else{
+                fprintf(stderr," Kernel:\n");
+        }
+        print_kernel_info(kimage);
+        fprintf(stderr,"\n");
+
+return 0 ;
 }
 int info_ramdisk(ramdisk_image* rimage,info_action* action,int print_title){
     
-    if(print_title){
-    print_program_title();
-    fprintf(stderr," Printing Ramdisk Information for \"%s\"\n\n",action->filename);
-    }else{
-    fprintf(stderr," Ramdisk:\n");
-    }
-    print_ramdisk_info(rimage);
-    fprintf(stderr,"\n");
+        if(print_title){
+                print_program_title();
+                fprintf(stderr," Printing Ramdisk Information for \"%s\"\n\n",action->filename);
+        }else{
+                fprintf(stderr," Ramdisk:\n");
+        }
+        print_ramdisk_info(rimage);
+        fprintf(stderr,"\n");
     return 0;
     
 }
