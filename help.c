@@ -47,8 +47,8 @@ static void print_program_name_action(program_options* options)
     return;
 }
 
-static int print_action_help_usage(program_options* options){
-        action_info* ai = options->action_info;
+static unsigned print_action_help_usage(program_options* options){
+        program_action* ai = options->program_action;
         
         fprintf(stderr," Usage: %s ",options->program_name_action[0]);
         if(options->program_name_action[1] != NULL ){
@@ -58,12 +58,12 @@ static int print_action_help_usage(program_options* options){
         return 0;
     
 }
-static int print_action_help_header(program_options* options){
+static unsigned print_action_help_header(program_options* options){
         
         
         print_program_title();
         print_program_name_action(options);
-        fprintf(stderr,"- %s\n\n",options->action_info->description);
+        fprintf(stderr,"- %s\n\n",options->program_action->description);
         print_action_help_usage(options);    
         
         return 0;
@@ -71,7 +71,7 @@ static int print_action_help_header(program_options* options){
         
 }
 
-int print_info_action_help(program_options* options){
+unsigned print_info_action_help(program_options* options){
     
     D("options=%p\n",options);
    
@@ -98,7 +98,7 @@ int print_info_action_help(program_options* options){
     return 0; 
 }
 // print_install_action_help - prints the help for the install action
-int print_install_action_help(program_options* options){
+unsigned print_install_action_help(program_options* options){
     
     // the help for install is a lot simpler than most because it does not
     // have a multicall version 
@@ -109,7 +109,7 @@ int print_install_action_help(program_options* options){
     return 0;
 }
 
-int print_standard_help(program_options* options){
+unsigned print_standard_help(program_options* options){
     
     print_program_title_and_description();
     
@@ -133,29 +133,29 @@ int print_standard_help(program_options* options){
     return 0;
     
 }
-int print_update_action_help(program_options* options){
+unsigned print_update_action_help(program_options* options){
         print_action_help_header(options);
         fprintf(stderr," <filename> [ <switches> ]\n\n");
         return 0;
 }
-int print_create_action_help(program_options* options){
+unsigned print_create_action_help(program_options* options){
         print_action_help_header(options);
         fprintf(stderr," <filename> [ <switches> ]\n\n");
         return 0;
 }
-int print_extract_action_help(program_options* options){
+unsigned print_extract_action_help(program_options* options){
         print_action_help_header(options);
         fprintf(stderr," <filename> [ <switches> ]\n\n");
         return 0;
 }
-int print_help_message(program_options* options){
+unsigned print_help_message(program_options* options){
         
-   D("options->program_name_action[0]=%s options->action_info=%p\n",options->program_name_action[0],options->action_info);
+   D("options->program_name_action[0]=%s options->program_action=%p\n",options->program_name_action[0],options->program_action);
     
-    if(options->action_info==NULL || options->action_info->help_processor==NULL ) {
+    if(options->program_action==NULL || options->program_action->help_processor==NULL ) {
         return print_standard_help(options); 
     }else{
-        options->action_info->help_processor(options);
+        options->program_action->help_processor(options);
     }
         
     return  0 ; 

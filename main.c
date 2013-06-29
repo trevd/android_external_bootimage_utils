@@ -84,7 +84,7 @@ int main(int argc,char ** argv){
     // only one argument past and that can only be
     // the filename, print some nice help to guide
     // the users on their way ;
-    D("options.program_name_action[1]:%s argc:%d options.action_info=%p\n",options.program_name_action[1],argc,options.action_info);
+    D("options.program_name_action[1]:%s argc:%d options.program_action=%p\n",options.program_name_action[1],argc,options.program_action);
     if((argc==1) || ( (argc==2) && options.program_name_action[1] != NULL)){
         print_help_message( &options ) ;    
         return 0;
@@ -111,11 +111,11 @@ int main(int argc,char ** argv){
              print_help_message(    &options ) ;    
              return 0;
          }
-    if(!options.program_name_action[1]==NULL){
+    if(!options.program_name_action[1]=='\0'){
         --argc ; ++argv ;
     }
-    D("options.action_info:%p argc:%d\n",options.action_info,argc);
-    (*options.action_info->processor) (--argc , ++argv, &options );
+    D("options.program_action:%p argc:%d\n",options.program_action,argc);
+    (*options.program_action->processor) (--argc , ++argv, &options );
     
     //get_action(
         

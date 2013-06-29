@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/elzma.c
+easylzma/compress.h
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/easylzma/compress.h
+easylzma/decompress.h
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/easylzma/decompress.h
+util.h
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/util.h
+stdio.h
+-
+string.h
+-
+assert.h
+-
+
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/util.c
+util.h
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/util.h
+stdio.h
+-
+unistd.h
+-
+
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/util.h
+
+elzma/../easylzma-0.0.8/include/easylzma/common.h
+stdlib.h
+-
+
+elzma/../easylzma-0.0.8/include/easylzma/compress.h
+easylzma/common.h
+elzma/../easylzma-0.0.8/include/easylzma/easylzma/common.h
+stdlib.h
+-
+
+elzma/../easylzma-0.0.8/include/easylzma/decompress.h
+easylzma/common.h
+elzma/../easylzma-0.0.8/include/easylzma/easylzma/common.h
+

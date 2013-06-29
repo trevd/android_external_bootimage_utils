@@ -126,7 +126,7 @@ unsigned decompress_zImage_kernel(unsigned char* kernel_addr,unsigned kernel_siz
                     break;
                 }
                 case KERNEL_COMPRESSION_LZMA:{
-                    uncompressed_kernel_size = uncompress_xz_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
+                    uncompressed_kernel_size = uncompress_lzma_memory(compressed_kernel_offset_p,kernel_size,uncompressed_kernel_data,MAX_KERNEL_SIZE);
                     break;
                 }
                 case KERNEL_COMPRESSION_BZIP2:{

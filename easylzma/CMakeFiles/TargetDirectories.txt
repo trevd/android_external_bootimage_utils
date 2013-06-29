@@ -1,0 +1,5 @@
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/src/CMakeFiles/easylzma.dir
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/src/CMakeFiles/easylzma_s.dir
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/test/CMakeFiles/easylzma_test.dir
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/CMakeFiles/elzma.dir
+/media/android/build/android-cm-10/external/bootimage_utils/easylzma/test/CMakeFiles/test.dir

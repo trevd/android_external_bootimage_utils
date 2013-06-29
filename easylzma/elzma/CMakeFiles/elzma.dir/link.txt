@@ -1,0 +1,1 @@
+/usr/bin/cc  -Wall -fPIC -ansi -DNDEBUG -O2    CMakeFiles/elzma.dir/elzma.c.o CMakeFiles/elzma.dir/util.c.o  -o elzma  -L/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/../easylzma-0.0.8/lib -rdynamic ../easylzma-0.0.8/lib/libeasylzma_s.a -Wl,-rpath,/media/android/build/android-cm-10/external/bootimage_utils/easylzma/elzma/../easylzma-0.0.8/lib 

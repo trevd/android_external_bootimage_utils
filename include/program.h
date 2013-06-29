@@ -1,5 +1,5 @@
 /*
- * program.h
+ * program.h - part of the android bootimage_utils project
  * 
  * Copyright 2013 android <android@thelab>
  * 
@@ -21,12 +21,27 @@
  * 
  */
 
+/* Notes on Exectuable Naming 
+ * 
+ * The Boot image utils binary is a multicall binary. This means it's behaviour
+ * will change depending on the executable filename.
+ * 
+ * Some flexiability is allowed as there should be no reason the program will fail
+ * if the filename is changed.
+ * 
+ *
+ * 
+ */
+
+
 
 #ifndef _d40fb014_a3fc_11e2_ba4b_5404a601fa9d
 #define _d40fb014_a3fc_11e2_ba4b_5404a601fa9d
 
 #include <ramdisk.h>
 #include <help.h>
+
+
 
 #define DEFAULT_RAMDISK_COMPRESSION RAMDISK_COMPRESSION_GZIP
 
@@ -82,44 +97,42 @@
 #define ACTION_CREATE_RAMDISK_FILE  25
 
 
-#define AI_INFO_INDEX           0
-#define AI_INFO_LONG_NAME       "info"
-#define AI_INFO_SHORT_NAME      'i'
-#define AI_INFO_USAGE           "<filename> [ <switches> ]"
-#define AI_INFO_DESCRIPTION     "prints information for the specified boot image, kernel file or ramdisk"
+#define PROGRAM_ACTION_INFO_INDEX           0
+#define PROGRAM_ACTION_INFO_LONG_NAME       "info"
+#define PROGRAM_ACTION_INFO_SHORT_NAME      'i'
+#define PROGRAM_ACTION_INFO_USAGE           "<filename> [ <switches> ]"
+#define PROGRAM_ACTION_INFO_DESCRIPTION     "prints information for the specified boot image, kernel file or ramdisk"
 
-#define AI_EXTRACT_INDEX        1
-#define AI_EXTRACT_LONG_NAME    "extract"
-#define AI_EXTRACT_SHORT_NAME   'x'
-#define AI_EXTRACT_USAGE        "<filename> [ <switches> ]"
-#define AI_EXTRACT_DESCRIPTION  "extract the components contained in boot images, ramdisks or kernels"
+#define PROGRAM_ACTION_EXTRACT_INDEX        1
+#define PROGRAM_ACTION_EXTRACT_LONG_NAME    "extract"
+#define PROGRAM_ACTION_EXTRACT_SHORT_NAME   'x'
+#define PROGRAM_ACTION_EXTRACT_USAGE        "<filename> [ <switches> ]"
+#define PROGRAM_ACTION_EXTRACT_DESCRIPTION  "extract the components contained in boot images, ramdisks or kernels"
 
-#define AI_UPDATE_INDEX 2
-#define AI_UPDATE_LONG_NAME     "update"
-#define AI_UPDATE_SHORT_NAME    'u'
-#define AI_UPDATE_USAGE "<filename> [ <switches> ]"
-#define AI_UPDATE_DESCRIPTION "extract the components contained in boot images, ramdisks or kernels"
+#define PROGRAM_ACTION_UPDATE_INDEX 2
+#define PROGRAM_ACTION_UPDATE_LONG_NAME     "update"
+#define PROGRAM_ACTION_UPDATE_SHORT_NAME    'u'
+#define PROGRAM_ACTION_UPDATE_USAGE "<filename> [ <switches> ]"
+#define PROGRAM_ACTION_UPDATE_DESCRIPTION "extract the components contained in boot images, ramdisks or kernels"
 
-#define AI_CREATE_INDEX 3
-#define AI_CREATE_LONG_NAME "create"
-#define AI_CREATE_SHORT_NAME 'c'
-#define AI_CREATE_USAGE "<filename> [ <switches> ]"
-#define AI_CREATE_DESCRIPTION "create a android boot image or ramdisk"
+#define PROGRAM_ACTION_CREATE_INDEX 3
+#define PROGRAM_ACTION_CREATE_LONG_NAME "create"
+#define PROGRAM_ACTION_CREATE_SHORT_NAME 'c'
+#define PROGRAM_ACTION_CREATE_USAGE "<filename> [ <switches> ]"
+#define PROGRAM_ACTION_CREATE_DESCRIPTION "create a android boot image or ramdisk"
 
-#define AI_MAX_INDEX AI_CREATE_INDEX
+#define PROGRAM_ACTION_MAX_INDEX PROGRAM_ACTION_CREATE_INDEX
 
+// typedef for program_options - 
+// defined here so members of program_action can use type safe arguments
 typedef struct program_options program_options;
 
-typedef struct action_info action_info;
-
-
-
-int print_help_message(program_options* options);
-int print_update_action_help(program_options* options);
-int print_create_action_help(program_options* options);
-int print_extract_action_help(program_options* options);
-int print_info_action_help(program_options* options);
-int print_install_action_help(program_options* options);
+unsigned print_help_message(program_options* options);
+unsigned print_update_action_help(program_options* options);
+unsigned print_create_action_help(program_options* options);
+unsigned print_extract_action_help(program_options* options);
+unsigned print_info_action_help(program_options* options);
+unsigned print_install_action_help(program_options* options);
 
 // process_extract_action - implemented in actions/extract.c
 int process_extract_action(unsigned argc,char ** argv,program_options* options);
@@ -136,22 +149,26 @@ int process_create_action(unsigned argc,char ** argv,program_options* options);
 // process_create_ramdisk_action - implemented in actions/create_ramdisk.c
 int process_create_ramdisk_action(unsigned argc,char ** argv,program_options* options);
 
-static struct action_info {
+
+//  
+typedef struct program_action program_action;
+
+static struct program_action {
         int index;
         char* long_name;
         char short_name;
         char* usage;
         char* description;
         int (*processor) (unsigned,char**,program_options*);
-        int (*help_processor) (program_options*);
+        unsigned (*help_processor) (program_options*);
         
-} actioninfo[] = { 
-        { AI_INFO_INDEX,        /* actioninfo[0].index */
-          AI_INFO_LONG_NAME,    /* actioninfo[0].long_name */
-          AI_INFO_SHORT_NAME,  AI_INFO_USAGE,          AI_INFO_DESCRIPTION,    process_info_action, print_info_action_help},
-        { AI_EXTRACT_INDEX,     AI_EXTRACT_LONG_NAME,   AI_EXTRACT_SHORT_NAME,  AI_EXTRACT_USAGE,       AI_EXTRACT_DESCRIPTION, process_extract_action,  print_extract_action_help },
-        { AI_UPDATE_INDEX,      AI_UPDATE_LONG_NAME,    AI_UPDATE_SHORT_NAME,   AI_UPDATE_USAGE,        AI_UPDATE_DESCRIPTION,  process_update_action, print_update_action_help },
-        { AI_CREATE_INDEX,      AI_CREATE_LONG_NAME,    AI_CREATE_SHORT_NAME,   AI_CREATE_USAGE,        AI_CREATE_DESCRIPTION,  process_create_action, print_create_action_help},
+} pa[] = { 
+        { PROGRAM_ACTION_INFO_INDEX,        /* actioninfo[0].index */
+          PROGRAM_ACTION_INFO_LONG_NAME,    /* actioninfo[0].long_name */
+          PROGRAM_ACTION_INFO_SHORT_NAME,  PROGRAM_ACTION_INFO_USAGE,          PROGRAM_ACTION_INFO_DESCRIPTION,    process_info_action, print_info_action_help},
+        { PROGRAM_ACTION_EXTRACT_INDEX,     PROGRAM_ACTION_EXTRACT_LONG_NAME,   PROGRAM_ACTION_EXTRACT_SHORT_NAME,  PROGRAM_ACTION_EXTRACT_USAGE,       PROGRAM_ACTION_EXTRACT_DESCRIPTION, process_extract_action,  print_extract_action_help },
+        { PROGRAM_ACTION_UPDATE_INDEX,      PROGRAM_ACTION_UPDATE_LONG_NAME,    PROGRAM_ACTION_UPDATE_SHORT_NAME,   PROGRAM_ACTION_UPDATE_USAGE,        PROGRAM_ACTION_UPDATE_DESCRIPTION,  process_update_action, print_update_action_help },
+        { PROGRAM_ACTION_CREATE_INDEX,      PROGRAM_ACTION_CREATE_LONG_NAME,    PROGRAM_ACTION_CREATE_SHORT_NAME,   PROGRAM_ACTION_CREATE_USAGE,        PROGRAM_ACTION_CREATE_DESCRIPTION,  process_create_action, print_create_action_help},
         
 };
 
@@ -168,17 +185,17 @@ struct program_options{
            execution 
         */
         char *          program_name_action[2]; 
-        action_info    *action_info;                                             
+        program_action    *program_action;                                             
         int             verbose ;
         int             print_help; 
         char*           current_working_directory;
 };
 
 // init_program_options - implemented in actions/global.c
-int init_program_options(unsigned argc,char ** argv,program_options* options);
+unsigned init_program_options(unsigned argc,char ** argv,program_options* options);
 
 // only_program_options - implemented in actions/global.c
-int only_program_options(unsigned argc,char ** argv,program_options* options);
+unsigned only_program_options(unsigned argc,char ** argv,program_options* options);
 
 
 // process_scan_action - implemented in actions/scan.c
@@ -210,7 +227,16 @@ unsigned print_program_error_file_not_boot_image(char * filename);
 unsigned print_program_error_file_write_boot_image(char * filename);
 unsigned print_program_error_invalid_option(char arg);
 
+#define DEBUG_AND_RETURN_INT(value) { D("returning %d\n",value); return value ; }
 
+/*typedef enum primary_type {
+        NONE = 0,
+        UNKNOWN = 1, 
+        BOOT_IMAGE = 2,
+        KERNEL = 3,
+        RAMDISK = 4,    
+};
+*/
 
 
 #endif

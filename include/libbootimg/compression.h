@@ -71,4 +71,13 @@ long uncompress_bzip2_memory(unsigned char* compressed_data , size_t compressed_
 long compress_bzip2_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
 
+
+
+long uncompress_lzma_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+                unsigned char* uncompressed_data,size_t uncompressed_max_size);
+
+long compress_lzma_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+                unsigned char* compressed_data,size_t compressed_max_size);
+
+
 #endif

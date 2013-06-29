@@ -418,9 +418,12 @@ unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boo
     // Work out the header values
     image->header_size = sizeof(boot_img_hdr);
     image->header_offset = magic_offset_p - boot_image_addr; 
-     
-    image->header =(boot_img_hdr*) boot_image_addr + image->header_offset;
+    
+    D("image->start_addr=%u\n",image->start_addr);
+    D("magic_offset_p=%u\n",magic_offset_p);
+    image->header =(boot_img_hdr*)magic_offset_p;
     image->header_padding = calculate_padding(image->header_size,image->header->page_size); 
+    D("First 9 Bytes image->header=%.*s\n",BOOT_MAGIC_SIZE,image->header);
     
     // Work out the kernel values   
     image->kernel_offset = image->header_offset + image->header->page_size;
@@ -443,7 +446,7 @@ unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boo
         image->second_padding = -1;
     }
     return 0;
-    
+    //D("\n\n\tload_boot_image_from_memory\nStruct"
 
     
 }

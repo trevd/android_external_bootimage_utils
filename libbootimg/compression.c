@@ -41,74 +41,12 @@
 // headers for bzip2
 #include <bzlib.h>
 // headers for lzma
-#include <Alloc.h>
-#include <7zFile.h>
-#include <LzmaDec.h>
-#include <LzmaEnc.h>
+#include <easylzma/decompress.h>
 
 #include <compression_internal.h>
 
 #define MAX_DECOMPRESS_SIZE (8192*1024)*4
 
-static void *SzAlloc(void *p, size_t size) { p = p; return MyAlloc(size); }
-static void SzFree(void *p, void *address) { p = p; MyFree(address); }
-static ISzAlloc g_Alloc = { SzAlloc, SzFree };
-
-#define IN_BUF_SIZE (1 << 16)
-#define OUT_BUF_SIZE (1 << 16)
-
-SRes Decode2(CLzmaDec *state, ISeqOutStream *outStream, ISeqInStream *inStream,
-    UInt64 unpackSize)
-{
-  int thereIsSize = (unpackSize != (UInt64)(Int64)-1);
-  Byte inBuf[IN_BUF_SIZE];
-  Byte outBuf[OUT_BUF_SIZE];
-  size_t inPos = 0, inSize = 0, outPos = 0;
-  LzmaDec_Init(state);
-  for (;;)
-  {
-    if (inPos == inSize)
-    {
-      inSize = IN_BUF_SIZE;
-      RINOK(inStream->Read(inStream, inBuf, &inSize));
-      inPos = 0;
-    }
-    {
-      SRes res;
-      SizeT inProcessed = inSize - inPos;
-      SizeT outProcessed = OUT_BUF_SIZE - outPos;
-      ELzmaFinishMode finishMode = LZMA_FINISH_ANY;
-      ELzmaStatus status;
-      if (thereIsSize && outProcessed > unpackSize)
-      {
-        outProcessed = (SizeT)unpackSize;
-        finishMode = LZMA_FINISH_END;
-      }
-      
-      res = LzmaDec_DecodeToBuf(state, outBuf + outPos, &outProcessed,
-        inBuf + inPos, &inProcessed, finishMode, &status);
-      inPos += inProcessed;
-      outPos += outProcessed;
-      unpackSize -= outProcessed;
-      
-      if (outStream)
-        if (outStream->Write(outStream, outBuf, outPos) != outPos)
-          return SZ_ERROR_WRITE;
-        
-      outPos = 0;
-      
-      if (res != SZ_OK || thereIsSize && unpackSize == 0)
-        return res;
-      
-      if (inProcessed == 0 && outProcessed == 0)
-      {
-        if (thereIsSize || status != LZMA_STATUS_FINISHED_WITH_MARK)
-          return SZ_ERROR_DATA;
-        return res;
-      }
-    }
-  }
-}
 
 char *get_compression_name_from_index(unsigned index){
     
@@ -216,36 +154,36 @@ long uncompress_xz_memory( unsigned char* compressed_data , size_t compressed_da
     long return_value;
 
     /* initialize xz decoder */
-    lzma_stream lzmaInfo = LZMA_STREAM_INIT; /* alloc and init lzma_stream struct */
-    lzmaInfo.avail_in=  compressed_data_size;
-    lzmaInfo.total_in=  compressed_data_size;  
-    lzmaInfo.avail_out=  uncompressed_max_size;
-    lzmaInfo.total_out=  uncompressed_max_size;
-    lzmaInfo.next_in= compressed_data  ;
-    lzmaInfo.next_out= uncompressed_data;
-    ret_xz = lzma_stream_decoder (&lzmaInfo, UINT_MAX, LZMA_CONCATENATED);
+    lzma_stream xzInfo = LZMA_STREAM_INIT; /* alloc and init lzma_stream struct */
+    xzInfo.avail_in=  compressed_data_size;
+    xzInfo.total_in=  compressed_data_size;  
+    xzInfo.avail_out=  uncompressed_max_size;
+    xzInfo.total_out=  uncompressed_max_size;
+    xzInfo.next_in= compressed_data  ;
+    xzInfo.next_out= uncompressed_data;
+    ret_xz = lzma_stream_decoder (&xzInfo, UINT_MAX, LZMA_CONCATENATED);
     if (ret_xz != LZMA_OK) {
         D( "lzma_stream_decoder error: %d\n", (int) ret_xz);
         errno = 0-ret_xz;
         return 0;
     }
     D( "decoder ret_xz: %d\n", (int) ret_xz);
-    D( "lzmaInfo.next_out: %p\n", lzmaInfo.next_out);
-    D( "lzmaInfo.avail_out: %u\n", lzmaInfo.avail_out);
-    D( "lzmaInfo.total_out: %u\n", (unsigned )lzmaInfo.total_out);
-    ret_xz = lzma_code (&lzmaInfo, action);
+    D( "lzmaInfo.next_out: %p\n", xzInfo.next_out);
+    D( "lzmaInfo.avail_out: %u\n", xzInfo.avail_out);
+    D( "lzmaInfo.total_out: %u\n", (unsigned )xzInfo.total_out);
+    ret_xz = lzma_code (&xzInfo, action);
     //if (ret_xz != LZMA_OK ) {
         D( "lzma_code error: %d\n", (int) ret_xz);
         errno = 0-ret_xz;
       //  return 0;
     //}
-    D( "lzmaInfo.total_out: %u\n", (unsigned )lzmaInfo.total_out);
+    D( "lzmaInfo.total_out: %u\n", (unsigned )xzInfo.total_out);
     
     D( "lzma_code ret_xz: %d action=%d\n", (int) ret_xz,(int)action);
-    return_value= lzmaInfo.total_out;
-    lzma_end (&lzmaInfo);
+    return_value= xzInfo.total_out;
+    lzma_end (&xzInfo);
     if (return_value > 0 ) {
-        D( "lzmaInfo.total_out: %u\n", (unsigned )lzmaInfo.total_out);
+        D( "lzmaInfo.total_out: %u\n", (unsigned )xzInfo.total_out);
         errno = 0;
     }
     return return_value; 
@@ -408,32 +346,66 @@ long compress_gzip_memory( unsigned char* uncompressed_data , size_t uncompresse
     deflateEnd( &zInfo );    // zlib function
     return( return_value );
 }
+static int
+inputCallback(void *ctx, void *buf, size_t * size)
+{
+    size_t rd = 0;
+        lzma_dataStream * ds = (lzma_dataStream *) ctx;
+   // assert(ds != NULL);
+    
+    rd = (ds->inLen < *size) ? ds->inLen : *size;
+
+    if (rd > 0) {
+        memcpy(buf, (void *) ds->inData, rd);
+        ds->inData += rd;
+        ds->inLen -= rd;
+    }
+
+    *size = rd;
+
+    return 0;
+}
+
+static size_t
+outputCallback(void *ctx, const void *buf, size_t size)
+{
+    lzma_dataStream* ds = (lzma_dataStream *) ctx;
+    //  massert(ds != NULL);
+    
+    if (size > 0) {
+        ds->outData = realloc(ds->outData, ds->outLen + size);
+        memcpy((void *) (ds->outData + ds->outLen), buf, size);
+        ds->outLen += size;
+    }
+
+    return size;
+}
+
 long uncompress_lzma_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
 {
-  UInt64 unpackSize;
-  int i;
-  SRes res = 0;
-
-  CLzmaDec state;
-
-  /* header: 5 bytes of LZMA properties and 8 bytes of uncompressed size */
-  unsigned char header[LZMA_PROPS_SIZE + 8];
-
-  /* Read and parse header */
-  fprintf(stderr,"meh %x\n",header[0]);      
- SeqInStream_Read(compressed_data, header, sizeof(header));
-
-  unpackSize = 0;
-  for (i = 0; i < 8; i++)
-    unpackSize += (UInt64)header[LZMA_PROPS_SIZE + i] << (i * 8);
-         fprintf(stderr,"meh\2n");
-  LzmaDec_Construct(&state);
-   fprintf(stderr,"meh3\n");
-  RINOK(LzmaDec_Allocate(&state, header, LZMA_PROPS_SIZE, &g_Alloc));
-   fprintf(stderr,"me4\n");
-  res = Decode2(&state, uncompressed_data, compressed_data, uncompressed_max_size);
-  LzmaDec_Free(&state, &g_Alloc);
-  return res;
+        int rc;
+        elzma_decompress_handle hand;
+        lzma_dataStream ds;
+        ds.inData = compressed_data;
+        ds.inLen = compressed_data_size;
+        ds.outData = uncompressed_data;
+        ds.outLen = 0;
+        hand = elzma_decompress_alloc();
+        D("Allocated ELZMA\n");
+        rc = elzma_decompress_run(hand, inputCallback, (void *) &ds,
+                                  outputCallback, (void *) &ds, ELZMA_lzma);
+        D("Ran ELZMA\n");
+        if (rc != ELZMA_E_OK) {
+            if (ds.outData != NULL) free(ds.outData);
+            elzma_decompress_free(&hand);
+            return rc;
+        }
+        /* allocate compression handle */
+        elzma_decompress_free(&hand);
+        //uncompressed_data = ds.outData;
+        D("Ran ELZMA ds.outLen=%u\n",ds.outLen);
+        return ds.outLen;
+        
 } 
 
 long compress_lzma_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size)

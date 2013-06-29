@@ -43,7 +43,7 @@ libbootimg_include_dirs := $(LOCAL_PATH)/../include \
 				system/core/include/mincrypt \
 				external/zlib \
 				external/bzip2 \
-				$(LOCAL_PATH)/../lzma-9.22/C \
+				$(LOCAL_PATH)/../easylzma/easylzma-0.0.8/include \
 				$(LOCAL_PATH)/../liblzma/api \
 				$(LOCAL_PATH)/../liblzo/include
 
