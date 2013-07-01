@@ -1,4 +1,7 @@
 
+
+
+
 LOCAL_PATH:= $(call my-dir)
 
 ifeq ($(HOST_OS),windows)
@@ -79,6 +82,13 @@ common_SRC_FILES:=  \
 
 common_C_INCLUDES += $(LOCAL_PATH)/include
 
+
+# Cyanogenmod already builds liblzo static from the external/lzo directory
+# so we only need to build a target one if we are using a different source
+# tree like the AOSP for example. 
+ifeq ($(CM_VERSION),)
+
+
 # static library
 # =====================================================
 
@@ -89,6 +99,11 @@ LOCAL_MODULE := liblzo-static
 LOCAL_PRELINK_MODULE:= false
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_STATIC_LIBRARY)
+
+
+
+
+
 
 # dynamic library
 # =====================================================
@@ -101,8 +116,14 @@ LOCAL_PRELINK_MODULE:= false
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
 
+endif
 
-# static library
+
+#
+# We alway need to build for the host 
+#
+
+# static library for the host
 # =====================================================
 
 include $(CLEAR_VARS)
@@ -113,7 +134,7 @@ LOCAL_PRELINK_MODULE:= false
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_HOST_STATIC_LIBRARY)
 
-# dynamic library
+# dynamic library for the host
 # =====================================================
 
 include $(CLEAR_VARS)

@@ -82,7 +82,7 @@ struct cpio_newc_header {
 
 unsigned init_ramdisk_image(ramdisk_image* image){
     
-    image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
+    image->compression_type = RAMDISK_COMPRESSION_NULL ;
     image->start_addr = NULL ;
     image->size = 0 ;
     image->type = RAMDISK_TYPE_UNKNOWN;
@@ -298,12 +298,17 @@ unsigned populate_ramdisk_entries(ramdisk_image* image){
         image->entries[counter]->mode = get_long_from_hex_field(header->c_mode);
         image->entries[counter]->name_size = get_long_from_hex_field(header->c_namesize);
         image->entries[counter]->name_addr = cpio_magic_offset_p+sizeof(cpio_newc_header);
+        D("image->entries[counter]->name_addr[0]='%c'\n",image->entries[counter]->name_addr[0]);        
+        if (image->entries[counter]->name_addr[0]=='/') {
+                image->entries[counter]->name_addr+=1;
+                D("image->entries[counter]->name_addr[0]='%c'\n",image->entries[counter]->name_addr[0]);        
+        }
         image->entries[counter]->name_padding = ((4 - ((sizeof(cpio_newc_header) + image->entries[counter]->name_size ) % 4)) % 4);
         image->entries[counter]->data_addr = image->entries[counter]->name_addr +   image->entries[counter]->name_size + image->entries[counter]->name_padding ;
         image->entries[counter]->data_size = get_long_from_hex_field(header->c_filesize);
         image->entries[counter]->data_padding = ((4 - ((image->entries[counter]->data_size ) % 4)) % 4);
         image->entries[counter]->next_addr = image->entries[counter]->data_addr + (image->entries[counter]->data_size + image->entries[counter]->data_padding);
-        //D("name=%s data_size=%u padding=%u\n",image->entries[counter]->name_addr ,image->entries[counter]->data_size,image->entries[counter]->data_padding);
+        D("name=%s data_size=%u padding=%u\n",image->entries[counter]->name_addr ,image->entries[counter]->data_size,image->entries[counter]->data_padding);
         
         counter += 1 ;
     }
@@ -428,7 +433,7 @@ unsigned char* get_archive_compression_type_and_offset(unsigned char* ramdisk_ad
     // which can contain archives, such as a kernel image
     unsigned char * kernel_magic_offset_p = find_in_memory(ramdisk_addr,ramdisk_size,KERNEL_ZIMAGE_MAGIC, KERNEL_ZIMAGE_MAGIC_SIZE );
     if(kernel_magic_offset_p){
-        image->compression_type = RAMDISK_COMPRESSION_UNKNOWN ;
+        image->compression_type = RAMDISK_COMPRESSION_NULL ;
         return NULL ;
     }
     
@@ -477,7 +482,7 @@ unsigned load_ramdisk_image_from_archive_memory(unsigned char* ramdisk_addr,unsi
             break;
         }
         case RAMDISK_COMPRESSION_LZMA:{
-            uncompressed_ramdisk_size = uncompress_xz_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
+            uncompressed_ramdisk_size = uncompress_lzma_memory(archive_magic_offset_p,ramdisk_size,uncompressed_ramdisk_data,MAX_RAMDISK_SIZE);
             break;
         }
         default:
@@ -836,11 +841,16 @@ char *str_recovery_brand(int ramdisk_brand){
     return "unknown";
 }
 char *str_ramdisk_compression(unsigned compression){
-        
+    if(compression == 0 ){
+            return RAMDISK_COMPRESSION_CPIO_NAME;
+            
+    }    
+    
     char* return_value = get_compression_name_from_index(compression);
+    D("compression=%u string=%s errno=%d\n",compression,return_value,errno);
     if(errno > 0 ) {
         errno = 0 ; 
-        return "none";
+        return RAMDISK_COMPRESSION_NULL;
     }
     return return_value;
 }
@@ -851,7 +861,7 @@ unsigned int_ramdisk_compression(char * compression){
     unsigned compression_index = get_compression_index_from_name(compression);
     if ( errno > 0 ){
         errno = 0 ;
-        compression_index = RAMDISK_COMPRESSION_NONE;
+        compression_index = RAMDISK_COMPRESSION_CPIO;
     }
     return compression_index;
     

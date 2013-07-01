@@ -54,26 +54,23 @@ typedef struct extract_action extract_action;
 
 struct extract_action{
     
-    char *      filename                    ;
-    char *      header_filename             ;
-    char *      kernel_filename             ;
-    char **     ramdisk_filenames           ;
-    char *      ramdisk_cpioname            ;
-    char *      ramdisk_imagename           ;
-    char *      ramdisk_directory           ;
-    char *      second_filename             ;
-    char *      output_directory            ;
-    unsigned    ramdisk_filenames_count     ;
-    char*       current_working_directory   ;
+    char *      filename                        ;
+    char *      kernel_config_gz_filename       ;    
+    char *      kernel_config_filename          ;
+    char *      kernel_ramdisk_cpioname         ;
+    char *      kernel_ramdisk_imagename        ;
+    char *      kernel_ramdisk_directory        ;
+    char *      header_filename                 ;
+    char *      kernel_filename                 ;
+    char **     ramdisk_filenames               ;
+    char *      ramdisk_cpioname                ;
+    char *      ramdisk_imagename               ;
+    char *      ramdisk_directory               ;
+    char *      second_filename                 ;
+    char *      output_directory                ;
+    unsigned    ramdisk_filenames_count         ;
+    char*       current_working_directory       ;
 };
-static int extract_kernel_image(extract_action* action, program_options* options,kernel_image* kimage){
-        
-        
-        save_kernel_config_gzip(kimage);
-        write_item_to_disk(kimage->start_addr, kimage->size,33188,"image");
-        
-        return 0;
-}
 
 
 static int extract_ramdisk_files_from_ramdisk_image(extract_action* action, program_options* options, ramdisk_image* rimage){
@@ -130,7 +127,10 @@ static int extract_ramdisk_files_from_boot_image(extract_action* action, program
     errno = 0;
     
     
-    ramdisk_image rimage; 
+        ramdisk_image rimage;
+        rimage.imagename = action->ramdisk_imagename;
+        rimage.cpioname = action->ramdisk_cpioname;
+        rimage.directory = action->ramdisk_directory;
     if(load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage))
         return errno ;
         
@@ -157,10 +157,10 @@ static int extract_ramdisk_cpio_image(extract_action* action, program_options* o
      }else {
          // no filenames - full extraction it is then
         if(action->ramdisk_directory){
-            if(save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory)){
-                fprintf(stderr," error unpacking cpio archive to %s %d %s\n",action->ramdisk_directory,errno,strerror(errno));
+            if(save_ramdisk_entries_to_disk(rimage,rimage->directory)){
+                fprintf(stderr," error unpacking cpio archive to %s %d %s\n",rimage->directory,errno,strerror(errno));
             }else{
-                fprintf(stderr," cpio archive unpacked to \"%s\"\n",action->ramdisk_directory);
+                fprintf(stderr," cpio archive unpacked to \"%s\"\n",rimage->directory);
             }
             //fprintf(stderr,"\n");
             errno = 0;
@@ -180,13 +180,13 @@ static int extract_ramdisk_image(extract_action* action, program_options* option
     D("rimage_size %d\n",rimage->size);
     errno = 0 ;
     
-    if(action->ramdisk_cpioname){
+    if(rimage->cpioname){
         // save the compress cpio file to disk
-        D("action->ramdisk_cpioname=%s\n",action->ramdisk_cpioname);
-        if(write_item_to_disk(rimage->start_addr,rimage->size,33188,action->ramdisk_cpioname)){
-            fprintf(stderr," ERROR writing cpio archive%s %d %s\n",action->ramdisk_cpioname,errno,strerror(errno));
+        D("rimage->cpioname=%s\n",rimage->cpioname);
+        if(write_item_to_disk(rimage->start_addr,rimage->size,33188,rimage->cpioname)){
+            fprintf(stderr," ERROR writing cpio archive%s %d %s\n",rimage->cpioname,errno,strerror(errno));
         }else{
-            fprintf(stderr," Cpio archive extracted to \"%s\"\n",action->ramdisk_cpioname);
+            fprintf(stderr," Cpio archive extracted to \"%s\"\n",rimage->cpioname);
         }
         //fprintf(stderr,"\n");
         errno = 0;
@@ -200,11 +200,11 @@ static int extract_ramdisk_image(extract_action* action, program_options* option
              
      }else {
         // extract and save the cpio file contents to disc  
-        if(action->ramdisk_directory){
-            if(save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory)){
-                fprintf(stderr," ERROR %d unpacking cpio archive to \"%s\" - %s\n",errno,action->ramdisk_directory,strerror(errno));
+        if(rimage->directory){
+            if(save_ramdisk_entries_to_disk(rimage,rimage->directory)){
+                fprintf(stderr," ERROR %d unpacking cpio archive to \"%s\" - %s\n",errno,rimage->directory,strerror(errno));
             }else{
-                fprintf(stderr," Cpio archive unpacked to \"%s\"\n",action->ramdisk_directory);
+                fprintf(stderr," Cpio archive unpacked to \"%s\"\n",rimage->directory);
             }
             //fprintf(stderr,"\n");
             errno = 0;
@@ -314,6 +314,29 @@ static int extract_bootimage(extract_action* action, program_options* options,bo
     return 0;
     
 }
+static int extract_kernel_image(extract_action* action, program_options* options,kernel_image* kimage){
+        
+        
+        fprintf(stderr," Extracting Kernel components from \"%s\"\n",action->filename);
+        save_kernel_config_gzip(kimage);
+        fprintf(stderr," kernel config.gz \"%s\"\n",action->kernel_config_gz_filename);
+        fprintf(stderr," kernel config \"%s\"\n",action->kernel_config_filename);
+        write_item_to_disk(kimage->start_addr, kimage->size,33188,"image");
+        if((kimage->rimage != NULL) && (kimage->ramdisk_size > 0 )){
+                kimage->rimage->cpioname = action->kernel_ramdisk_cpioname;
+                kimage->rimage->directory =action->kernel_ramdisk_directory;
+                if(kimage->rimage->compression_type == RAMDISK_COMPRESSION_CPIO){
+                        kimage->rimage->imagename = NULL;
+                        D("kimage->rimage->name=%s\n",kimage->rimage->imagename);
+                }else{
+                        kimage->rimage->imagename = action->kernel_ramdisk_imagename;
+                }
+                extract_ramdisk_image(action,options,kimage->rimage);
+                
+        }
+        return 0;
+}
+
 /* process_extract_file - determines the file type we are dealing with and branches
           accordingly */
 static int process_extract_file(extract_action* action, program_options* options){
@@ -439,12 +462,17 @@ int process_extract_action(unsigned argc,char ** argv,program_options* options){
         
         if(argc == 1 || ( argv[1][0]=='-' && argv[1][1]=='o') ||argv[1][0]!='-'){ 
             D("extract all\n");
-            action.header_filename  = (char*)DEFAULT_HEADER_NAME;
-            action.kernel_filename  = (char*)"kernel";
-            action.ramdisk_cpioname     = (char*)"ramdisk.cpio";
-            action.ramdisk_imagename    = (char*)"ramdisk.img";
-            action.ramdisk_directory    = (char*)"ramdisk";
-            action.second_filename  = (char*)"second";
+            action.header_filename              = (char*)DEFAULT_HEADER_NAME;
+            action.kernel_filename              = (char*)"kernel";
+            action.kernel_config_gz_filename    = (char*)"config.gz";
+            action.kernel_config_filename       = (char*)"config";
+            action.kernel_ramdisk_cpioname      = (char*)"kernel-ramdisk.cpio";
+            action.kernel_ramdisk_imagename     = (char*)"kernel-ramdisk.img";
+            action.kernel_ramdisk_directory     = (char*)"kernel-ramdisk";
+            action.ramdisk_cpioname             = (char*)"ramdisk.cpio";
+            action.ramdisk_imagename            = (char*)"ramdisk.img";
+            action.ramdisk_directory            = (char*)"ramdisk";
+            action.second_filename      = (char*)"second";
             // do we have an impiled, output directory
             if (argv[1] && argv[1][0]!='-') {
             action.output_directory = argv[1];

@@ -60,6 +60,7 @@ int print_kernel_info(kernel_image* kimage){
     if(kimage->config_size > 0 ){
         fprintf(stderr,"  config.gz Size    :%u\n",kimage->config_size);
     }
+    D("kimage->rimage->size=%u\n",kimage->rimage->size);        
     if(kimage->rimage->size != 0 ){
         fprintf(stderr,"\n");
         fprintf(stderr," Printing Embedded Initramfs information\n\n");
@@ -156,10 +157,36 @@ unsigned locate_initrd(kernel_image* image){
         unsigned image_search_size = image->size ; 
         if (image->config_addr != NULL ) 
                 image_search_size =image->config_addr - image->start_addr  ;
+                
+        // look for cpio first 
+        unsigned char* cpio_magic_offset_p = find_in_memory_start_at(image->start_addr,image_search_size,initrd_magic_offset_p,CPIO_HEADER_MAGIC,CPIO_HEADER_MAGIC_SIZE);    
+        if(cpio_magic_offset_p != NULL){
+                D("CPIO RAMDISK LOCATED @ %p\n",cpio_magic_offset_p);
+                unsigned char* cpio_trailer_magic_p = find_in_memory_start_at(  image->start_addr,
+                                                                                image_search_size,
+                                                                                cpio_magic_offset_p,
+                                                                                CPIO_TRAILER_MAGIC,
+                                                                                CPIO_TRAILER_MAGIC_SIZE);
+                if(cpio_trailer_magic_p != NULL){
+                         cpio_trailer_magic_p += CPIO_TRAILER_MAGIC_SIZE ;
+                         image->ramdisk_addr = cpio_magic_offset_p ;
+                         image->ramdisk_size = cpio_trailer_magic_p - cpio_magic_offset_p ;
+                         D("CPIO RAMDISK SIZE @ %u\n", image->ramdisk_size);
+                         image->rimage->compression_type = RAMDISK_COMPRESSION_CPIO ; 
+                         return 0 ; 
+                        
+                }
+                D("CPIO RAMDISK UNABLE TO LOCATE TRAILER\n");
+                
+        }
+        
+                
         D("kernel_addr=%p image_search_size=%u\n", image->start_addr,image_search_size);
         int compression = KERNEL_COMPRESSION_NONE ;
         do{
+                 D("BEFORE SEARCH initrd_magic_offset_p=%p\n",initrd_magic_offset_p);
                 initrd_magic_offset_p = find_compressed_data_in_memory_start_at(image->start_addr,image_search_size,initrd_magic_offset_p,&compression);
+                D("AFTER SEARCH initrd_magic_offset_p=%p\n",initrd_magic_offset_p);
                 if ( initrd_magic_offset_p == NULL ){
                         D("Failed to find ramdisk");
                         image->ramdisk_addr = NULL ;
@@ -168,7 +195,7 @@ unsigned locate_initrd(kernel_image* image){
                 }
                 if(initrd_magic_offset_p == image->config_addr ){
                        D("Config.gz found.. go again\n");
-                       initrd_magic_offset_p = initrd_magic_offset_p + sizeof(image->config_addr) ;
+                       initrd_magic_offset_p = initrd_magic_offset_p + sizeof(KERNEL_IKCFG_MAGIC_SIZE)+1 ;
                        image->ramdisk_addr = NULL ;
                        image->ramdisk_size = 0 ;
                        continue;
@@ -182,6 +209,8 @@ unsigned locate_initrd(kernel_image* image){
 
         }while ( initrd_magic_offset_p != NULL );
         image->ramdisk_size = image_search_size ; 
+        D("KERNEL RAMDISK SEARCH RESULT :%p\n",initrd_magic_offset_p);
+        
         D("kimage->ramdisk_add=%p image_search_size=%u\n", image->ramdisk_addr,image_search_size);
         return 0;
 }
@@ -282,11 +311,18 @@ int load_kernel_image_from_memory(unsigned char* kernel_addr,unsigned kernel_siz
         get_kernel_version_information(image);
         
         decompress_config_gz(image);
-        locate_initrd(image);
+        
         
         image->rimage = calloc(1,sizeof(ramdisk_image)) ;
+        locate_initrd(image);
+        D("image->ramdisk_size=%u\n",image->ramdisk_size);
         if(image->ramdisk_size > 0 ){
-                load_ramdisk_image_from_archive_memory(image->ramdisk_addr,image->ramdisk_size,image->rimage);
+                if ( image->rimage->compression_type == RAMDISK_COMPRESSION_CPIO ){
+                        
+                        load_ramdisk_image_from_cpio_memory(image->ramdisk_addr,image->ramdisk_size,image->rimage);
+                }else {
+                        load_ramdisk_image_from_archive_memory(image->ramdisk_addr,image->ramdisk_size,image->rimage);
+                }
                 D("rp->entry_count=%u\n",image->rimage->entry_count);
         }
     

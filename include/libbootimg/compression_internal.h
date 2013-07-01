@@ -80,8 +80,9 @@
 #define LZ4_MAGIC "\x02\x21" // .!
 #define LZ4_MAGIC_SIZE 2
 
+
 /* COMPRESSION_INDEX_MAX should be the same as the last type index value */
-#define COMPRESSION_INDEX_MAX LZ4_INDEX
+
 
 typedef struct compression_type compression_type;
 

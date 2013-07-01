@@ -57,6 +57,7 @@
 #define DEFAULT_KERNEL_NAME                     "kernel"    
 #define DEFAULT_SECOND_NAME                     "second"
 
+
 #define PROGRAM_OPTION_LONG_PREFIX              "--"
 #define PROGRAM_OPTION_LONG_VERBOSE             "verbose"
 #define PROGRAM_OPTION_LONG_LOG_LEVEL           "loglevel"

@@ -83,7 +83,7 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
     unsigned char * compressed_magic_offset_p = haystack_offset ;
     unsigned char * uncompressed_data = calloc(MAX_DECOMPRESS_SIZE,sizeof(unsigned char)) ;
     
-    long uncompressed_kernel_size = 0;
+    long uncompressed_size = 0;
     int counter = 0 ;
     for(counter = 1 ; counter <= COMPRESSION_INDEX_MAX ; counter ++){
         
@@ -97,7 +97,7 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
             
             if(compression_types[counter].uncompress_function != NULL){
                 errno = 0 ;
-                (* compression_types[counter].uncompress_function) (compressed_magic_offset_p,haystack_len,uncompressed_data,MAX_DECOMPRESS_SIZE);
+                uncompressed_size = (* compression_types[counter].uncompress_function) (compressed_magic_offset_p,haystack_len,uncompressed_data,MAX_DECOMPRESS_SIZE);
                 if(errno != 0 ){
                     // invalid data block search again
                     compressed_magic_offset_p+=1 ;
@@ -119,6 +119,10 @@ unsigned char * find_compressed_data_in_memory_start_at( unsigned char *haystack
         
         compressed_magic_offset_p = haystack_offset  ;
         D("resetting offset for next type %p\n",compressed_magic_offset_p);
+    }
+    if(compressed_magic_offset_p==NULL){
+        (*compression) = COMPRESSION_INDEX_MAX+1;
+        return NULL ;
     }
     return compressed_magic_offset_p;
    
@@ -350,7 +354,8 @@ static int
 inputCallback(void *ctx, void *buf, size_t * size)
 {
     size_t rd = 0;
-        lzma_dataStream * ds = (lzma_dataStream *) ctx;
+    D("inputCallback size=%u\n",size);
+    lzma_dataStream * ds = (lzma_dataStream *) ctx;
    // assert(ds != NULL);
     
     rd = (ds->inLen < *size) ? ds->inLen : *size;
@@ -369,9 +374,10 @@ inputCallback(void *ctx, void *buf, size_t * size)
 static size_t
 outputCallback(void *ctx, const void *buf, size_t size)
 {
+    D("outputCallback size=%u\n",size);
     lzma_dataStream* ds = (lzma_dataStream *) ctx;
     //  massert(ds != NULL);
-    
+                                      
     if (size > 0) {
         ds->outData = realloc(ds->outData, ds->outLen + size);
         memcpy((void *) (ds->outData + ds->outLen), buf, size);
@@ -384,27 +390,31 @@ outputCallback(void *ctx, const void *buf, size_t size)
 long uncompress_lzma_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
 {
         int rc;
+        errno = 0;
         elzma_decompress_handle hand;
-        lzma_dataStream ds;
-        ds.inData = compressed_data;
-        ds.inLen = compressed_data_size;
-        ds.outData = uncompressed_data;
-        ds.outLen = 0;
+        lzma_dataStream* ds = calloc(1,sizeof(lzma_dataStream));
+        ds->inData = compressed_data;
+        ds->inLen = compressed_data_size;
+        ds->outData = uncompressed_data;
+        ds->outLen = 0;
         hand = elzma_decompress_alloc();
         D("Allocated ELZMA\n");
-        rc = elzma_decompress_run(hand, inputCallback, (void *) &ds,
-                                  outputCallback, (void *) &ds, ELZMA_lzma);
-        D("Ran ELZMA\n");
+        rc = elzma_decompress_run(hand, inputCallback, (void *) ds,
+                                  outputCallback, (void *) ds, ELZMA_lzma);
+        
         if (rc != ELZMA_E_OK) {
-            if (ds.outData != NULL) free(ds.outData);
-            elzma_decompress_free(&hand);
-            return rc;
+                errno= rc;
+                D("LZMA NOT OK rc=%d ds.inLen=%u ds.outLen=%u \n",rc,ds->inLen ,ds->outLen );
+                //if (ds.outData != NULL) free(ds.outData);
+                elzma_decompress_free(&hand);
+                return 0;
         }
+        errno = 0;
         /* allocate compression handle */
         elzma_decompress_free(&hand);
         //uncompressed_data = ds.outData;
-        D("Ran ELZMA ds.outLen=%u\n",ds.outLen);
-        return ds.outLen;
+        D("LZMA OK rc=%d ds.inLen=%u ds.outLen=%u \n",rc,ds->inLen ,ds->outLen );
+        return ds->outLen;
         
 } 
 

@@ -36,15 +36,16 @@
 
 #define RAMDISK_ENTRY_DATA_NON_CONTIGOUS -1
 
-
-#define RAMDISK_COMPRESSION_UNKNOWN 0
+#define RAMDISK_COMPRESSION_CPIO_NAME   "cpio"
+#define RAMDISK_COMPRESSION_NULL_NAME   "unknown"
+#define RAMDISK_COMPRESSION_CPIO    0
 #define RAMDISK_COMPRESSION_GZIP    COMPRESSION_GZIP_DEFLATE
 #define RAMDISK_COMPRESSION_LZO     COMPRESSION_LZOP        
 #define RAMDISK_COMPRESSION_XZ      COMPRESSION_XZ          
 #define RAMDISK_COMPRESSION_LZMA    COMPRESSION_LZMA        
 #define RAMDISK_COMPRESSION_BZIP2   COMPRESSION_BZIP2       
 #define RAMDISK_COMPRESSION_LZ4     COMPRESSION_LZ4         
-#define RAMDISK_COMPRESSION_NONE    9
+#define RAMDISK_COMPRESSION_NULL        COMPRESSION_INDEX_MAX+1
 
 #define RAMDISK_TYPE_UNKNOWN -1
 #define RAMDISK_TYPE_NORMAL 1
@@ -61,7 +62,6 @@
 #define RECOVERY_BRAND_4EXT 6
 
 #define RECOVERY_VERSION_UNKNOWN -1
-
 
 
 typedef struct ramdisk_entry ramdisk_entry;
@@ -94,15 +94,20 @@ typedef struct ramdisk_image ramdisk_image;
 
 struct ramdisk_image {
     
+    // Filesystem MetaData
+    char* imagename;
+    char* directory;
+    char* cpioname;
     
     int compression_type;
+    
     unsigned char* start_addr ;
     unsigned size;
     int type;
     int recovery_brand;   
     char *recovery_version;
     int recovery_version_size;
-        
+    
     unsigned entry_count;
 
     ramdisk_entry ** entries ;

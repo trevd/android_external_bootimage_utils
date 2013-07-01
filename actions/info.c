@@ -159,7 +159,7 @@ int info_file(info_action* action,program_options* options ){
         if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
                 D("load_kernel_image_from_memory returns:%d\n", return_value); 
                 return_value = info_kernel(&kimage,action,1);
-                if(kimage.rimage != NULL  )  free(kimage.rimage->start_addr);
+                if(kimage.rimage != NULL  )  free(kimage.rimage);
                 if(kimage.start_addr != NULL  )  
                         free(kimage.start_addr);
                         
