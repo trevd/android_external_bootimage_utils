@@ -499,4 +499,19 @@ fail:
     fclose(boot_image_file_fp);
     return errno;   
 }
+unsigned boot_image_allocate(boot_image* bimage){
+        
+        
+        D("sizeof((*bimage))=%u\n",sizeof((*bimage)));
+        
+        D("sizeof(boot_image)=%u\n",sizeof(boot_image));
+        bimage = calloc(1,sizeof(boot_image)) ;
+        return 0;
+        
+}
+
+
+
+
+
 

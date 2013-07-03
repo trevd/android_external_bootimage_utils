@@ -116,15 +116,15 @@ endif
 
 include $(CLEAR_VARS)
 
-LOCAL_C_INCLUDES := $(include_dirs)
+LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
 
 $(info "INC : $(LOCAL_C_INCLUDES) LP: $(LOCAL_PATH)")
 
 
-LOCAL_SRC_FILES := tests/load-unknown-file.c
+LOCAL_SRC_FILES := tests/example_test_harness.c
 
-LOCAL_STATIC_LIBRARIES := 	libbootimage
+LOCAL_STATIC_LIBRARIES := libbootimage
 
-LOCAL_MODULE := load-unknown-file-test
+LOCAL_MODULE := example-test-harness
  
-#include $(BUILD_HOST_EXECUTABLE)
+include $(BUILD_HOST_EXECUTABLE)

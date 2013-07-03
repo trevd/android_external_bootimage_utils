@@ -87,5 +87,5 @@ unsigned print_boot_image_info(boot_image* image);
 unsigned print_boot_image_header_info(boot_image* image);
 unsigned print_boot_image_additional_info(boot_image* image);
 unsigned print_boot_image_header_hashes(boot_image* image);
-
+unsigned boot_image_allocate(boot_image* bimage);
 #endif
