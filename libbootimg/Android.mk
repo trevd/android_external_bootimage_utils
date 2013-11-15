@@ -106,25 +106,9 @@ LOCAL_STATIC_LIBRARIES := $(libbootimg_static_libraries)
 
 LOCAL_MODULE := $(libbootimg_module_name)
 
+LOCAL_MODULE := $(libbootimg_module_name)
+
 include $(BUILD_STATIC_LIBRARY)
 
 
 endif
-
-
-###### Bootimage Loading Test ########
-
-include $(CLEAR_VARS)
-
-LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
-
-$(info "INC : $(LOCAL_C_INCLUDES) LP: $(LOCAL_PATH)")
-
-
-LOCAL_SRC_FILES := tests/example_test_harness.c
-
-LOCAL_STATIC_LIBRARIES := libbootimage
-
-LOCAL_MODULE := example-test-harness
- 
-#include $(BUILD_HOST_EXECUTABLE)

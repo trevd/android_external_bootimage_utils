@@ -37,10 +37,26 @@
 
 #include <android_filesystem_config.h>
 
+/* Standard Ramdisk Version Finger Printing file */
+#define RAMDISK_VERSION_4_4 "init.environ.rc"
+#define RAMDISK_VERSION_4_2_2 "sbin/watchdogd"
+#define RAMDISK_INITRC_SIZE_4_3_2_1 19930
+#define RAMDISK_INITRC_SIZE_4_3_2 19885
+
+#define RAMDISK_STOCK_INIT_SIZE_4_2 109412
+#define RAMDISK_STOCK_INITRC_SIZE_4_2 18249
+
+#define RAMDISK_STOCK_INIT_SIZE_4_1_1 105204
+#define RAMDISK_STOCK_INITRC_SIZE_4_1_1 17048
+
+#define RAMDISK_STOCK_INIT_SIZE_4_1_2 105204
+#define RAMDISK_STOCK_INITRC_SIZE_4_1_2 17048
+
 
 
 #define RECOVERY_FILE_NAME "sbin/recovery"
 
+/* sbin/recovery - Finger printing Strings for known recovery types */
 #define RECOVERY_MAGIC_CLOCKWORK "ClockworkMod Recovery v"
 #define RECOVERY_MAGIC_SIZE_CLOCKWORK 23
 #define RECOVERY_MAGIC_STOCK "Android system recovery "
@@ -410,7 +426,7 @@ unsigned load_ramdisk_image_from_cpio_memory(unsigned char* ramdisk_addr,unsigne
     }
     
     carve_out_entry_space(image);
-    carve_out_entry_space(image);
+    //carve_out_entry_space(image);
     
     populate_ramdisk_entries(image);
     

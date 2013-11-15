@@ -372,9 +372,6 @@ unsigned load_boot_image_header_from_disk(const char *filename, boot_image* imag
     return 0;
 }
 /* load_boot_image - load android boot image into memory 
- * 
- * 
- * 
  * returns zero when successful, return errno on failure
  * */
 // BI_API
@@ -419,11 +416,11 @@ unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boo
     image->header_size = sizeof(boot_img_hdr);
     image->header_offset = magic_offset_p - boot_image_addr; 
     
-    D("image->start_addr=%u\n",image->start_addr);
-    D("magic_offset_p=%u\n",magic_offset_p);
+    D("image->start_addr=%u\n",(unsigned int)image->start_addr);
+    D("magic_offset_p=%u\n",(unsigned int)magic_offset_p);
     image->header =(boot_img_hdr*)magic_offset_p;
     image->header_padding = calculate_padding(image->header_size,image->header->page_size); 
-    D("First 9 Bytes image->header=%.*s\n",BOOT_MAGIC_SIZE,image->header);
+    D("First 9 Bytes image->header=%.*s\n",BOOT_MAGIC_SIZE,(char*)image->header);
     
     // Work out the kernel values   
     image->kernel_offset = image->header_offset + image->header->page_size;
@@ -499,17 +496,30 @@ fail:
     fclose(boot_image_file_fp);
     return errno;   
 }
-unsigned boot_image_allocate(boot_image* bimage){
-        
-        
-        D("sizeof((*bimage))=%u\n",sizeof((*bimage)));
-        
-        D("sizeof(boot_image)=%u\n",sizeof(boot_image));
-        bimage = calloc(1,sizeof(boot_image)) ;
-        return 0;
-        
+boot_image* boot_image_allocate(){
+
+	errno = 0;
+	D("ALLOCATING BOOTIMAGE MEMORY %u bytes\n",sizeof(boot_image) );
+	boot_image* bimage = calloc(1,sizeof(boot_image)) ;        
+	if(bimage){
+		D("BOOTIMAGE ADDRESS : %p\n",bimage);
+	}else{
+		D("ERROR : BOOTIMAGE MEMORY ALLOCATION FAILED\n");
+	}
+	return bimage ;
 }
 
+/* boot_image_free - free boot_image structure
+ * 
+ * Details : This is just a wrapper around free, the caller is responsible
+ * for making sure the pointer to boot_image is valid
+ * 
+ * */
+void boot_image_free(boot_image* image){
+        
+        D("FREEING BOOTIMAGE MEMORY %p bytes\n",image );
+        free(image); 
+}
 
 
 

@@ -84,6 +84,8 @@ LOCAL_MODULE := $(bootimage_tools_module_name)
  
 include $(BUILD_HOST_EXECUTABLE)
 
+
+
 ifneq ($(HOST_OS),windows)
 
 include $(CLEAR_VARS)
@@ -101,21 +103,6 @@ LOCAL_MODULE := $(bootimage_tools_module_name)
  
 include $(BUILD_EXECUTABLE)
 
-
-
-
-include $(CLEAR_VARS)
-LOCAL_SRC_FILES := quick.c
-LOCAL_STATIC_LIBRARIES := libc
-LOCAL_MODULE := quick
-LOCAL_FORCE_STATIC_EXECUTABLE := true
-LOCAL_LDFLAGS := -D_REALLY_INCLUDE_SYS__SYSTEM_PROPERTIES_H_
-#include $(BUILD_EXECUTABLE)
-
-include $(CLEAR_VARS)
-LOCAL_SRC_FILES := quick.c
-LOCAL_MODULE := quick
-
-#include $(BUILD_HOST_EXECUTABLE)
-
+include $(MAIN_PATH)/tests.mk
 endif
+
