@@ -127,4 +127,4 @@ LOCAL_STATIC_LIBRARIES := libbootimage
 
 LOCAL_MODULE := example-test-harness
  
-include $(BUILD_HOST_EXECUTABLE)
+#include $(BUILD_HOST_EXECUTABLE)

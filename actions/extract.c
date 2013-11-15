@@ -362,7 +362,7 @@ static int process_extract_file(extract_action* action, program_options* options
     
     boot_image bimage;
     if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
-        
+        D("EXTRACT TYPE IS BOOTIMAGE\n");
         return_value = extract_bootimage(action, options,&bimage);
         free(bimage.start_addr); 
         fprintf(stderr,"\n");
@@ -375,6 +375,7 @@ static int process_extract_file(extract_action* action, program_options* options
     ramdisk_image rimage;
     return_value = load_ramdisk_image_from_archive_memory(action_data,action_size,&rimage);
     if(!return_value){
+		D("EXTRACT TYPE IS RAMDISK IMAGE\n");
         print_program_title();
         fprintf(stderr," Extracting Ramdisk components from \"%s\"\n",action->filename);
         D("load_ramdisk_image_from_archive_memory returns:%d\n",rimage.entry_count); 
@@ -387,6 +388,7 @@ static int process_extract_file(extract_action* action, program_options* options
     // The target file was a cpio file. we can only step down one step to
     // directory or filenames have been specified
     if(!load_ramdisk_image_from_cpio_memory(action_data,action_size,&rimage)){
+		D("EXTRACT TYPE IS CPIO IMAGE\n");
         print_program_title();
         fprintf(stderr," Extracting Ramdisk components from \"%s\"\n",action->filename);
         D("cpio file rimage.entry_count=%d\n",rimage.entry_count);
@@ -399,11 +401,11 @@ static int process_extract_file(extract_action* action, program_options* options
     kernel_image kimage;
     errno = 0 ; 
     if(!(return_value = load_kernel_image_from_memory(action_data,action_size,&kimage))){
-    D("load_kernel_image_from_memory returns:%d\n", return_value); 
-    
-    return_value = extract_kernel_image(action,options,&kimage  );
-    if(kimage.start_addr != NULL  )  free(kimage.start_addr);
-        return return_value;
+		D("EXTRACT TYPE IS KERNEL IMAGE\n");
+		D("load_kernel_image_from_memory returns:%d\n", return_value); 
+		return_value = extract_kernel_image(action,options,&kimage  );
+		if(kimage.start_addr != NULL  )  free(kimage.start_addr);
+			return return_value;
     }
         
     return print_program_error_file_type_not_recognized(action->filename);

@@ -45,11 +45,13 @@ extern int utils_debug ;
     
 #include <bitapi_error.h>
 static int internal_errno = 0 ; 
+#define __FILENAME__  (strstr(__FILE__, "libbootimg/") ? strstr(__FILE__, "libbootimg/") : strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+
 #define D(  ...) \
         if (utils_debug){ \
             /* save our errno because we don't want debug output to fuck */ \
             internal_errno = errno ; \
-            fprintf(stderr, "DEBUG: %s::%s():", __FILE__, __FUNCTION__); \
+            fprintf(stderr, "DBG: %s:%s():",__FILENAME__ , __FUNCTION__); \
             fprintf(stderr,  __VA_ARGS__ ); \
             errno = internal_errno ; \
         }
