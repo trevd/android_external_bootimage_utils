@@ -45,7 +45,7 @@ extern int utils_debug ;
     
 #include <bitapi_error.h>
 static int internal_errno = 0 ; 
-#define __FILENAME__  (strstr(__FILE__, "libbootimg/") ? strstr(__FILE__, "libbootimg/") : strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#define __FILENAME__  (strstr(__FILE__, "libbootimg") ? strstr(__FILE__, "libbootimg") : strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
 #define D(  ...) \
         if (utils_debug){ \

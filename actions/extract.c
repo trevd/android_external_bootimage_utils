@@ -157,10 +157,10 @@ static int extract_ramdisk_cpio_image(extract_action* action, program_options* o
      }else {
          // no filenames - full extraction it is then
         if(action->ramdisk_directory){
-            if(save_ramdisk_entries_to_disk(rimage,rimage->directory)){
-                fprintf(stderr," error unpacking cpio archive to %s %d %s\n",rimage->directory,errno,strerror(errno));
+            if(save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory)){
+                fprintf(stderr," error unpacking cpio archive to %s %d %s\n",action->ramdisk_directory,errno,strerror(errno));
             }else{
-                fprintf(stderr," cpio archive unpacked to \"%s\"\n",rimage->directory);
+                fprintf(stderr," cpio archive unpacked to \"%s\"\n",action->ramdisk_directory);
             }
             //fprintf(stderr,"\n");
             errno = 0;
@@ -180,13 +180,13 @@ static int extract_ramdisk_image(extract_action* action, program_options* option
     D("rimage_size %d\n",rimage->size);
     errno = 0 ;
     
-    if(rimage->cpioname){
+    if(action->ramdisk_cpioname){
         // save the compress cpio file to disk
-        D("rimage->cpioname=%s\n",rimage->cpioname);
-        if(write_item_to_disk(rimage->start_addr,rimage->size,33188,rimage->cpioname)){
-            fprintf(stderr," ERROR writing cpio archive%s %d %s\n",rimage->cpioname,errno,strerror(errno));
+        D("rimage->cpioname=%s\n",action->ramdisk_cpioname);
+        if(write_item_to_disk(rimage->start_addr,rimage->size,33188,action->ramdisk_cpioname)){
+            fprintf(stderr," ERROR writing cpio archive%s %d %s\n",action->ramdisk_cpioname,errno,strerror(errno));
         }else{
-            fprintf(stderr," Cpio archive extracted to \"%s\"\n",rimage->cpioname);
+            fprintf(stderr," Cpio archive extracted to \"%s\"\n",action->ramdisk_cpioname);
         }
         //fprintf(stderr,"\n");
         errno = 0;
@@ -201,10 +201,10 @@ static int extract_ramdisk_image(extract_action* action, program_options* option
      }else {
         // extract and save the cpio file contents to disc  
         if(rimage->directory){
-            if(save_ramdisk_entries_to_disk(rimage,rimage->directory)){
-                fprintf(stderr," ERROR %d unpacking cpio archive to \"%s\" - %s\n",errno,rimage->directory,strerror(errno));
+            if(save_ramdisk_entries_to_disk(rimage,action->ramdisk_directory)){
+                fprintf(stderr," ERROR %d unpacking cpio archive to \"%s\" - %s\n",errno,action->ramdisk_directory,strerror(errno));
             }else{
-                fprintf(stderr," Cpio archive unpacked to \"%s\"\n",rimage->directory);
+                fprintf(stderr," Cpio archive unpacked to \"%s\"\n",action->ramdisk_directory);
             }
             //fprintf(stderr,"\n");
             errno = 0;
@@ -301,7 +301,7 @@ static int extract_bootimage(extract_action* action, program_options* options,bo
         return_value = load_ramdisk_image_from_archive_memory(bimage->ramdisk_addr,bimage->header->ramdisk_size,&rimage);
         
         if(!rimage.start_addr) return return_value;
-        
+          D("ramdisk_cpioname1=%s\n",action->ramdisk_cpioname);
         extract_ramdisk_image(action,options, &rimage);
         
         if(action->header_filename){
@@ -331,7 +331,7 @@ static int extract_kernel_image(extract_action* action, program_options* options
                 }else{
                         kimage->rimage->imagename = action->kernel_ramdisk_imagename;
                 }
-                extract_ramdisk_image(action,options,kimage->rimage);
+                //extract_ramdisk_image(action,options,kimage->rimage);
                 
         }
         return 0;
