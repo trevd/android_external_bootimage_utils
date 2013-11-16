@@ -22,7 +22,7 @@
  */
 #ifndef _cfe5afee_9069_11e2_93f2_5404a601fa9d
 #define _cfe5afee_9069_11e2_93f2_5404a601fa9d
-
+#include <stdlib.h>
 #define WINDOWS_EOL "\r\n"
 
 #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(__CYGWIN__) 
@@ -41,14 +41,15 @@
 #define FILE_TYPE_TEXT_UNIX 2
 #define FILE_TYPE_TEXT_WINDOWS 3
 
-extern int utils_debug ;
-    
+
+
+
 #include <bitapi_error.h>
 static int internal_errno = 0 ; 
 #define __FILENAME__  (strstr(__FILE__, "libbootimg") ? strstr(__FILE__, "libbootimg") : strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 
 #define D(  ...) \
-        if (utils_debug){ \
+        if (getenv("BITDBG")){ \
             /* save our errno because we don't want debug output to fuck */ \
             internal_errno = errno ; \
             fprintf(stderr, "DBG: %s:%s():",__FILENAME__ , __FUNCTION__); \
@@ -56,14 +57,7 @@ static int internal_errno = 0 ;
             errno = internal_errno ; \
         }
         
-#define DC( ac, av ) \
-        if (utils_debug){ \
-            fprintf(stderr, "DEBUG: %s::%s():Array Count:%d\n", __FILE__, __FUNCTION__,ac,av); \
-            int c = 0 ; \
-            for(c = 0 ; c < ac ; c++){ \
-                fprintf(stderr, "DEBUG: %s::%s(): %0d %p - %s\n", __FILE__, __FUNCTION__, c ,av[c],av[c]); \
-            } \
-        }
+
         
 /* NAME
     find_in_memory - locate a substring

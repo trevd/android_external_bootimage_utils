@@ -28,4 +28,9 @@
 
 #include <sys/ioctl.h>
 #define __mkdir(path,mode) mkdir(path,mode)
+// Handle win64 because they like to make shit up
+
+typedef	unsigned long	ulong_t;
+typedef	long long_t;
+
 #endif

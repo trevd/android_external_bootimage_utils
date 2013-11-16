@@ -134,20 +134,20 @@ int info_file(info_action* action,program_options* options ){
 
     
         D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
-        boot_image bimage;
+        boot_image* bimage = boot_image_allocate(); 
     
-        if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
+        if(!(return_value=load_boot_image_from_memory(action_data,action_size,bimage))){
     
                 D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
-                return_value = info_boot_image(action, options,&bimage);
+                return_value = info_boot_image(action, options,bimage);
     
                 D("info_boot_image returned %d\n",return_value);
-                if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+                boot_image_free(bimage); 
                         return return_value;   
     
         }else{
     
-                if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+               boot_image_free(bimage); 
     
         } 
         

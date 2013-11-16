@@ -42,13 +42,22 @@ bootimage_tools_include_dirs := $(LOCAL_PATH) \
 ###### Bootimage Loading Test ########
 
 include $(CLEAR_VARS)
-
 LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
-
 LOCAL_SRC_FILES := tests/bootimage_api_example1.c 
-
-LOCAL_STATIC_LIBRARIES := libbootimage
-
+LOCAL_STATIC_LIBRARIES := libbootimage libunz
 LOCAL_MODULE := bootimage_api_example1
- 
+include $(BUILD_HOST_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
+LOCAL_SRC_FILES := tests/bootimage_api_example2.c 
+LOCAL_STATIC_LIBRARIES := libbootimage libunz
+LOCAL_MODULE := bootimage_api_example2
+include $(BUILD_HOST_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
+LOCAL_SRC_FILES := tests/bootimage_api_example3.c 
+LOCAL_STATIC_LIBRARIES := libbootimage libunz
+LOCAL_MODULE := bootimage_api_example3
 include $(BUILD_HOST_EXECUTABLE)

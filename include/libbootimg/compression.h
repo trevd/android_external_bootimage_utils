@@ -30,13 +30,14 @@
 #define COMPRESSION_LZMA_FILE_EXTENSION ".lzma"
 #define COMPRESSION_LZ4_FILE_EXTENSION ".lz4"
 #define COMPRESSION_CPIO_FILE_EXTENSION ".cpio"
-#define COMPRESSION_xz_FILE_EXTENSION ".xz"
+#define COMPRESSION_XZ_FILE_EXTENSION ".xz"
+#define COMPRESSION_ZIP_FILE_EXTENSION ".zip"
 
 
 
 
 
-
+ 
 #define COMPRESSION_GZIP_DEFLATE        1
 #define COMPRESSION_LZOP                2
 #define COMPRESSION_XZ                  3
@@ -44,7 +45,8 @@
 #define COMPRESSION_BZIP2               5
 #define COMPRESSION_LZ4                 6
 #define COMPRESSION_CPIO                7
-#define COMPRESSION_INDEX_MAX           COMPRESSION_CPIO
+#define COMPRESSION_ZIP					8
+#define COMPRESSION_INDEX_MAX           COMPRESSION_ZIP
 /* get_compression_name_from_index(int index)
  * 
  * Helper function to get the name of a compression type value 
@@ -93,6 +95,10 @@ long uncompress_lzma_memory(unsigned char* compressed_data , size_t compressed_d
 
 long compress_lzma_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
                 unsigned char* compressed_data,size_t compressed_max_size);
+long uncompress_zip_memory(unsigned char* compressed_data , size_t compressed_data_size, 
+                unsigned char* uncompressed_data,size_t uncompressed_max_size);
 
+long compress_zip_memory( unsigned char* uncompressed_data ,size_t uncompressed_data_size,
+                unsigned char* compressed_data,size_t compressed_max_size);
 
 #endif

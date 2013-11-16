@@ -35,6 +35,15 @@
 #define WINDOWS_EOL "\r\n"
 #endif
 
+// Handle win64 because they like to make shit up
+#ifdef __WIN64__
+typedef	unsigned long long	ulong_t;
+typedef	long long	long_t;
+#else
+typedef	unsigned long	ulong_t;
+typedef	long long_t;
+#endif
+
 #define CONVERT_LINE_ENDINGS 1==1
 #define EOL WINDOWS_EOL
 

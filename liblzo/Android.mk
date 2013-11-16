@@ -82,7 +82,7 @@ common_SRC_FILES:=  \
 
 common_C_INCLUDES += $(LOCAL_PATH)/include
 
-
+ifneq ($(HOST_OS),windows)
 # Cyanogenmod already builds liblzo static from the external/lzo directory
 # so we only need to build a target one if we are using a different source
 # tree like the AOSP for example. 
@@ -117,7 +117,7 @@ LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
 
 endif
-
+endif
 
 #
 # We alway need to build for the host 

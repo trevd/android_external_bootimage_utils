@@ -417,8 +417,13 @@ long uncompress_lzma_memory( unsigned char* compressed_data , size_t compressed_
         return ds->outLen;
         
 } 
-
 long compress_lzma_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size)
 {
         return 0; 
+}
+long uncompress_zip_memory( unsigned char* compressed_data , size_t compressed_data_size, unsigned char* uncompressed_data,size_t uncompressed_max_size)
+{  return 0; 
+}
+long compress_zip_memory( unsigned char* uncompressed_data , size_t uncompressed_data_size,unsigned char* compressed_data,size_t compressed_max_size)
+{  return 0; 
 }

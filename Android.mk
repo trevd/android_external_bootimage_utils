@@ -58,11 +58,14 @@ bootimage_tools_include_dirs := $(LOCAL_PATH) \
 				$(LOCAL_PATH)/liblzo/include \
 				$(LOCAL_PATH)/lzma-9.22/C \
 				$(LOCAL_PATH)/lzma-9.22/C/Util/Lzma \
-				system/core/mkbootimg
+				system/core/mkbootimg \
+				
 							
 bootimage_tools_static_libraries := libbootimage\
 					libz \
 					libbz \
+					libunz \
+					libzipfile \
 					liblzop-static \
 					liblzo-static \
 					libxz-static \
@@ -82,7 +85,7 @@ LOCAL_SRC_FILES := $(bootimage_tools_src_files)
 
 LOCAL_MODULE := $(bootimage_tools_module_name)
  
-include $(BUILD_HOST_EXECUTABLE)
+#include $(BUILD_HOST_EXECUTABLE)
 
 
 
@@ -101,8 +104,8 @@ LOCAL_FORCE_STATIC_EXECUTABLE := true
 
 LOCAL_MODULE := $(bootimage_tools_module_name)
  
-include $(BUILD_EXECUTABLE)
-
-include $(MAIN_PATH)/tests.mk
+#include $(BUILD_EXECUTABLE)
 endif
+include $(MAIN_PATH)/tests.mk
+
 

@@ -110,8 +110,8 @@ int copy_kernel(copy_kernel_action* action){
     if(kimage_source.start_addr != NULL  ) free(kimage_source.start_addr);
     if(kimage_dest.start_addr != NULL  ) free(kimage_dest.start_addr);
 fail_hard:
-    if(bimage_source.start_addr != NULL  ) free(bimage_source.start_addr);
-    if(bimage_dest.start_addr != NULL  ) free(bimage_dest.start_addr);
+    if(bimage_source.data != NULL  ) free(bimage_source.data);
+    if(bimage_dest.data != NULL  ) free(bimage_dest.data);
     
     
     // we will create a clean

@@ -103,6 +103,8 @@ LOCAL_MODULE:= liblzma-static
 
 include $(BUILD_HOST_STATIC_LIBRARY)
 
+
+ifneq ($(HOST_OS),windows)
 # ========================================================
 # liblzma-static.a - static library for target
 # ========================================================
@@ -123,3 +125,4 @@ LOCAL_MODULE:= liblzma-static
 
 include $(BUILD_STATIC_LIBRARY)
 
+endif

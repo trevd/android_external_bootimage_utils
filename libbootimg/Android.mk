@@ -31,7 +31,9 @@ libbootimg_src_files := \
 			kernel.c \
 			md5.c \
 			ramdisk.c \
-			utils.c 	
+			utils.c \
+			../../../system/core/libzipfile/centraldir.c \
+			../../../system/core/libzipfile/zipfile.c \
 
 
 
@@ -41,6 +43,7 @@ libbootimg_include_dirs := $(LOCAL_PATH)/../include \
 				$(LOCAL_PATH)/../liblzop \
 				system/core/mkbootimg \
 				system/core/include/mincrypt \
+				system/core/libzipfile \
 				external/zlib \
 				external/bzip2 \
 				$(LOCAL_PATH)/../easylzma/easylzma-0.0.8/include \
@@ -61,13 +64,15 @@ else
 endif
 
 				
-libbootimg_static_libraries := 	libz \
-				libbz \
-				liblzop-static \
-				liblzo-static \
-				libxz-static \
-				liblzma-static
-				
+libbootimg_static_libraries :=  \
+					libz \
+					libbz \
+					libunz \
+					liblzop-static \
+					liblzo-static \
+					libxz-static \
+					liblzma-static \
+					libcrypto_static
 								
 libbootimg_module_name := libbootimage
 
@@ -91,6 +96,19 @@ LOCAL_STATIC_LIBRARIES := $(libbootimg_static_libraries)
 LOCAL_MODULE := $(libbootimg_module_name)
  
 include $(BUILD_HOST_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_C_INCLUDES := $(libbootimg_include_dirs)
+
+LOCAL_SRC_FILES := $(libbootimg_src_files)
+
+LOCAL_STATIC_LIBRARIES := $(libbootimg_static_libraries)
+
+LOCAL_MODULE := $(libbootimg_module_name)
+ 
+include $(BUILD_HOST_SHARED_LIBRARY)
+
 
 
 ifneq ($(HOST_OS),windows)

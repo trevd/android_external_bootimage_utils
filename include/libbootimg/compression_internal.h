@@ -80,6 +80,13 @@
 #define LZ4_MAGIC "\x02\x21" // .!
 #define LZ4_MAGIC_SIZE 2
 
+/* ZIP Compression type definition */
+
+#define ZIP_INDEX COMPRESSION_ZIP
+#define ZIP_NAME "zip"
+#define ZIP_NAME_SIZE 3
+#define ZIP_MAGIC "PK\003\004" // .!
+#define ZIP_MAGIC_SIZE 3
 
 /* COMPRESSION_INDEX_MAX should be the same as the last type index value */
 
@@ -104,6 +111,7 @@ static struct compression_type {
     { LZMA_INDEX            ,LZMA_NAME          ,LZMA_NAME_SIZE         ,LZMA_MAGIC         ,LZMA_MAGIC_SIZE            ,uncompress_lzma_memory         },
     { BZIP2_INDEX           ,BZIP2_NAME         ,BZIP2_NAME_SIZE        ,BZIP2_MAGIC        ,BZIP2_MAGIC_SIZE           ,uncompress_bzip2_memory        },
     { LZ4_INDEX             ,LZ4_NAME           ,LZ4_NAME_SIZE          ,LZ4_MAGIC          ,LZ4_MAGIC_SIZE             ,NULL   },
+    { ZIP_INDEX             ,ZIP_NAME           ,ZIP_NAME_SIZE          ,ZIP_MAGIC          ,ZIP_MAGIC_SIZE             ,uncompress_zip_memory   },
     { 0                     ,NULL               ,0                      ,NULL               ,0                          ,NULL   }
     
 };

@@ -26,6 +26,7 @@
 #include <ramdisk.h>
 #include <bootimg.h>
 typedef struct boot_image boot_image;
+typedef struct BOOT_IMAGE_DATA BOOT_IMAGE_DATA;
 
 #ifndef BOOT_MAGIC_SIZE
 #define BOOT_MAGIC_SIZE 8
@@ -36,23 +37,29 @@ typedef struct boot_image boot_image;
 #define BOOT_IMAGE_ARGS_SIZE BOOT_ARGS_SIZE
 
 
+struct BOOT_IMAGE_DATA {
+	
+	unsigned char* oem;
+	unsigned char* header ;
+	unsigned char* kernel ;
+	unsigned char* ramdisk ;
+	unsigned char* second ;
+};
+typedef boot_img_hdr BOOT_IMAGE_HEADER;
 
 struct boot_image
 {
-    unsigned char* start_addr ; /*  pointer to the start of the image file in memory
+    
+    BOOT_IMAGE_DATA* data ; /*  pointer to the start of the image file in memory
                                     the creator of the boot_image struct is resposible
                                     for freeing the memory specified at this location */
     
     /* The addresses within the boot image memory to find the specific parts */
-    boot_img_hdr* header;
-    unsigned char* kernel_addr;
-    unsigned char* ramdisk_addr;
-    unsigned char* second_addr;   
-    
-    
+    BOOT_IMAGE_HEADER* header;
+        
     /* Additional Boot Image Information */
 
-    unsigned total_size;
+    unsigned long size;
     unsigned header_size;
     
     unsigned header_padding;
@@ -73,21 +80,32 @@ struct boot_image
     
 };
 
-unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
-unsigned load_boot_image_from_file(const char *filename, boot_image* image);
-unsigned write_boot_image(char *filename, boot_image* image);
-unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image);
-unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image);
-unsigned set_boot_image_defaults(boot_image* image);
-unsigned set_boot_image_content_hash(boot_image* image);
-
-unsigned set_boot_image_padding(boot_image* image);
-unsigned set_boot_image_offsets(boot_image* image);
-unsigned print_boot_image_info(boot_image* image);
-unsigned print_boot_image_header_info(boot_image* image);
-unsigned print_boot_image_additional_info(boot_image* image);
-unsigned print_boot_image_header_hashes(boot_image* image);
+//~ unsigned load_boot_image_from_memory(unsigned char* boot_image_addr,unsigned boot_image_size, boot_image* image);
+//~ unsigned load_boot_image_from_file(const char *filename, boot_image* image);
+//~ unsigned write_boot_image(char *filename, boot_image* image);
+//~ unsigned write_boot_image_header_to_disk(const char *filename, boot_image* image);
+//~ unsigned load_boot_image_header_from_disk(const char *filename, boot_image* image);
+//~ unsigned set_boot_image_defaults(boot_image* image);
+//~ unsigned set_boot_image_content_hash(boot_image* image);
+//~ 
+//~ unsigned set_boot_image_padding(boot_image* image);
+//~ unsigned set_boot_image_offsets(boot_image* image);
+//~ unsigned print_boot_image_info(boot_image* image);
+//~ unsigned print_boot_image_header_info(boot_image* image);
+//~ unsigned print_boot_image_additional_info(boot_image* image);
+//~ unsigned print_boot_image_header_hashes(boot_image* image);
 
 boot_image* boot_image_allocate();
 void boot_image_free(boot_image* image); 
+
+boot_image* abu_bootimage_init();
+void abu_bootimage_destroy(boot_image* image);
+
+// abu_bootimage_open_archive - populates boot_image structure
+// from zip file 
+unsigned int abu_bootimage_open_archive(boot_image* image,const char* filename);
+
+
+boot_image* abu_bootimage_open(boot_image* image,const char* filename);
+
 #endif

@@ -34,7 +34,7 @@
 #include <utils.h>
 #include <md5.h>
 
-int utils_debug = 0;
+
 
 unsigned char *find_in_memory(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len){
     

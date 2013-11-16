@@ -77,24 +77,24 @@ int create_bootimage(create_action* action, program_options* options){
     unsigned char* ramdisk_data;
     //boot_image* image = new_boot_image(); 
     // set the physical address defaults and other boot_image structure defaults
-    boot_image bimage ; //= (*image);
-    set_boot_image_defaults(&bimage);
-    //D("bimage header:%p %d\n",bimage.header,bimage.header_size);
+    boot_image* bimage = boot_image_allocate() ; //= (*image);
+    set_boot_image_defaults(bimage);
+    //D("bimage header:%p %d\n",bimage->header,bimage->header_size);
     
     if (action->header_filename) {
         fprintf(stderr, " Creating Header From : \"%s\"\n",action->header_filename) ;
-        load_boot_image_header_from_disk(action->header_filename,&bimage);
+        load_boot_image_header_from_disk(action->header_filename,bimage);
     }
     
     //
     if(action->kernel_filename){
         
         unsigned kernel_size = 0; 
-        if(!(bimage.kernel_addr = read_item_from_disk(action->kernel_filename,&kernel_size))){
+        if(!(bimage->kernel_addr = read_item_from_disk(action->kernel_filename,&kernel_size))){
             print_program_error_processing(action->kernel_filename);
             return errno ; 
         }
-        bimage.header->kernel_size = kernel_size;      
+        bimage->header->kernel_size = kernel_size;      
         fprintf(stderr, " Creating Kernel From : \"%s\"\n",action->kernel_filename) ;
     }
     if(action->ramdisk_directory){    
@@ -113,8 +113,8 @@ int create_bootimage(create_action* action, program_options* options){
         // we'll use the current uncompressed size as our new buffer size
         ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
         // SMASH - Compress or Die!
-        bimage.header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size) ;
-        if(!bimage.header->ramdisk_size){
+        bimage->header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size) ;
+        if(!bimage->header->ramdisk_size){
             // That'll be Die then 
             print_program_error_processing(action->ramdisk_directory);
             
@@ -129,7 +129,7 @@ int create_bootimage(create_action* action, program_options* options){
         // ramdisk address and free our uncompressed buffer as we
         // are done with that
         if(cpio_data) free(cpio_data);
-        bimage.ramdisk_addr = ramdisk_data;
+        bimage->ramdisk_addr = ramdisk_data;
         fprintf(stderr, " Creating Ramdisk From Directory : \"%s\"\n",action->ramdisk_directory) ;
         
     }else if(action->ramdisk_cpioname ){
@@ -139,18 +139,18 @@ int create_bootimage(create_action* action, program_options* options){
         
     
         ramdisk_data = calloc(cpio_ramdisk_size,sizeof(char));
-        if(!(bimage.header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size))){
+        if(!(bimage->header->ramdisk_size = compress_gzip_memory(cpio_data,cpio_ramdisk_size,ramdisk_data,cpio_ramdisk_size))){
             print_program_error_processing(action->ramdisk_cpioname);
             return errno ; 
         }
     
-    bimage.ramdisk_addr = ramdisk_data;
+    bimage->ramdisk_addr = ramdisk_data;
     fprintf(stderr, " Creating Ramdisk From : \"%s\"\n",action->ramdisk_cpioname) ;
     free(cpio_data);
     
     }else if(action->ramdisk_imagename ){
 
-    if(!(bimage.ramdisk_addr =  read_item_from_disk(action->ramdisk_imagename,&bimage.header->ramdisk_size))){
+    if(!(bimage->ramdisk_addr =  read_item_from_disk(action->ramdisk_imagename,bimage->header->ramdisk_size))){
         print_program_error_processing(action->ramdisk_imagename);
         return errno ; 
     }
@@ -160,9 +160,9 @@ int create_bootimage(create_action* action, program_options* options){
     
     if(action->second_filename){
     
-    if(bimage.header->second_size == 0 ) 
-        bimage.second_addr = NULL;
-    else if(!(bimage.second_addr =  read_item_from_disk(action->second_filename,&bimage.header->second_size))){
+    if(bimage->header->second_size == 0 ) 
+        bimage->second_addr = NULL;
+    else if(!(bimage->second_addr =  read_item_from_disk(action->second_filename,bimage->header->second_size))){
         print_program_error_processing(action->second_filename);
         return errno ; 
     }
@@ -170,15 +170,15 @@ int create_bootimage(create_action* action, program_options* options){
     
     }
     fprintf(stderr, " Calculating Padding\n") ;    
-    set_boot_image_padding(&bimage);
+    set_boot_image_padding(bimage);
     fprintf(stderr, " Calculating Content Hashes\n") ;    
-    set_boot_image_content_hash(&bimage);
-    set_boot_image_offsets(&bimage);
+    set_boot_image_content_hash(bimage);
+    set_boot_image_offsets(bimage);
     
-    //print_boot_image_info(&bimage);
+    //print_boot_image_info(bimage);
         
    fprintf(stderr, " Writing Booting Image\n") ;    
-   if(write_boot_image(action->bootimage_filename,&bimage)){
+   if(write_boot_image(action->bootimage_filename,bimage)){
     
     }
    
@@ -186,11 +186,11 @@ int create_bootimage(create_action* action, program_options* options){
 cleanup_bootimage:
     D("cleaning up boot image\n");
     D("kernel_addr free\n");
-    if(bimage.kernel_addr) free(bimage.kernel_addr);
+    if(bimage->kernel_addr) free(bimage->kernel_addr);
     D("ramdisk_addr free\n");
-    if(bimage.ramdisk_addr) free(bimage.ramdisk_addr);
+    if(bimage->ramdisk_addr) free(bimage->ramdisk_addr);
     D("second_addr free\n");
-    if(bimage.second_addr) free(bimage.second_addr);
+    if(bimage->second_addr) free(bimage->second_addr);
     return errno;
 }
 

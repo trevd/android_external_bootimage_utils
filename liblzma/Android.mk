@@ -83,6 +83,8 @@ liblzma_include_dirs += \
 	$(LOCAL_PATH)/simple \
 	$(LOCAL_PATH)
 
+ifneq ($(HOST_OS),windows)
+
 
 # ========================================================
 # liblzma-static.a - static library for target
@@ -100,6 +102,7 @@ LOCAL_MODULE:= libxz-static
 
 include $(BUILD_STATIC_LIBRARY)
 
+endif # // ifneq ($(HOST_OS),windows)
 
 
 

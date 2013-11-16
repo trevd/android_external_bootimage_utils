@@ -360,16 +360,16 @@ static int process_extract_file(extract_action* action, program_options* options
         chdir((char*)action->output_directory);
     }
     
-    boot_image bimage;
-    if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
+    boot_image* bimage = boot_image_allocate();
+    if(!(return_value=load_boot_image_from_memory(action_data,action_size,bimage))){
         D("EXTRACT TYPE IS BOOTIMAGE\n");
-        return_value = extract_bootimage(action, options,&bimage);
-        free(bimage.start_addr); 
+        return_value = extract_bootimage(action, options,bimage);
+        boot_image_free(bimage); 
         fprintf(stderr,"\n");
         return return_value;   
     
     }else{
-        if(bimage.start_addr != NULL  ) free(bimage.start_addr);
+       boot_image_free(bimage);
     }
     
     ramdisk_image rimage;

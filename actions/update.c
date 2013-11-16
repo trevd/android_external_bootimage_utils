@@ -431,16 +431,16 @@ static int process_update_target_file(update_action* action,program_options* opt
     D("read_item_from_disk completed %s %u errno=%d\n",action->filename,action_size,errno);
     
     // Probe the file type - First check if we have a boot.img file
-    boot_image bimage;
-    if(!(return_value=load_boot_image_from_memory(action_data,action_size,&bimage))){
+    boot_image* bimage = boot_image_allocate();
+    if(!(return_value=load_boot_image_from_memory(action_data,action_size,bimage))){
         D("%s is a boot image - load_boot_image_from_memory returned %d\n",action->filename,return_value);
-        return_value = update_boot_image(action, options,&bimage);
+        return_value = update_boot_image(action, options,bimage);
         D("update_boot_image returned %d\n",return_value);
-        if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+       boot_image_free(bimage); 
         return return_value;   
     
     }else{
-        if(bimage.start_addr != NULL ) free(bimage.start_addr); 
+        boot_image_free(bimage); 
         errno = 0 ; 
     }
         

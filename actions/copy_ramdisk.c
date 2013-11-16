@@ -102,8 +102,8 @@ int copy_ramdisk(copy_ramdisk_action* action){
     write_boot_image(action->destination,&bimage_dest);
     
 fail_hard:
-    if(bimage_source.start_addr != NULL  ) free(bimage_source.start_addr);
-    if(bimage_dest.start_addr != NULL  ) free(bimage_dest.start_addr);
+    if(bimage_source.data != NULL  ) free(bimage_source.data);
+    if(bimage_dest.data != NULL  ) free(bimage_dest.data);
     
     
     // we will create a clean
