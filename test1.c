@@ -14,6 +14,15 @@ void extract_ramdisk(struct bootimage* bi)
 
 }
 
+void extract_ramdisk_directory(struct bootimage* bi)
+{
+	int ret = bootimage_extract_ramdisk(bi,NULL);
+	if ( ret == -1 ){
+		printf("bootimage_extract_ramdisk failed err=%d\n",errno);
+	}
+
+}
+
 void extract_kernel(struct bootimage* bi)
 {
 	int ret = bootimage_extract_kernel(bi,NULL);
@@ -40,7 +49,7 @@ void list_archive(const char *name)
 	int ret = bootimage_file_read(bi,name);
 	extract_header_block(bi);
 	extract_ramdisk(bi);
-
+	extract_ramdisk_directory(bi);
 	if ( ret == -1 ){
 		printf("bootimage_file_read failed err=%d\n",errno);
 	}else{

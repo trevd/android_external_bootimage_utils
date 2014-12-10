@@ -4,6 +4,7 @@
 
 #include <private/checks.h>
 #include <private/bootimage.h>
+#include <private/utils.h>
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header(struct bootimage* bi,const char* header_name)
 {
@@ -112,12 +113,31 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,
 	if ( check_output_name ( ramdisk_dir_name ) == -1 ) {
 		return -1 ;
 	}
+	if ( mkdir_and_parents ( ramdisk_dir_name, 0755 ) == -1 ) {
+		return -1 ;
+	}
+	struct archive *a = NULL;
+	struct archive_entry *entry = NULL;
+
+	int r = 0 ;
+	a = archive_read_new();
+	archive_read_support_filter_all(a);
+	archive_read_support_format_all(a);
+
+	printf("bi->header->ramdisk_size=%lu\n",bi->header->ramdisk_size);
+	r = archive_read_open_memory(a, bi->ramdisk, bi->header->ramdisk_size);
+	if (r != ARCHIVE_OK){
+		return NULL;
+	}
+
+
 	printf("bi %u\n",bi->header->ramdisk_size);
 
 	FILE* fi = fopen(ramdisk_dir_name,"w+b");
 	if ( fi == NULL ){
 		return -1 ;
 	}
+
 
 	fwrite(bi->ramdisk,bi->header->ramdisk_size,1,fi);
 	fclose(fi);
@@ -136,6 +156,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_archive(struct bootim
 		return -1 ;
 	}
 	printf("bi %u\n",bi->header->ramdisk_size);
+
 
 	FILE* fi = fopen(ramdisk_name,"w+b");
 	if ( fi == NULL ){
