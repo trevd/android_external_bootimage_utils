@@ -26,6 +26,8 @@
 #include <private/api.h>
 
 #define DEFAULT_NAME_KERNEL "kernel"
+#define DEFAULT_NAME_KERNEL_RAMDISK_DIRECTORY "kernel-ramdisk"
+#define DEFAULT_NAME_KERNEL_RAMDISK_ARCHIVE "kernel-ramdisk.img"
 #define DEFAULT_NAME_RAMDISK_DIRECTORY "ramdisk"
 #define DEFAULT_NAME_RAMDISK_ARCHIVE "ramdisk.img"
 #define DEFAULT_NAME_HEADER "header"
