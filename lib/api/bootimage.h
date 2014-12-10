@@ -3,9 +3,9 @@
 
 struct bootimage ;
 
-#define __LIBBOOTIMAGE_PUBLIC_API__  __attribute__((visibility("default"))) 
+#define __LIBBOOTIMAGE_PUBLIC_API__  __attribute__((visibility("default")))
 
-__LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_read_initialize();
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_read_free(struct bootimage** bi);
-
+__LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize();
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip);
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name);
 #endif

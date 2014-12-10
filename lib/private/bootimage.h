@@ -1,9 +1,40 @@
+/*
+ * Copyright (C) 2014 Trevor Drake
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * file : lib/private/bootimage.h
+ * This file is part of the INTERNAL api for the bootimage utils project
+ *
+ */
+
+
 #ifndef _a373d2ec_79e2_11e4_a4f4_5404a601fa9d
 #define _a373d2ec_79e2_11e4_a4f4_5404a601fa9d
 #include <stdint.h>
+#include <sys/stat.h>
+#include <private/api.h>
+
+#define DEFAULT_NAME_KERNEL "kernel"
+#define DEFAULT_NAME_RAMDISK_DIRECTORY "ramdisk"
+#define DEFAULT_NAME_RAMDISK_ARCHIVE "ramdisk.img"
+#define DEFAULT_NAME_HEADER "header"
+#define DEFAULT_NAME_HEADER_BLOCK "header.bin"
+
+
 
 /* This is the codeaurora ( caf ) version of the boot_img_hdr structure
- * This is modified to "handle" kernel device trees see 
+ * This is modified to "handle" kernel device trees see
  * https://www.codeaurora.org/cgit/quic/la/platform/system/core/commit/?h=lp&id=27d21ae19ba72a66a6094aa3ffd995e3979211a8
  * for more info .
  */
@@ -44,12 +75,12 @@ struct bootimage_header
 
 
 /*
-** +-----------------+ 
+** +-----------------+
 ** | boot header     | 1 page
 ** +-----------------+
-** | kernel          | n pages  
+** | kernel          | n pages
 ** +-----------------+
-** | ramdisk         | m pages  
+** | ramdisk         | m pages
 ** +-----------------+
 ** | second stage    | o pages
 ** +-----------------+
@@ -73,10 +104,6 @@ struct bootimage_header
 **    else: jump to kernel_addr
 */
 
-
-/* The minimum page size as used by googles mkbootimg program */
-//#define PAGE_SIZE_MIN 2048
-
 enum page_size {
 	PAGE_SIZE_2048= 2048 ,
 	PAGE_SIZE_MIN =  PAGE_SIZE_2048,
@@ -88,49 +115,51 @@ enum page_size {
 	PAGE_SIZE_131072 = 131072 ,
 	PAGE_SIZE_262144 = 262144 ,
 	PAGE_SIZE_MAX = PAGE_SIZE_262144
-	
+
 };
 
 struct bootimage
 {
-	
+
 	unsigned char* start  ; /*  pointer to the start of the image file in memory
                                This is often the same as value as the header.
                                However some boot images have additional data before
                                The header magic ( e.g HTC ) */
-                                     
-                                     
+
+
 	struct bootimage_header* header ; /* pointer to the start of the boot image header
 							   identified with the ANDROID! magic */
 
-	unsigned char* kernel ; 
+	unsigned char* kernel ;
 	/* pointer to the start of the kernel data.
 	   This is normally locate one page after the header and
 	   is usually compressed. If the kernel is uncompressed then
 	   the uncompressed_kernel and kernel members will be the same */
-	  					   
+
 	unsigned char* ramdisk ; /* pointer to the start of the ramdisk data. This is
 							    on the next page boundary after the kernel data  */
 	unsigned char* second ; /* pointer to the start of the second bootloader data. */
-	
+
 	struct stat stat ; /* The file size of the bootimage. other sizes are found in the
 						 bootimage header*/
-						 
+
 	off_t header_size; /* Header size stores the sizeof(bootimage_header) structure
 						  for convient easy access */
-						  
-	uint32_t header_padding; /* the number of bytes required to align the 
+
+	uint32_t header_padding; /* the number of bytes required to align the
 								header to the next page boundary */
 	uint32_t kernel_padding;
 	uint32_t ramdisk_padding;
 	uint32_t second_padding;
-	
+
 	unsigned char* uncompressed_kernel ; /* pointer to the uncompressed kernel data */
 	uint32_t uncompressed_kernel_size;  /* size in bytes */
-	
-		
+
+
  };
 
-
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_mmap_file(struct bootimage* bi,const char* file_name);
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_magic_address(struct bootimage* bi);
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi);
 
 #endif

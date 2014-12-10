@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <api/bootimage.h>
+#include <api/bootimage_extract.h>
+
+#include <private/checks.h>
+#include <private/bootimage.h>
+
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header(struct bootimage* bi,const char* header_name)
+{
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1;
+	}
+	if ( header_name == NULL ) {
+		header_name = DEFAULT_NAME_HEADER;
+	}
+
+	if ( check_output_name ( header_name ) == -1 ) {
+		return -1 ;
+	}
+	printf("bi %u\n",bi->header_size);
+
+	FILE* fi = fopen(header_name,"w+b");
+	if ( fi == NULL ){
+		return -1 ;
+	}
+
+
+	fwrite(bi->header,bi->header_size,1,fi);
+	fclose(fi);
+	return 0;
+
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header_block(struct bootimage* bi,const char* header_block_name)
+{
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1;
+	}
+	if ( header_block_name == NULL ) {
+		header_block_name = DEFAULT_NAME_HEADER_BLOCK;
+	}
+
+	if ( check_output_name ( header_block_name ) == -1 ) {
+		return -1 ;
+	}
+	printf("bi %u\n",bi->header_size);
+
+	FILE* fi = fopen(header_block_name,"w+b");
+	if ( fi == NULL ){
+		return -1 ;
+	}
+
+	fwrite(bi->header,bi->header_size,1,fi);
+	fclose(fi);
+
+
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel(struct bootimage* bi,const char* kernel_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel_config(struct bootimage* bi,const char* kernel_config_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel_config_gz(struct bootimage* bi,const char* kernel_config_gz_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel_ramdisk(struct bootimage* bi,const char* kernel_ramdisk_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel_ramdisk_archive(struct bootimage* bi,const char* kernel_ramdisk_dir_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel_ramdisk_entry(struct bootimage* bi,const char* kernel_ramdisk_entry_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_uncompressed_kernel(struct bootimage* bi,const char* uncompressed_kernel_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,const char* ramdisk_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_archive(struct bootimage* bi,const char* ramdisk_dir_name)
+{
+	return 0;
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_entry(struct bootimage* bi,const char* ramdisk_entry_name)
+{
+	return 0;
+}
