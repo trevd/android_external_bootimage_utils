@@ -102,7 +102,25 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_uncompressed_kernel(struct bo
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,const char* ramdisk_dir_name)
 {
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1;
+	}
+	if ( ramdisk_dir_name == NULL ) {
+		ramdisk_dir_name = DEFAULT_NAME_RAMDISK_DIRECTORY;
+	}
 
+	if ( check_output_name ( ramdisk_dir_name ) == -1 ) {
+		return -1 ;
+	}
+	printf("bi %u\n",bi->header->ramdisk_size);
+
+	FILE* fi = fopen(ramdisk_dir_name,"w+b");
+	if ( fi == NULL ){
+		return -1 ;
+	}
+
+	fwrite(bi->ramdisk,bi->header->ramdisk_size,1,fi);
+	fclose(fi);
 	return 0;
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_archive(struct bootimage* bi,const char* ramdisk_name)

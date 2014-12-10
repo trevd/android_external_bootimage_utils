@@ -5,6 +5,7 @@ libbootimage_src_files := \
 					lib/api/bootimage_extract.c \
 					lib/private/bootimage.c \
 					lib/private/checks.c \
+					lib/private/utils.c \
 
 
 
