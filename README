@@ -12,6 +12,8 @@ bootimage_file_read(struct bootimage* bi,const char* file_name)
 
 The Main Bootimage File Extraction Functions
 ============================================
+
+
 bootimage_file_extract_header(const char* file_name,const char* header_name);
 bootimage_file_extract_header_block(const char* file_name,const char* header_block_name);
 bootimage_file_extract_kernel(const char* file_name,const char* kernel_name);
@@ -29,11 +31,13 @@ bootimage_file_extract_ramdisk_entry(const char* file_name,const char* ramdisk_e
 
 bootimage_file_print_header(const char* file_name);
 bootimage_file_print_header_fd(const char* file_name,int fd);
-bootimage_file_print_info(const char* file_name,int fd);
-
-
-
-;
+bootimage_file_print_kernel(const char* file_name);
+bootimage_file_print_kernel_version(const char* file_name);
+bootimage_file_print_ramdisk(const char* file_name);
+bootimage_file_print_ramdisk_list(const char* file_name);
+bootimage_file_print_ramdisk_file(const char* file_name,const char* ramdisk_file);
+bootimage_file_print_ramdisk_files(const char* file_name,const char** ramdisk_files);
+bootimage_file_print_all(const char* file_name);
 
 bootimage_extract_header(struct bootimage* bi,const char* header_name);
 bootimage_extract_header_block(struct bootimage* bi,const char* header_block_name);

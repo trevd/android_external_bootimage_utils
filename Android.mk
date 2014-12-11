@@ -6,8 +6,9 @@ libbootimage_src_files := \
 					lib/private/bootimage.c \
 					lib/private/checks.c \
 					lib/private/utils.c \
+					lib/private/archive.c \
 
-
+libbootimage_c_includes := $(LOCAL_PATH)/lib/include
 
 
 ifeq ($(HOST_OS),windows)
@@ -29,8 +30,9 @@ ifeq ($(HOST_OS),windows)
 endif
 LOCAL_SHARED_LIBRARIES := libarchive
 LOCAL_SRC_FILES := $(libbootimage_src_files)
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/lib
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/lib
+LOCAL_C_INCLUDES := $(libbootimage_c_includes)
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(libbootimage_c_includes)
+$(info LOCAL_C_INCLUDES $(LOCAL_C_INCLUDES))
 include $(BUILD_HOST_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -38,7 +40,7 @@ LOCAL_MODULE := bootimage-utils-test1
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := test1.c
 LOCAL_SHARED_LIBRARIES := libbootimage
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/lib
+LOCAL_C_INCLUDES := $(libbootimage_c_includes)
 include $(BUILD_HOST_EXECUTABLE)
 
 
@@ -50,8 +52,8 @@ LOCAL_CFLAGS := -fvisibility=hidden
 LOCAL_MODULE_TAGS := optional
 LOCAL_SHARED_LIBRARIES := libarchive
 LOCAL_SRC_FILES := $(libbootimage_src_files)
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/lib
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/lib
+LOCAL_C_INCLUDES := $(libbootimage_c_includes)
+LOCAL_EXPORT_C_INCLUDE_DIRS := $(libbootimage_c_includes)
 include $(BUILD_SHARED_LIBRARY)
 
 

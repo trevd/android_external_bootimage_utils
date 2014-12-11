@@ -47,15 +47,13 @@ void list_archive(const char *name)
 	printf("bi %p\n",bi);
 	bi = bootimage_initialize();
 	int ret = bootimage_file_read(bi,name);
-	extract_header_block(bi);
-	extract_ramdisk(bi);
-	extract_ramdisk_directory(bi);
 	if ( ret == -1 ){
 		printf("bootimage_file_read failed err=%d\n",errno);
 	}else{
 		extract_ramdisk(bi);
 		extract_kernel(bi);
 		extract_header_block(bi);
+		extract_ramdisk_directory(bi);
 	}
 	bootimage_free(&bi);
 	printf("bi %p\n",bi);

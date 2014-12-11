@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 
-
+#include <archive.h>
 #include <api/bootimage.h>
 #include <api/errors.h>
 #include <private/bootimage.h>
@@ -16,9 +16,36 @@
 
 
 
+__LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_initialization(struct archive **ap)
+{
+	struct archive* a = archive_read_new();
+    if( a == NULL ){
+        /* Failed to initialize libarchive reading */
+        errno = EBIARCHIVEREAD;
+        return -1 ;
+    }
+	/*  */
+	if ( archive_read_support_filter_all(a) == ARCHIVE_WARN ){
+		errno = EBIARCHIVEREADFILTER  ;
+        return -1 ;
+    }
+
+    if ( archive_read_support_format_all(a) == ARCHIVE_FATAL ){
+		errno = EBIARCHIVEREADFORMAT ;
+        return -1 ;
+    }
+    if ( archive_read_support_format_raw(a) == ARCHIVE_FATAL ){
+		errno = EBIARCHIVEREADFORMATRAW  ;
+        return -1 ;
+    }
+    errno = EBIOK;
+    ap[0]=a;
+    return 0;
+
+
+}
 __LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(const char* name)
 {
-
 	if ( name == NULL ){
 		errno = EBIOUTNAME ;
 		return -1;
@@ -28,6 +55,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(const char* name)
 		errno = EBIOUTNAMELEN ;
 		return -1;
 	}
+	errno = EBIOK;
 	return size ;
 
 
@@ -39,6 +67,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_structure(struct bootimage* bi)
 		errno = EBINULL;
 		return -1;
 	}
+	errno = EBIOK;
 	return 0;
 }
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage* bi ,const char* file_name)
@@ -58,6 +87,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage
 		errno = EBIFSIZE;
 		return -1 ;
 	}
+	errno = EBIOK;
 	return 0;
 }
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_name(const char* file_name)
@@ -73,7 +103,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_name(const char* file_name
 		errno = EBIFACCESS ;
 		return -1 ;
 	}
-
+	errno = EBIOK;
 	return 0;
 }
 __LIBBOOTIMAGE_PRIVATE_API__ int check_out_file(const char* file_name)
@@ -89,7 +119,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_out_file(const char* file_name)
 		errno = EBIFACCESS ;
 		return -1 ;
 	}
-
+	errno = EBIOK;
 	return 0;
 }
 
@@ -106,6 +136,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_ramdisk_entryname(const char* entry_name)
 		return -1;
 
 	}
+	errno = EBIOK;
 	return entry_length;
 }
 
@@ -125,5 +156,6 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_ramdisk(struct bootimage* bi)
 		return -1;
 
 	}
+	errno = EBIOK;
 	return 0;
 }

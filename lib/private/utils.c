@@ -2,11 +2,28 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <limits.h>
 #include <string.h>
 #include <private/api.h>
+#include <private/utils.h>
 
-__LIBBOOTIMAGE_PRIVATE_API__  int mkdir_and_parents(const char *path,unsigned mode)
+__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdirat_umask(const char *path,unsigned mode, mode_t mask)
+{
+    mode_t oldumask = umask(mask);
+    DIR* ret = mkdir_and_parents(path,mode);
+    umask(oldumask);
+    return ret;
+}
+
+__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents_umask(const char *path,unsigned mode, mode_t mask)
+{
+    mode_t oldumask = umask(mask);
+    DIR* ret = mkdir_and_parents(path,mode);
+    umask(oldumask);
+    return ret;
+}
+__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned mode)
 {
         errno = 0;
         char opath[PATH_MAX];
@@ -15,23 +32,23 @@ __LIBBOOTIMAGE_PRIVATE_API__  int mkdir_and_parents(const char *path,unsigned mo
 
         if(strnlen(path,PATH_MAX) >= PATH_MAX){
             errno = ENAMETOOLONG ;
-            return -1;
+            return NULL;
         }
 
         /* stat the full path, see if we have an existing directory */
         struct stat statbuf ;
         if ( stat(path, &statbuf) == 0 ){
             if ( S_ISDIR(statbuf.st_mode) ){
-                return 0 ;
+                return opendir(path);
             }else
                 /* path exists but not a directory */
                 /* D("path %s found but not a directory\n",path); */
                 errno = ENOTDIR ;
-                return -1;
+                return NULL;
         }
 
         strncpy(opath,(char*) path, sizeof(opath));
-        len = strlen(opath);
+        len = strnlen(opath,PATH_MAX);
 
         if(opath[len - 1] == '/'){
             /* Replace a trailing slash with a null
@@ -39,7 +56,6 @@ __LIBBOOTIMAGE_PRIVATE_API__  int mkdir_and_parents(const char *path,unsigned mo
              create a directory that ended with a slash */
             opath[len - 1] = '\0';
         }
-        umask(0);
         for(p = opath; *p; p++){
             if(*p == '/') {
                 *p = '\0';
@@ -58,5 +74,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  int mkdir_and_parents(const char *path,unsigned mo
             mkdir(opath, mode);
         }
         /* D("opath=%s errno=%u %s\n",opath,errno,strerror(errno)); */
-        return 0 ;
+
+        return opendir(path);
+
 }
