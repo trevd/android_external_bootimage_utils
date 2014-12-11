@@ -23,11 +23,12 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(const char* name)
 		errno = EBIOUTNAME ;
 		return -1;
 	}
-	if ( strnlen(name,PATH_MAX) > PATH_MAX-1){
+	int size = strnlen(name,PATH_MAX);
+	if ( size > PATH_MAX-1){
 		errno = EBIOUTNAMELEN ;
 		return -1;
 	}
-	return 0 ;
+	return size ;
 
 
 }
