@@ -21,5 +21,12 @@
 #ifndef _3453ef82_7d16_11e4_ba53_5404a601fa9d
 #define _3453ef82_7d16_11e4_ba53_5404a601fa9d
 #define __LIBBOOTIMAGE_PRIVATE_API__ __attribute__((visibility("hidden")))
-
+#include <private/api.h>
+#include <private/archive.h>
+#include <private/bootimage.h>
+#include <private/checks.h>
+#include <private/errors.h>
+#include <private/print.h>
+#include <private/trace.h>
+#include <private/utils.h>
 #endif

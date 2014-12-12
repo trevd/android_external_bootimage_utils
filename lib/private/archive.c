@@ -16,7 +16,7 @@
  * file : lib/private/archive.c
  *
  */
-
+#define  TRACE_TAG   TRACE_PRIVATE_ARCHIVE
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -25,8 +25,7 @@
 #include <limits.h>
 #include <string.h>
 #include <private/api.h>
-#include <private/archive.h>
-#include <private/checks.h>
+
 
 #include <archive.h>
 #include <archive_entry.h>

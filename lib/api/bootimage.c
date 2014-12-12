@@ -16,59 +16,58 @@
  * file : lib/api/bootimage.c
  *
  */
+#define TRACE_TAG TRACE_API_BOOTIMAGE
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/mman.h>
 #include <api/bootimage.h>
-
-#include <private/checks.h>
-#include <private/bootimage.h>
+#include <api/errors.h>
+#include <private/api.h>
 
 __LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize(){
 
 	/* Allocate and zero memory to store the bootimage struct
 	   This will contain metadata for a loaded bootimage
 	 */
+	trace_init();
 	struct bootimage* bi = calloc(1,sizeof(struct bootimage));
-
 	return bi ;
 
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 
-	struct bootimage* bi = bip[0] ;
+	if ( bip == NULL ){
+		errno = EINVAL ;
+		return -1;
+	}
 	if ( check_bootimage_structure(bip[0]) == -1){
 		return -1;
 	}
-	if ( ( bi->kernel != bi->uncompressed_kernel ) && ( bi->uncompressed_kernel != NULL ) ){
-		fprintf(stdout,"Freeing bi->uncompressed_kernel [ %p ]\n", bi->uncompressed_kernel);
-		free(bi->uncompressed_kernel) ;
-		bi->uncompressed_kernel = NULL ;
+	if ( ( bip[0]->kernel != bip[0]->uncompressed_kernel ) && ( bip[0]->uncompressed_kernel != NULL ) ){
+
+		free(bip[0]->uncompressed_kernel) ;
+		bip[0]->uncompressed_kernel = NULL ;
 	}
-	fprintf(stdout,"bi->stat.st_size [ %u ]\n",  bi->stat.st_size);
-	if ( ( bi->start != NULL ) && ( bi->stat.st_size > 0 ) ){
-		fprintf(stdout,"Unmapping Bootimage Data bi->start [ %p ]\n", bi->start);
 
-		munmap(bi->start,bi->stat.st_size);
-		bi->start = NULL ;
-		bi->stat.st_size = 0 ;
-
+	if ( ( bip[0]->start != NULL ) && ( bip[0]->stat.st_size > 0 ) ){
+		munmap(bip[0]->start,bip[0]->stat.st_size);
+		bip[0]->start = NULL ;
+		bip[0]->stat.st_size = 0 ;
 
 	}
-	if( bi ){
-		fprintf(stdout,"Freeing Bootimage Structure bi [ %p ]\n", bi);
+	if( bip[0] != NULL ){
 		free(bip[0]);
 		bip[0] = NULL ;
 	}
-	return 0;
 
 	return 0;
 }
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name){
 
-	if( bootimage_file_read_magic(bi,file_name) == -1 ){
+	if( check_bootimage_file_read_magic(bi,file_name) == -1 ){
 		return -1;
 	}
 	if( bootimage_set_sections(bi) == -1 ){

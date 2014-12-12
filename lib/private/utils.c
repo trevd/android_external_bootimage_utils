@@ -16,7 +16,7 @@
  * file : lib/private/utils.c
  *
  */
-
+#define  TRACE_TAG   TRACE_PRIVATE_UTILS
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -25,7 +25,7 @@
 #include <limits.h>
 #include <string.h>
 #include <private/api.h>
-#include <private/utils.h>
+
 
 __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdirat_umask(const char *path,unsigned mode, mode_t mask)
 {

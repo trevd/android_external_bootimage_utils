@@ -16,7 +16,7 @@
  * file : lib/private/checks.c
  *
  */
-
+#define  TRACE_TAG   TRACE_PRIVATE_CHECKS
 #include <errno.h>
 #include <stdlib.h>
 
@@ -30,8 +30,7 @@
 #include <archive.h>
 #include <api/bootimage.h>
 #include <api/errors.h>
-#include <private/bootimage.h>
-#include <private/checks.h>
+#include <private/api.h>
 
 
 
@@ -175,6 +174,25 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_ramdisk(struct bootimage* bi)
 		return -1;
 
 	}
+	errno = EBIOK;
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_file_read_magic(struct bootimage* bi,const char* file_name)
+{
+	if ( check_bootimage_structure(bi) == -1){
+		fprintf(stderr,"bootimage_file_read check_bootimage_structure failed [ %p ]\n", bi);
+		return -1;
+	}
+
+	if( check_bootimage_file_name(file_name) == -1 ){
+		fprintf(stderr,"bootimage_file_read check_bootimage_file_name failed [ %p ]\n", bi);
+		return -1;
+	}
+
+	if( check_bootimage_file_stat_size(bi,file_name) == -1 ){
+		return -1;
+	}
+	bootimage_file_read_magic(bi,file_name);
 	errno = EBIOK;
 	return 0;
 }

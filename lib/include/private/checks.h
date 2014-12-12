@@ -30,6 +30,6 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_name(const char* file_name);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_ramdisk_entryname(const char* entry_name);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_ramdisk(struct bootimage* bi);
-
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_read_magic(struct bootimage* bi,const char* file_name);
 #define CPIO_FILE_NAME_MAX 1024
 #endif

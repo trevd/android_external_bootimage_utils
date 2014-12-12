@@ -75,7 +75,10 @@ void list_archive(const char *name)
 
 int main(int  argc  ,char** argv)
 {
-bootimage_file_print_header(argv[1]);
+int ret = bootimage_file_print_header(argv[1]) ;
+if ( ret == -1 ){
+		printf("bootimage_file_read failed err=%d\n",errno);
+}
 /*list_archive(argv[1]);*/
 
  return 0 ;

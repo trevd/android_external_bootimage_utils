@@ -8,6 +8,7 @@ libbootimage_src_files := \
 					lib/private/checks.c \
 					lib/private/utils.c \
 					lib/private/archive.c \
+					lib/private/trace.c \
 
 libbootimage_c_includes := $(LOCAL_PATH)/lib/include
 

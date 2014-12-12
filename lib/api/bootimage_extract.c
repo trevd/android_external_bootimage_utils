@@ -16,7 +16,7 @@
  * file : lib/api/bootimage_extract.c
  *
  */
-
+#define TRACE_TAG TRACE_API_BOOTIMAGE_EXTRACT
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -29,11 +29,7 @@
 #include <api/bootimage_extract.h>
 
 
-
-#include <private/checks.h>
-#include <private/bootimage.h>
-#include <private/utils.h>
-#include <private/archive.h>
+#include <private/api.h>
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header(struct bootimage* bi,const char* header_name)
 {

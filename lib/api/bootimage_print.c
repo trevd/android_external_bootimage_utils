@@ -19,7 +19,7 @@
  * file : lib/api/bootimage_print.c
  *
  */
-
+#define  TRACE_TAG   TRACE_API_BOOTIMAGE_PRINT
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header(const struct bootimage bi)
 {
 	return 0;

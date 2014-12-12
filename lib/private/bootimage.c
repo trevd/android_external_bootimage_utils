@@ -17,6 +17,7 @@
  * This file is part of the INTERNAL api for the bootimage utils project
  *
  */
+#define  TRACE_TAG   TRACE_PRIVATE_BOOTIMAGE
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -28,7 +29,7 @@
 #include <sys/mman.h>
 #include <string.h>
 
-#include <private/bootimage.h>
+#include <private/api.h>
 
 __LIBBOOTIMAGE_PRIVATE_API__  static uint32_t calculate_padding(size_t section_size, uint32_t page_size);
 
@@ -217,19 +218,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi)
 }
 __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_file_read_magic(struct bootimage* bi,const char* file_name)
 {
-	if ( check_bootimage_structure(bi) == -1){
-		fprintf(stderr,"bootimage_file_read check_bootimage_structure failed [ %p ]\n", bi);
-		return -1;
-	}
 
-	if( check_bootimage_file_name(file_name) == -1 ){
-		fprintf(stderr,"bootimage_file_read check_bootimage_file_name failed [ %p ]\n", bi);
-		return -1;
-	}
-
-	if( check_bootimage_file_stat_size(bi,file_name) == -1 ){
-		return -1;
-	}
 	if( bootimage_mmap_file(bi,file_name) == -1 ){
 		return -1;
 	}

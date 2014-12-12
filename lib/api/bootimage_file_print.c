@@ -19,19 +19,20 @@
  * file : lib/api/bootimage_file_print.c
  *
  */
+ #define  TRACE_TAG   TRACE_API_BOOTIMAGE_FILE_PRINT
 #include <stdio.h>
 #include <errno.h>
 #include <api/bootimage.h>
-#include <private/bootimage.h>
-#include <private/checks.h>
-#include <private/print.h>
+#include <private/api.h>
 
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_print_header(const char* file_name)
 {
 
+
 	struct bootimage* bi = bootimage_initialize();
-	if( bootimage_file_read_magic(bi,file_name) == -1 ){
+	D("file_name:%s",file_name);
+	if( check_bootimage_file_read_magic(bi,file_name) == -1 ){
 		int ie = errno ;
 		if ( bootimage_free(&bi) == -1 ){
 			return -1 ;
