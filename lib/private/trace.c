@@ -1,6 +1,7 @@
 #define TRACE_TAG TRACE_PRIVATE_TRACE
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <private/api.h>
 
 __LIBBOOTIMAGE_PRIVATE_API__ int   trace_mask;
@@ -21,18 +22,19 @@ __LIBBOOTIMAGE_PRIVATE_API__ void  trace_init(void)
     } tags[] = {
 		{ "all", TRACE_ALL },
 		{ "1", TRACE_ALL },
-		{ "", TRACE_API_BOOTIMAGE },
-		{ "", TRACE_API_BOOTIMAGE_EXTRACT },
-		{ "", TRACE_API_BOOTIMAGE_FILE },
-		{ "", TRACE_API_BOOTIMAGE_FILE_EXTRACT },
-		{ "", TRACE_API_BOOTIMAGE_FILE_PRINT },
-		{ "", TRACE_API_BOOTIMAGE_PRINT },
-		{ "", TRACE_PRIVATE_ARCHIVE },
-		{ "", TRACE_PRIVATE_BOOTIMAGE },
-		{ "", TRACE_PRIVATE_CHECKS },
-		{ "", TRACE_PRIVATE_KERNEL },
-		{ "", TRACE_PRIVATE_TRACE },
-		{ "", TRACE_PRIVATE_UTILS },
+		{ "api", TRACE_API_BOOTIMAGE },
+		{ "extract", TRACE_API_BOOTIMAGE_EXTRACT },
+		{ "file", TRACE_API_BOOTIMAGE_FILE },
+		{ "fextract", TRACE_API_BOOTIMAGE_FILE_EXTRACT },
+		{ "fprint", TRACE_API_BOOTIMAGE_FILE_PRINT },
+		{ "print", TRACE_API_BOOTIMAGE_PRINT },
+		{ "archive", TRACE_PRIVATE_ARCHIVE },
+		{ "bi", TRACE_PRIVATE_BOOTIMAGE },
+		{ "checks", TRACE_PRIVATE_CHECKS },
+		{ "kernel", TRACE_PRIVATE_KERNEL },
+		{ "trace", TRACE_PRIVATE_TRACE },
+		{ "utils", TRACE_PRIVATE_UTILS },
+		{ "pprint", TRACE_PRIVATE_PRINT },
         { NULL, 0 }
     };
 

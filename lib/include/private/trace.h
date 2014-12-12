@@ -24,6 +24,9 @@
  * forget to update the corresponding 'tags' table in
  * the adb_trace_init() function implemented in adb.c
  */
+#include <errno.h>
+#include <stdio.h>
+#include <private/api.h>
 
 typedef enum {
 	TRACE_ALL = 0,
@@ -39,6 +42,7 @@ typedef enum {
 	TRACE_PRIVATE_KERNEL,
 	TRACE_PRIVATE_TRACE,
 	TRACE_PRIVATE_UTILS,
+	TRACE_PRIVATE_PRINT,
 } bitrace;
 
 extern __LIBBOOTIMAGE_PRIVATE_API__  int trace_mask;

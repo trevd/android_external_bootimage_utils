@@ -48,18 +48,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_print_header(const char* file_na
 		errno = ie ;
 		return -1 ;
 	}
-	fprintf(stdout,"\n"BOOTIMAGE_PRINT_HEADER"\n",	bi->header->kernel_size,
-											bi->header->kernel_addr,
-											bi->header->ramdisk_size,
-											bi->header->ramdisk_addr,
-											bi->header->second_size,
-											bi->header->second_addr,
-											bi->header->tags_addr,
-											bi->header->page_size,
-											bi->header->dt_size,
-											bi->header->name,
-											bi->header->cmdline,
-											bi->header->extra_cmdline);
+	bootimage_structure_print_header(bi);
 
 
 	if ( bootimage_free(&bi) == -1 ){

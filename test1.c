@@ -5,6 +5,7 @@
 #include <api/bootimage.h>
 #include <api/bootimage_extract.h>
 #include <api/bootimage_file_print.h>
+#include <api/bootimage_print.h>
 
 void extract_ramdisk(struct bootimage* bi)
 {
@@ -79,6 +80,12 @@ int ret = bootimage_file_print_header(argv[1]) ;
 if ( ret == -1 ){
 		printf("bootimage_file_read failed err=%d\n",errno);
 }
+	struct bootimage* bi = NULL;
+	printf("bi %p\n",bi);
+	bi = bootimage_initialize();
+	 ret = bootimage_file_read(bi,argv[1]);
+	bootimage_print_header(bi);
+	bootimage_free(&bi);
 /*list_archive(argv[1]);*/
 
  return 0 ;

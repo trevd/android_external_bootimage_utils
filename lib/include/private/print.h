@@ -35,4 +35,6 @@
   cmd line         : %s\n\
   extra cmd line   : %s\n\
 "
+
+__LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_header(struct bootimage* bi);
 #endif

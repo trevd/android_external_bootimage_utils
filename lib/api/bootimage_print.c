@@ -20,39 +20,47 @@
  *
  */
 #define  TRACE_TAG   TRACE_API_BOOTIMAGE_PRINT
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header(const struct bootimage bi)
+#include <api/bootimage.h>
+#include <private/api.h>
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header(struct bootimage* bi)
+{
+	D("bi=%p",bi);
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1 ;
+	}
+	bootimage_structure_print_header(bi);
+	return 0 ;
+
+}
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header_fd(struct bootimage* bi,int fd)
 {
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header_fd(const struct bootimage bi,int fd)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel(struct bootimage* bi)
 {
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel(const struct bootimage bi)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(struct bootimage* bi)
 {
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(const struct bootimage bi)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk(struct bootimage* bi)
 {
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk(const struct bootimage bi)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_list(struct bootimage* bi)
 {
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_list(const struct bootimage bi)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_file(struct bootimage* bi,const char* ramdisk_file)
 {
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_file(const struct bootimage bi,const char* ramdisk_file)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_files(struct bootimage* bi,const char** ramdisk_files)
 {
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_files(const struct bootimage bi,const char** ramdisk_files)
-{
-	return 0;
-}
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_all(const struct bootimage bi)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_all(struct bootimage* bi)
 {
 	return 0;
 }

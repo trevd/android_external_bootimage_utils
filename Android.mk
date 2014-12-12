@@ -3,12 +3,14 @@ LOCAL_PATH := $(call my-dir)
 libbootimage_src_files := \
 					lib/api/bootimage.c \
 					lib/api/bootimage_extract.c \
+					lib/api/bootimage_print.c \
 					lib/api/bootimage_file_print.c \
 					lib/private/bootimage.c \
 					lib/private/checks.c \
 					lib/private/utils.c \
 					lib/private/archive.c \
 					lib/private/trace.c \
+					lib/private/print.c \
 
 libbootimage_c_includes := $(LOCAL_PATH)/lib/include
 
