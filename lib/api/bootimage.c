@@ -33,6 +33,7 @@ __LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize(){
 	 */
 	trace_init();
 	struct bootimage* bi = calloc(1,sizeof(struct bootimage));
+	D("bi=%p",bi);
 	return bi ;
 
 }
@@ -48,13 +49,13 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 	}
 
 	if ( ( bip[0]->kernel != bip[0]->uncompressed_kernel ) && ( bip[0]->uncompressed_kernel != NULL ) ){
-
+		D("freeing uncompressed_kernel=%p",bip[0]->uncompressed_kernel);
 		free(bip[0]->uncompressed_kernel) ;
 		bip[0]->uncompressed_kernel = NULL ;
 	}
 
 	if ( ( bip[0]->start != NULL ) && ( bip[0]->stat.st_size > 0 ) ){
-
+		D("unmapping boot image structures=%p",bip[0]->start);
 		munmap(bip[0]->start,bip[0]->stat.st_size);
 		bip[0]->start = NULL ;
 		bip[0]->stat.st_size = 0 ;

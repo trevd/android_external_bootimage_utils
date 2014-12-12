@@ -32,9 +32,13 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_set_compressed_data_offset(str
 		bi->compressed_kernel_offset = memmem(bi->kernel,bi->header->kernel_size,kernel_type[i].magic,kernel_type[i].magic_size);
 		if ( bi->compressed_kernel_offset != NULL ){
 			bi->compressed_kernel_type = &kernel_type[i] ;
+			bi->compressed_kernel_size = bi->header->kernel_size - ( bi->compressed_kernel_offset -bi->kernel);
 			D("bi->compressed_kernel_offset=%p bi->compressed_kernel_type.compression_type=%d",bi->compressed_kernel_offset,bi->compressed_kernel_type->compression_type);
 			break ;
 		}
+	}
+	if( bi->compressed_kernel_offset == NULL ) {
+		return -1 ;
 	}
 	return 0;
 }
@@ -44,20 +48,37 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* b
 	if ( check_bootimage_kernel(bi) == -1 ){
 		return -1;
 	}
-	bootimage_kernel_set_compressed_data_offset(bi);
-	uint64_t size = bi->header->kernel_size - ( bi->compressed_kernel_offset -bi->kernel);
-	D("compressed kernel size=%llu",size);
+	if ( bootimage_kernel_set_compressed_data_offset(bi) == -1 ){
+		return -1 ;
+	}
+
+
 	struct archive *a = NULL ;
-	check_archive_read_memory(&a,bi->compressed_kernel_offset,size);
-	D("a=%p",a);
+	if ( check_archive_read_memory(&a,bi->compressed_kernel_offset,bi->compressed_kernel_size ) == -1 ){
+		return -1;
+	}
+
 	D("archive_compression_name=%s",archive_compression_name(a)) ;
-	 struct archive_entry *entry = NULL;
 
-     if ( archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+	struct archive_entry *entry = NULL;
+
+	if ( archive_read_next_header(a, &entry) == ARCHIVE_OK) {
 		   uint64_t size = archive_entry_size(entry);
-		   bi->uncompressed_kernel = calloc(UNCOMPRESSED_KERNEL_SIZE_32MB,sizeof(char));
-		   bi->uncompressed_kernel_size = archive_read_data(a,bi->uncompressed_kernel,UNCOMPRESSED_KERNEL_SIZE_32MB);
+		   if ( size == 0 ){
+			   size = UNCOMPRESSED_KERNEL_SIZE_32MB ;
+		   }
+		   bi->uncompressed_kernel = calloc(size,sizeof(char));
+		   if ( bi->uncompressed_kernel == NULL ){
+			   archive_read_free(a);
+			   return -1;
+		   }
+		   bi->uncompressed_kernel_size = archive_read_data(a,bi->uncompressed_kernel,size);
+		   if ( bi->uncompressed_kernel_size == 0 ){
+			   free(bi->uncompressed_kernel) ;
+			   archive_read_free(a);
+			   return -1;
 
+		   }
 		   D("bi->uncompressed_kernel_size=%llu",bi->uncompressed_kernel_size) ;
 	 }
 

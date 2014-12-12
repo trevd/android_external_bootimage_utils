@@ -124,6 +124,16 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel_ramdisk_entry(struct b
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_uncompressed_kernel(struct bootimage* bi,const char* uncompressed_kernel_name)
 {
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1;
+	}
+	if ( uncompressed_kernel_name == NULL ) {
+		uncompressed_kernel_name = DEFAULT_NAME_KERNEL_UNCOMPRESSED;
+	}
+
+	if ( check_output_name ( uncompressed_kernel_name ) == -1 ) {
+		return -1 ;
+	}
 	return 0;
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,const char* ramdisk_dir_name)

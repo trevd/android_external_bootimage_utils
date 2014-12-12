@@ -26,6 +26,7 @@
 #include <private/api.h>
 
 #define DEFAULT_NAME_KERNEL "kernel"
+#define DEFAULT_NAME_KERNEL_UNCOMPRESSED "image"
 #define DEFAULT_NAME_KERNEL_RAMDISK_DIRECTORY "kernel-ramdisk"
 #define DEFAULT_NAME_KERNEL_RAMDISK_ARCHIVE "kernel-ramdisk.img"
 #define DEFAULT_NAME_RAMDISK_DIRECTORY "ramdisk"
@@ -156,6 +157,7 @@ struct bootimage
 
 	unsigned char* compressed_kernel_offset ; /* pointer to the start of the compressed kernel data */
 	struct kernel_type_t* compressed_kernel_type;  /*  */
+	uint32_t compressed_kernel_size;  /* size in bytes */
 
 	unsigned char* uncompressed_kernel ; /* pointer to the uncompressed kernel data */
 	uint32_t uncompressed_kernel_size;  /* size in bytes */

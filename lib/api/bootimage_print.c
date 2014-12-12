@@ -48,6 +48,8 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel(struct bootimage* bi)
 	if ( bootimage_kernel_decompress(bi) == -1 ){
 		return -1;
 	}
+
+
 	//bootimage_structure_print_kernel(bi);
 	return 0 ;
 }

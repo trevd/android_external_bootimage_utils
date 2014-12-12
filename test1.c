@@ -81,12 +81,12 @@ int main(int  argc  ,char** argv)
 //		printf("bootimage_file_read failed err=%d\n",errno);
 //}
 	struct bootimage* bi = NULL;
-	printf("bi %p\n",bi);
+	//printf("bi %p\n",bi);
 	bi = bootimage_initialize();
-	int ret = bootimage_file_read(bi,argv[1]);
-	bootimage_print_header(bi);
-	bootimage_print_kernel(bi);
-	printf("bi %p\n",bi);
+	//int ret = bootimage_file_read(bi,argv[1]);
+	//bootimage_print_header(bi);
+	//bootimage_print_kernel(bi);
+	//printf("bi %p\n",bi);
 	//bootimage_extract_ramdisk(bi,NULL);
 	bootimage_free(&bi);
 /*list_archive(argv[1]);*/
