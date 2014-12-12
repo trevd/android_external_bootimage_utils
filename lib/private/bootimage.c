@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <api/errors.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -29,10 +30,10 @@
 
 #include <private/bootimage.h>
 
-__LIBBOOTIMAGE_PRIVATE_API__  static size_t calculate_padding(size_t section_size, unsigned page_size);
+__LIBBOOTIMAGE_PRIVATE_API__  static uint32_t calculate_padding(size_t section_size, uint32_t page_size);
 
 
-__LIBBOOTIMAGE_PRIVATE_API__  static size_t calculate_padding(size_t section_size, unsigned page_size)
+__LIBBOOTIMAGE_PRIVATE_API__  static uint32_t calculate_padding(size_t section_size, uint32_t page_size)
 {
 
     errno = 0 ;  // clear the errno
@@ -41,8 +42,8 @@ __LIBBOOTIMAGE_PRIVATE_API__  static size_t calculate_padding(size_t section_siz
         errno = EINVAL ;
         return  0 ;
     }
-    unsigned pagemask = page_size - 1;
-    size_t padding_size = page_size - (section_size & pagemask);
+    uint32_t pagemask = page_size - 1;
+    uint32_t padding_size = page_size - (section_size & pagemask);
     if(padding_size == page_size) padding_size = 0 ;
     //D("Calculate Padding Returns %d\n",padding_size);
     return padding_size ;
@@ -96,9 +97,8 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_magic_address(struct bootimage* b
 	}
 	return 0;
 }
-__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi)
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_header_section(struct bootimage* bi)
 {
-
 	/* Store the size of the header struct for convience */
 	bi->header_size = sizeof(struct bootimage_header) ;
 	/* Work out the padding for header section of the bootimage file */
@@ -113,8 +113,12 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi)
 		errno = EBIBADPADHEAD ;
 		return -1 ;
 	}
+	errno = EBIOK;
+	return 0;
 
-
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_kernel_section(struct bootimage* bi)
+{
 	/* Set the kernel address offset within the mmapped area.
 	   We could just use header offset + page_size as the header size should never
 	   span multiple pages ... but that is just not a safe assumption to make.
@@ -140,6 +144,12 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi)
 		return -1 ;
 	}
 
+	errno = EBIOK;
+	return 0;
+
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_ramdisk_section(struct bootimage* bi)
+{
 	/* Set the ramdisk address offset within the mmapped area */
 	bi->ramdisk = bi->kernel + bi->header->kernel_size + bi->kernel_padding ;
 
@@ -155,6 +165,12 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi)
 		errno = EBIBADPADRAMDISK ;
 		return -1 ;
 	}
+	errno = EBIOK;
+	return 0;
+
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_second_section(struct bootimage* bi)
+{
 
 	/* Set the second bootloader address offset within the mmapped area
 	   We must first check the second size in the header. If it is zero
@@ -177,6 +193,48 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi)
 			return -1 ;
 		}
 
+	}
+	errno = EBIOK;
+	return 0;
+
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi)
+{
+
+	if ( bootimage_set_header_section(bi) == -1 ){
+		return -1 ;
+	}
+	if ( bootimage_set_kernel_section(bi) == -1 ){
+		return -1 ;
+	}
+	if ( bootimage_set_ramdisk_section(bi) == -1 ){
+		return -1 ;
+	}
+	if ( bootimage_set_second_section(bi) == -1 ){
+		return -1 ;
+	}
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__  int bootimage_file_read_magic(struct bootimage* bi,const char* file_name)
+{
+	if ( check_bootimage_structure(bi) == -1){
+		fprintf(stderr,"bootimage_file_read check_bootimage_structure failed [ %p ]\n", bi);
+		return -1;
+	}
+
+	if( check_bootimage_file_name(file_name) == -1 ){
+		fprintf(stderr,"bootimage_file_read check_bootimage_file_name failed [ %p ]\n", bi);
+		return -1;
+	}
+
+	if( check_bootimage_file_stat_size(bi,file_name) == -1 ){
+		return -1;
+	}
+	if( bootimage_mmap_file(bi,file_name) == -1 ){
+		return -1;
+	}
+	if( bootimage_set_magic_address(bi) == -1 ){
+		return -1;
 	}
 	return 0;
 }

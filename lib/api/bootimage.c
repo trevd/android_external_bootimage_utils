@@ -68,23 +68,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name){
 
-	if ( check_bootimage_structure(bi) == -1){
-		fprintf(stderr,"bootimage_file_read check_bootimage_structure failed [ %p ]\n", bi);
-		return -1;
-	}
-
-	if( check_bootimage_file_name(file_name) == -1 ){
-		fprintf(stderr,"bootimage_file_read check_bootimage_file_name failed [ %p ]\n", bi);
-		return -1;
-	}
-
-	if( check_bootimage_file_stat_size(bi,file_name) == -1 ){
-		return -1;
-	}
-	if( bootimage_mmap_file(bi,file_name) == -1 ){
-		return -1;
-	}
-	if( bootimage_set_magic_address(bi) == -1 ){
+	if( bootimage_file_read_magic(bi,file_name) == -1 ){
 		return -1;
 	}
 	if( bootimage_set_sections(bi) == -1 ){

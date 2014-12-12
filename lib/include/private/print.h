@@ -13,20 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * file : lib/include/api/bootimage.h
- *
+ * file : lib/include/private/print.h
+ * This file contains the strings used by the bootimage*_print functions
  */
 
-#ifndef _40589ef6_7d28_11e4_9dc9_5404a601fa9d
-#define _40589ef6_7d28_11e4_9dc9_5404a601fa9d
+#ifndef _ed8c3286_8197_11e4_a167_5404a601fa9d
+#define _ed8c3286_8197_11e4_a167_5404a601fa9d
 
-/* 	Opaque bootimage structure declaration. The full definition can be
-	found in lib/include/private/bootimage.h */
-struct bootimage ;
-
-#define __LIBBOOTIMAGE_PUBLIC_API__  __attribute__((visibility("default")))
-
-__LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize();
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip);
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name);
+#define BOOTIMAGE_PRINT_HEADER "\
+ Header: \n\
+  kernel size      : %u\n\
+  kernel addr      : 0x%8x\n\
+  ramdisk size     : %u\n\
+  ramdisk addr     : 0x%8x\n\
+  second size      : %u\n\
+  second addr      : 0x%8x\n\
+  tags addr        : 0x%8x\n\
+  page size        : %u\n\
+  dt size          : %u\n\
+  name             : %s\n\
+  cmd line         : %s\n\
+  extra cmd line   : %s\n\
+"
 #endif

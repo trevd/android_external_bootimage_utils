@@ -13,20 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * file : lib/include/api/bootimage.h
+ * file : lib/include/private/checks.c
  *
  */
 
-#ifndef _40589ef6_7d28_11e4_9dc9_5404a601fa9d
-#define _40589ef6_7d28_11e4_9dc9_5404a601fa9d
-
-/* 	Opaque bootimage structure declaration. The full definition can be
-	found in lib/include/private/bootimage.h */
-struct bootimage ;
-
-#define __LIBBOOTIMAGE_PUBLIC_API__  __attribute__((visibility("default")))
-
-__LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize();
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip);
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name);
-#endif

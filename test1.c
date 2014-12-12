@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <api/bootimage.h>
 #include <api/bootimage_extract.h>
+#include <api/bootimage_file_print.h>
 
 void extract_ramdisk(struct bootimage* bi)
 {
@@ -50,6 +51,7 @@ void list_archive(const char *name)
 	if ( ret == -1 ){
 		printf("bootimage_file_read failed err=%d\n",errno);
 	}else{
+
 		extract_ramdisk(bi);
 		extract_kernel(bi);
 		extract_header_block(bi);
@@ -71,10 +73,10 @@ void list_archive(const char *name)
 
 }
 
-int main(int argc,char** argv)
+int main(int  argc  ,char** argv)
 {
-
-list_archive(argv[1]);
+bootimage_file_print_header(argv[1]);
+/*list_archive(argv[1]);*/
 
  return 0 ;
 }

@@ -181,6 +181,10 @@ struct bootimage
 
 __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_mmap_file(struct bootimage* bi,const char* file_name);
 __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_magic_address(struct bootimage* bi);
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_header_section(struct bootimage* bi);
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_kernel_section(struct bootimage* bi);
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_ramdisk_section(struct bootimage* bi);
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_second_section(struct bootimage* bi);
 __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_sections(struct bootimage* bi);
-
+__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_file_read_magic(struct bootimage* bi,const char* file_name);
 #endif
