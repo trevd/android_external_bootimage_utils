@@ -22,18 +22,18 @@
 
 #define BOOTIMAGE_PRINT_HEADER "\
  Header: \n\
-  kernel size      : %u\n\
-  kernel addr      : 0x%8x\n\
-  ramdisk size     : %u\n\
-  ramdisk addr     : 0x%8x\n\
-  second size      : %u\n\
-  second addr      : 0x%8x\n\
-  tags addr        : 0x%8x\n\
-  page size        : %u\n\
-  dt size          : %u\n\
-  name             : %s\n\
-  cmd line         : %s\n\
-  extra cmd line   : %s\n\
+  kernel size        : %u\n\
+  kernel addr        : 0x%8x\n\
+  ramdisk size       : %u\n\
+  ramdisk addr       : 0x%8x\n\
+  second size        : %u\n\
+  second addr        : 0x%8x\n\
+  tags addr          : 0x%8x\n\
+  page size          : %u\n\
+  dt size            : %u\n\
+  name               : %s\n\
+  cmd line           : %s\n\
+  extra cmd line     : %s\n\
 "
 
 #define BOOTIMAGE_PRINT_EXTRACT_HEADER "\
@@ -50,6 +50,11 @@ name=%s\n\
 cmd_line=%s\n\
 extra_cmd_line=%s\n\
 "
+
+#define BOOTIMAGE_PRINT_COMPRESSION_TYPE "\
+  compression type   : %s\n\
+"
+/* #define BOOTIMAGE_PRINT_KERNEL_HEADER " */
 
 __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_header(struct bootimage* bi);
 #endif

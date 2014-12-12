@@ -52,15 +52,14 @@ __LIBBOOTIMAGE_PRIVATE_API__ void  trace_init(void);
 #define TRACING  ((trace_mask & (1 << TRACE_TAG)) != 0)
 
 #  define  D(...)                                      \
-        do {                                           \
             if (TRACING) {                         	   \
                 int save_errno = errno;                \
-                fprintf(stderr, "%16s:%d ",			   \
+                fprintf(stderr, "%s:%d ",			   \
                         __FUNCTION__,__LINE__);		   \
                 errno = save_errno;                    \
                 fprintf(stderr, __VA_ARGS__ );         \
+                fprintf(stderr,"\n");         \
                 fflush(stderr);                        \
                 errno = save_errno;                    \
-           } \
-        } while (0)
+           }
 #endif

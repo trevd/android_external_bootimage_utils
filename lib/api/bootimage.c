@@ -42,9 +42,11 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 		errno = EINVAL ;
 		return -1;
 	}
+	D("bip=%p",bip);
 	if ( check_bootimage_structure(bip[0]) == -1){
 		return -1;
 	}
+
 	if ( ( bip[0]->kernel != bip[0]->uncompressed_kernel ) && ( bip[0]->uncompressed_kernel != NULL ) ){
 
 		free(bip[0]->uncompressed_kernel) ;
@@ -52,6 +54,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 	}
 
 	if ( ( bip[0]->start != NULL ) && ( bip[0]->stat.st_size > 0 ) ){
+
 		munmap(bip[0]->start,bip[0]->stat.st_size);
 		bip[0]->start = NULL ;
 		bip[0]->stat.st_size = 0 ;

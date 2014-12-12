@@ -76,15 +76,18 @@ void list_archive(const char *name)
 
 int main(int  argc  ,char** argv)
 {
-int ret = bootimage_file_print_header(argv[1]) ;
-if ( ret == -1 ){
-		printf("bootimage_file_read failed err=%d\n",errno);
-}
+//int ret = bootimage_file_print_header(argv[1]) ;
+//if ( ret == -1 ){
+//		printf("bootimage_file_read failed err=%d\n",errno);
+//}
 	struct bootimage* bi = NULL;
 	printf("bi %p\n",bi);
 	bi = bootimage_initialize();
-	 ret = bootimage_file_read(bi,argv[1]);
+	int ret = bootimage_file_read(bi,argv[1]);
 	bootimage_print_header(bi);
+	bootimage_print_kernel(bi);
+	printf("bi %p\n",bi);
+	//bootimage_extract_ramdisk(bi,NULL);
 	bootimage_free(&bi);
 /*list_archive(argv[1]);*/
 

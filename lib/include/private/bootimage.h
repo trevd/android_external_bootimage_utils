@@ -154,6 +154,9 @@ struct bootimage
 	uint32_t ramdisk_padding;
 	uint32_t second_padding;
 
+	unsigned char* compressed_kernel_offset ; /* pointer to the start of the compressed kernel data */
+	struct kernel_type_t* compressed_kernel_type;  /*  */
+
 	unsigned char* uncompressed_kernel ; /* pointer to the uncompressed kernel data */
 	uint32_t uncompressed_kernel_size;  /* size in bytes */
 

@@ -11,6 +11,7 @@ libbootimage_src_files := \
 					lib/private/archive.c \
 					lib/private/trace.c \
 					lib/private/print.c \
+					lib/private/kernel.c \
 
 libbootimage_c_includes := $(LOCAL_PATH)/lib/include
 

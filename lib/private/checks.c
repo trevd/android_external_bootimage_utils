@@ -32,7 +32,19 @@
 #include <api/errors.h>
 #include <private/api.h>
 
-
+__LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_memory(struct archive **ap,char* data , uint64_t data_size)
+{
+	if ( check_archive_read_initialization(ap) == -1 ){
+		return -1;
+	}
+	int r = archive_read_open_memory(ap[0], data,data_size);
+	if (r != ARCHIVE_OK){
+		D("r=%d",r);
+		return -1;
+	}
+	D("ap[0]=%p",ap[0]);
+	return 0;
+}
 
 __LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_initialization(struct archive **ap)
 {
@@ -83,6 +95,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_structure(struct bootimage* bi)
 	/* Validate inputs */
 	if ( bi == NULL ) {
 		errno = EBINULL;
+		D("bi=%p errno=%d [ EBINULL ]",bi,errno);
 		return -1;
 	}
 	errno = EBIOK;
@@ -91,9 +104,9 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_structure(struct bootimage* bi)
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage* bi ,const char* file_name)
 {
 	/* Stat the boot image file an store it in the structure */
-	fprintf(stdout,"check_bootimage_file_stat_size bi->stat.st_size [ %u ]\n",  bi->stat.st_size);
+	fprintf(stdout,"check_bootimage_file_stat_size bi->stat.st_size [ %u ]",  bi->stat.st_size);
     if (stat(file_name, &bi->stat) == -1){
-		fprintf(stdout,"check_bootimage_file_stat_size bi->stat.st_size [ %u ]\n",  bi->stat.st_size);
+		fprintf(stdout,"check_bootimage_file_stat_size bi->stat.st_size [ %u ]",  bi->stat.st_size);
 		errno = EBISTAT;
 		return -1 ;
 	}
@@ -168,9 +181,31 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_ramdisk(struct bootimage* bi)
 		errno = EBIHEADMEM ;
 		return -1;
 	}
-	fprintf(stdout , "bi->header->ramdisk_size=%d\n",bi->header->ramdisk_size) ;
+	fprintf(stdout , "bi->header->ramdisk_size=%d",bi->header->ramdisk_size) ;
 	if ( bi->header->ramdisk_size == 0  ){
 		errno = EBIRDMEMSIZE ;
+		return -1;
+
+	}
+	errno = EBIOK;
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_kernel(struct bootimage* bi)
+{
+	if ( bi->kernel == NULL ){
+		errno = EBIKERNELMEM ;
+		D("bi->header->kernel_size=%d errno=%d [ EBIKERNELMEMSIZE ]",bi->header->kernel_size,EBIKERNELMEM) ;
+		return -1;
+	}
+	if ( bi->header == NULL || bi->header->magic[0] == 0 ){
+		errno = EBIHEADMEM ;
+		D("bi->header=%p  bi->header->magic[0]=%c errno=%d [ EBIKERNELMEMSIZE ]",bi->header , bi->header->magic[0], EBIHEADMEM) ;
+		return -1;
+	}
+
+	if ( bi->header->kernel_size == 0  ){
+		errno = EBIKERNELMEMSIZE ;
+		D("bi->header->kernel_size=%d errno=%d [ EBIKERNELMEMSIZE ]",bi->header->kernel_size,EBIKERNELMEMSIZE) ;
 		return -1;
 
 	}
@@ -180,12 +215,12 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_ramdisk(struct bootimage* bi)
 __LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_file_read_magic(struct bootimage* bi,const char* file_name)
 {
 	if ( check_bootimage_structure(bi) == -1){
-		fprintf(stderr,"bootimage_file_read check_bootimage_structure failed [ %p ]\n", bi);
+		fprintf(stderr,"bootimage_file_read check_bootimage_structure failed [ %p ]", bi);
 		return -1;
 	}
 
 	if( check_bootimage_file_name(file_name) == -1 ){
-		fprintf(stderr,"bootimage_file_read check_bootimage_file_name failed [ %p ]\n", bi);
+		fprintf(stderr,"bootimage_file_read check_bootimage_file_name failed [ %p ]", bi);
 		return -1;
 	}
 

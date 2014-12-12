@@ -128,6 +128,8 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_uncompressed_kernel(struct bo
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,const char* ramdisk_dir_name)
 {
+	D("bi=%p",bi);
+
 	if ( check_bootimage_structure(bi) == -1 ){
 		return -1;
 	}
@@ -174,11 +176,11 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_archive(struct bootim
 	if ( ramdisk_name == NULL ) {
 		ramdisk_name = DEFAULT_NAME_RAMDISK_ARCHIVE;
 	}
-
+	D("ramdisk_name=%s\n",ramdisk_name);
 	if ( check_output_name ( ramdisk_name ) == -1 ) {
 		return -1 ;
 	}
-	printf("bi %u\n",bi->header->ramdisk_size);
+	D("ramdisk_size=%u\n",bi->header->ramdisk_size);
 
 
 	FILE* fi = fopen(ramdisk_name,"w+b");

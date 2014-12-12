@@ -32,7 +32,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_print_header(const char* file_na
 
 	struct bootimage* bi = bootimage_initialize();
 	D("file_name:%s",file_name);
-	if( check_bootimage_file_read_magic(bi,file_name) == -1 ){
+	if( bootimage_file_read(bi,file_name) == -1 ){
 		int ie = errno ;
 		if ( bootimage_free(&bi) == -1 ){
 			return -1 ;
@@ -40,14 +40,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_print_header(const char* file_na
 		errno = ie ;
 		return -1 ;
 	}
-	if ( bootimage_set_header_section(bi) == -1 ){
-		int ie = errno ;
-		if ( bootimage_free(&bi) == -1 ){
-			return -1 ;
-		}
-		errno = ie ;
-		return -1 ;
-	}
+
 	bootimage_structure_print_header(bi);
 
 

@@ -38,11 +38,28 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header_fd(struct bootimage* bi,
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel(struct bootimage* bi)
 {
-	return 0;
+	D("bi=%p",bi);
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1;
+	}
+	if ( check_bootimage_kernel(bi) == -1 ){
+		return -1;
+	}
+	if ( bootimage_kernel_decompress(bi) == -1 ){
+		return -1;
+	}
+	//bootimage_structure_print_kernel(bi);
+	return 0 ;
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(struct bootimage* bi)
 {
-	return 0;
+	D("bi=%p",bi);
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1 ;
+	}
+	bootimage_structure_print_header(bi);
+	return 0 ;
+
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk(struct bootimage* bi)
 {

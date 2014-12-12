@@ -30,19 +30,33 @@
 #include <archive.h>
 #include <archive_entry.h>
 
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint64_t data_size, FILE* target)
+{
+
+    struct archive *a = NULL ;
+    if ( check_archive_read_initialization(&a) == -1 ){
+        return -1 ;
+    }
+    D("a=%p\n",a);
+
+    return 0;
+
+
+}
+
 __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory( char* data , uint64_t data_size, DIR* target)
 {
 
     struct archive *a = NULL ;
-    fprintf(stdout,"archive_extract_all_memory a=%p\n",a);
     if ( check_archive_read_initialization(&a) == -1 ){
         return -1 ;
     }
-    fprintf(stdout,"archive_extract_all_memory a=%p\n",a);
+    D("a=%p\n",a);
 	int r = archive_read_open_memory(a, data,data_size);
 	if (r != ARCHIVE_OK){
 		return -1;
 	}
+    D("archive_compression_name=%s\n",archive_compression_name(a));
      fprintf(stdout,"archive_extract_all_memory\n");
     if ( archive_extract_all(a,target) == -1 ){
         int en = errno ;
