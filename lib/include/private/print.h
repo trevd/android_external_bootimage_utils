@@ -36,5 +36,20 @@
   extra cmd line   : %s\n\
 "
 
+#define BOOTIMAGE_PRINT_EXTRACT_HEADER "\
+kernel_size=%u\n\
+kernel_addr=0x%8x\n\
+ramdisk_size=%u\n\
+ramdisk_addr=0x%8x\n\
+second_size=%u\n\
+second_addr=0x%8x\n\
+tags_addr=0x%8x\n\
+page_size=%u\n\
+dt_size=%u\n\
+name=%s\n\
+cmd_line=%s\n\
+extra_cmd_line=%s\n\
+"
+
 __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_header(struct bootimage* bi);
 #endif
