@@ -75,7 +75,9 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(struct bootimage
 		return -1;
 	}
 	size_t len = paranoid_strnlen(kstring,256);
-	D("kstring len %d %s",len,kstring);
+	D("kstring len %d",len);
+	fprintf(stdout,"%s\n",kstring);
+
 
 	return 0 ;
 
