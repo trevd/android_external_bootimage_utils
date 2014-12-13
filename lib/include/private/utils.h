@@ -24,4 +24,5 @@
 #include <sys/stat.h>
 __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents_umask(const char *path,unsigned mode, mode_t umask);
 __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned mode);
+__LIBBOOTIMAGE_PRIVATE_API__ int paranoid_strnlen( char* s,int maxlen);
 #endif

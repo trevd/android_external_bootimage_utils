@@ -194,7 +194,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_kernel(struct bootimage* bi)
 {
 	if ( bi->kernel == NULL ){
 		errno = EBIKERNELMEM ;
-		D("bi->header->kernel_size=%d errno=%d [ EBIKERNELMEMSIZE ]",bi->header->kernel_size,EBIKERNELMEM) ;
+		D("bi->kernel=NULL errno=%d [ EBIKERNELMEM ]",EBIKERNELMEM) ;
 		return -1;
 	}
 	if ( bi->header == NULL || bi->header->magic[0] == 0 ){

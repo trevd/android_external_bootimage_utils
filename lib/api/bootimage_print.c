@@ -20,6 +20,7 @@
  *
  */
 #define  TRACE_TAG   TRACE_API_BOOTIMAGE_PRINT
+#include <string.h>
 #include <api/bootimage.h>
 #include <private/api.h>
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header(struct bootimage* bi)
@@ -55,11 +56,27 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel(struct bootimage* bi)
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(struct bootimage* bi)
 {
-	D("bi=%p",bi);
+
 	if ( check_bootimage_structure(bi) == -1 ){
 		return -1 ;
 	}
-	bootimage_structure_print_header(bi);
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1;
+	}
+	if ( check_bootimage_kernel(bi) == -1 ){
+		return -1;
+	}
+	if ( bootimage_kernel_decompress(bi) == -1 ){
+		return -1;
+	}
+	char* kstring = memmem(bi->uncompressed_kernel,bi->uncompressed_kernel_size, KERNEL_VERSION_STRING,KERNEL_VERSION_STRING_SIZE);
+	if ( kstring == NULL ){
+		D("kstring is null");
+		return -1;
+	}
+	size_t len = paranoid_strnlen(kstring,256);
+	D("kstring len %d %s",len,kstring);
+
 	return 0 ;
 
 }
