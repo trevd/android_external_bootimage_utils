@@ -50,8 +50,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel(struct bootimage* bi)
 		return -1;
 	}
 
-
-	//bootimage_structure_print_kernel(bi);
+	bootimage_structure_print_kernel(bi);
 	return 0 ;
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(struct bootimage* bi)
@@ -60,23 +59,14 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(struct bootimage
 	if ( check_bootimage_structure(bi) == -1 ){
 		return -1 ;
 	}
-	if ( check_bootimage_structure(bi) == -1 ){
-		return -1;
-	}
 	if ( check_bootimage_kernel(bi) == -1 ){
 		return -1;
 	}
 	if ( bootimage_kernel_decompress(bi) == -1 ){
 		return -1;
 	}
-	char* kstring = memmem(bi->uncompressed_kernel,bi->uncompressed_kernel_size, KERNEL_VERSION_STRING,KERNEL_VERSION_STRING_SIZE);
-	if ( kstring == NULL ){
-		D("kstring is null");
-		return -1;
-	}
-	size_t len = paranoid_strnlen(kstring,256);
-	D("kstring len %d",len);
-	fprintf(stdout,"%s\n",kstring);
+
+	fprintf(stdout,"%s\n",bi->kernel_version_string);
 
 
 	return 0 ;
@@ -84,6 +74,12 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_kernel_version(struct bootimage
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk(struct bootimage* bi)
 {
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1 ;
+	}
+	if ( check_bootimage_kernel(bi) == -1 ){
+		return -1;
+	}
 	return 0;
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_list(struct bootimage* bi)
@@ -100,5 +96,6 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_ramdisk_files(struct bootimage*
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_all(struct bootimage* bi)
 {
+
 	return 0;
 }

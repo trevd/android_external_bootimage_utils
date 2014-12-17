@@ -39,6 +39,7 @@ __LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize(){
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 
+	D("bip=%p",bip);
 	if ( bip == NULL ){
 		errno = EINVAL ;
 		return -1;

@@ -20,20 +20,42 @@
 #ifndef _ed8c3286_8197_11e4_a167_5404a601fa9d
 #define _ed8c3286_8197_11e4_a167_5404a601fa9d
 
+/* Layout : Use spaces the colon (:) is at column 27 */
+
 #define BOOTIMAGE_PRINT_HEADER "\
  Header: \n\
-  kernel size        : %u\n\
-  kernel addr        : 0x%8x\n\
-  ramdisk size       : %u\n\
-  ramdisk addr       : 0x%8x\n\
-  second size        : %u\n\
-  second addr        : 0x%8x\n\
-  tags addr          : 0x%8x\n\
-  page size          : %u\n\
-  dt size            : %u\n\
-  name               : %s\n\
-  cmd line           : %s\n\
-  extra cmd line     : %s\n\
+  kernel size              : %u\n\
+  kernel addr              : 0x%8x\n\
+  ramdisk size             : %u\n\
+  ramdisk addr             : 0x%8x\n\
+  second size              : %u\n\
+  second addr              : 0x%8x\n\
+  tags addr                : 0x%8x\n\
+  page size                : %u\n\
+  dt size                  : %u\n\
+  name                     : %s\n\
+  cmd line                 : %s\n\
+  extra cmd line           : %s\n\
+"
+
+#define BOOTIMAGE_PRINT_KERNEL_HEADER "\
+ Kernel:\n\
+"
+
+#define BOOTIMAGE_PRINT_KERNEL "\
+  compression type         : %s\n\
+  uncompressed size        : %u\n\
+  version                  : %s\n\
+"
+#define BOOTIMAGE_PRINT_KERNEL_CONFIG "\
+  config.gz size           : %u\n\
+  config size              : %u\n\
+  config entry count       : %d\n\
+"
+#define BOOTIMAGE_PRINT_KERNEL_INITRD "\
+  initrd compression type  : %s\n\
+  initrd size              : %u\n\
+  initrd uncompressed size : %u\n\
 "
 
 #define BOOTIMAGE_PRINT_EXTRACT_HEADER "\
@@ -52,8 +74,9 @@ extra_cmd_line=%s\n\
 "
 
 #define BOOTIMAGE_PRINT_COMPRESSION_TYPE "\
-  compression type   : %s\n\
+  compression type         : %s\n\
 "
+
 /* #define BOOTIMAGE_PRINT_KERNEL_HEADER " */
 
 __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_header(struct bootimage* bi);

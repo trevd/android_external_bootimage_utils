@@ -21,8 +21,9 @@
 #include <string.h>
 #include <private/api.h>
 
+/* */
 
-__LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_set_compressed_data_offset(struct bootimage* bi)
+__LIBBOOTIMAGE_PRIVATE_API__ static int bootimage_kernel_set_compressed_data_offset(struct bootimage* bi)
 {
 	int i = 0 ;
 
@@ -45,6 +46,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_set_compressed_data_offset(str
 
 __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* bi)
 {
+	/* */
 	if ( check_bootimage_kernel(bi) == -1 ){
 		return -1;
 	}
@@ -64,7 +66,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* b
 
 	if ( archive_read_next_header(a, &entry) == ARCHIVE_OK) {
 		   uint64_t size = archive_entry_size(entry);
-		   if ( size == 0 ){
+		   if ( size <= 0 ){
 			   size = UNCOMPRESSED_KERNEL_SIZE_32MB ;
 		   }
 		   bi->uncompressed_kernel = calloc(size,sizeof(char));
@@ -73,15 +75,26 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* b
 			   return -1;
 		   }
 		   bi->uncompressed_kernel_size = archive_read_data(a,bi->uncompressed_kernel,size);
-		   if ( bi->uncompressed_kernel_size == 0 ){
+		   if ( bi->uncompressed_kernel_size <= 0 ){
 			   free(bi->uncompressed_kernel) ;
 			   archive_read_free(a);
 			   return -1;
 
 		   }
 		   D("bi->uncompressed_kernel_size=%llu",bi->uncompressed_kernel_size) ;
-	 }
-
+	}
 	archive_read_free(a);
+
+	bi->kernel_version_string = memmem(bi->uncompressed_kernel,bi->uncompressed_kernel_size, KERNEL_VERSION_STRING,KERNEL_VERSION_STRING_SIZE);
+	if ( bi->kernel_version_string == NULL ){
+		D("kstring is null");
+		return -1;
+	}
+	bi->kernel_version_string_length = paranoid_strnlen(bi->kernel_version_string,256);
+	if ( bi->kernel_version_string_length <= 0 ) {
+		return -1 ;
+	}
+	D("bi->kernel_version_string_length len %d",bi->kernel_version_string_length);
+
 	return 0;
 }

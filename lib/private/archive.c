@@ -30,34 +30,68 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint64_t data_size, FILE* target)
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint64_t data_size, char* entry_name, FILE* target)
 {
 
+
+    int entry_name_len = check_output_name(entry_name) ;
+    if ( entry_name_len == -1 ) {
+		return -1 ;
+	}
+
+
     struct archive *a = NULL ;
-    if ( check_archive_read_initialization(&a) == -1 ){
+    if ( check_archive_read_memory(&a,data,data_size) == -1 ){
         return -1 ;
     }
     D("a=%p\n",a);
+
+    struct archive_entry *entry = NULL;
+
+    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+        /* Get the entry information we need */
+        char* name = archive_entry_pathname(entry) ;
+        if ( !strncmp( name , entry_name,entry_name_len) ){
+            switch ( archive_entry_filetype(entry) ){
+                case AE_IFREG:{ /* Entry File Type is a Regular File */
+                    uint64_t size = archive_entry_size(entry);
+
+                    /* Read the entry data if we have a regular file */
+                    unsigned char* data = calloc(size,sizeof(unsigned char));
+                    if ( data == NULL ){
+                        /* calloc failed. Probably not a good thing. So Bailout */
+                        return -1 ;
+                    }
+                    if ( archive_read_data(a,data,size) == ARCHIVE_FATAL ){
+                        /* there was a fatal error; the archive should be closed immediately */
+                        free(data);
+                        return -1 ;
+                    }
+
+
+                }
+                default:
+                    break ;
+            }
+        }
+
+    }
+
 
     return 0;
 
 
 }
 
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory( char* data , uint64_t data_size, DIR* target)
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* data , uint64_t data_size, DIR* target)
 {
 
     struct archive *a = NULL ;
-    if ( check_archive_read_initialization(&a) == -1 ){
+    if ( check_archive_read_memory(&a,data,data_size) == -1 ){
         return -1 ;
     }
-    D("a=%p\n",a);
-	int r = archive_read_open_memory(a, data,data_size);
-	if (r != ARCHIVE_OK){
-		return -1;
-	}
+
     D("archive_compression_name=%s\n",archive_compression_name(a));
-     fprintf(stdout,"archive_extract_all_memory\n");
     if ( archive_extract_all(a,target) == -1 ){
         int en = errno ;
         archive_read_free(a);
@@ -80,7 +114,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,DIR* tar
 
             /* Get the entry information we need */
             char* name = archive_entry_pathname(entry) ;
-            fprintf(stdout,"name:%s\n", name);
+            D("name:%s\n", name);
             uint64_t size = archive_entry_size(entry);
             mode_t mode = archive_entry_mode(entry) ;
             switch ( archive_entry_filetype(entry) ){

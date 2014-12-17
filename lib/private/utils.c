@@ -102,21 +102,28 @@ __LIBBOOTIMAGE_PRIVATE_API__ int paranoid_strnlen(char* s,int maxlen)
     /* The Paranoid strnlen function runs strnlen then checks the returned
        string again for non printable values and breaks at the first one it find
        length */
+    D("s=%s maxlen=%d",s,maxlen);
     int len = strnlen(s,maxlen);
     if ( len == maxlen ) {
-       s[len-1] = '\0';
-       return 0;
+        D("s=%s maxlen=%d len=%d",s,maxlen,len);
+        s[len-1] = '\0';
+        return 0;
     }
+    D("len=%d",len);
     char *p = s;
     int i = 0;
     for(i = 0 ; i <= len ; i++){
         if ( ( s[i] < '\x20' ) || ( s[i] > '\x7E' ) ) {
-            len = i ;
-            s[i] = '\0';
+            if ( len > i ){
+                D("non ascii char found %d %c",i,s[i]);
+                len = i ;
+                s[i] = '\0';
+            }
             break ;
         }
 
     }
+    D("returning len=%d",len);
     return len ;
 
 }

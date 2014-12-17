@@ -53,7 +53,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  static uint32_t calculate_padding(size_t section_s
 __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_mmap_file(struct bootimage* bi,const char* file_name)
 {
 
-	fprintf(stdout,"bi->stat.st_size=%lu\n",bi->stat.st_size );
+	D("bi->stat.st_size=%lu\n",bi->stat.st_size );
 	/* Open the file as read only, read for mmapping */
 	int bifd = open(file_name,O_RDONLY);
 	if(bifd < 0 ){
@@ -71,7 +71,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_mmap_file(struct bootimage* bi,const 
 		/* failed to close the file. is this fatal? Not in the overall
 		   scheme of things. According to the documentaton close should
 		   not be retried */
-		fprintf(stdout,"close failed for file %d\n",bifd);
+		D("close failed for file %d\n",bifd);
 	}
 
 	/* mmap failed. We should exit */

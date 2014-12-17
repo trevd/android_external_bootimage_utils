@@ -20,6 +20,7 @@
 #define  TRACE_TAG   TRACE_PRIVATE_PRINT
 #include <private/api.h>
 #include <stdio.h>
+#include <string.h>
 __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_header(struct bootimage* bi)
 {
 
@@ -35,5 +36,17 @@ __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_header(struct bootim
 											bi->header->name,
 											bi->header->cmdline,
 											bi->header->extra_cmdline);
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_kernel(struct bootimage* bi)
+{
+
+	fprintf(stdout,"\n"BOOTIMAGE_PRINT_KERNEL_HEADER""BOOTIMAGE_PRINT_KERNEL"\n",	bi->compressed_kernel_type->compression_type_string,
+											bi->uncompressed_kernel_size,
+											bi->kernel_version_string);
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_ramdisk(struct bootimage* bi)
+{
 	return 0;
 }

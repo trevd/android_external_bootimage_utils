@@ -43,7 +43,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header(struct bootimage* bi,c
 	if ( check_output_name ( header_name ) == -1 ) {
 		return -1 ;
 	}
-	//printf("bi %u\n",bi->header_size);
+	D("bi %u\n",bi->header_size);
 
 	FILE* fi = fopen(header_name,"w+b");
 	if ( fi == NULL ){
@@ -58,19 +58,24 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header(struct bootimage* bi,c
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header_block(struct bootimage* bi,const char* header_block_name)
 {
+	D("bi=%p",bi);
 	if ( check_bootimage_structure(bi) == -1 ){
+		D("check_bootimage_structure failed");
 		return -1;
 	}
+
 	if ( header_block_name == NULL ) {
 		header_block_name = DEFAULT_NAME_HEADER_BLOCK;
 	}
-
+	D("header_block_name:%s bi->header_size:%u",header_block_name,bi->header_size);
 	if ( check_output_name ( header_block_name ) == -1 ) {
+		D("bi=%p",bi);
 		return -1 ;
 	}
-	//printf("bi %u\n",bi->header_size);
 
-	FILE* fi = fopen(header_block_name,"w+b");
+	D("bi %u\n",bi->header_size);
+
+	FILE* fi = fopen("test","w+b");
 	if ( fi == NULL ){
 		return -1 ;
 	}
@@ -91,7 +96,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel(struct bootimage* bi,c
 	if ( check_output_name ( kernel_name ) == -1 ) {
 		return -1 ;
 	}
-	//printf("bi %ld\n",bi->header->kernel_size);
+	D("bi %ld\n",bi->header->kernel_size);
 
 	FILE* fi = fopen(kernel_name,"w+b");
 	if ( fi == NULL ){
@@ -127,13 +132,31 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_uncompressed_kernel(struct bo
 	if ( check_bootimage_structure(bi) == -1 ){
 		return -1;
 	}
+	if ( check_bootimage_kernel(bi) == -1 ){
+		return -1;
+	}
+	if ( bootimage_kernel_decompress(bi) == -1 ){
+		return -1;
+	}
+
 	if ( uncompressed_kernel_name == NULL ) {
 		uncompressed_kernel_name = DEFAULT_NAME_KERNEL_UNCOMPRESSED;
 	}
-
+	D("uncompressed_kernel_name:%s",uncompressed_kernel_name);
 	if ( check_output_name ( uncompressed_kernel_name ) == -1 ) {
+		D("check_output_name failed");
 		return -1 ;
 	}
+
+	FILE* fi = fopen(uncompressed_kernel_name,"w+b");
+	if ( fi == NULL ){
+		D("fopen failed");
+		return -1 ;
+	}
+	D("uncompressed_kernel:%p size=%u",bi->uncompressed_kernel ,bi->uncompressed_kernel_size);
+	fwrite(bi->uncompressed_kernel ,bi->uncompressed_kernel_size,1,fi);
+	fclose(fi);
+
 	return 0;
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,const char* ramdisk_dir_name)
@@ -164,7 +187,8 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,
 		return -1 ;
 	}
 
-	if ( archive_extract_all_memory(bi->ramdisk , bi->header->ramdisk_size,output_dir) == -1 ){
+
+	if ( archive_extract_all_memory_directory(bi->ramdisk , bi->header->ramdisk_size,output_dir) == -1 ){
 		int ie = errno ;
 		if ( closedir(output_dir) == -1 ){
 			return -1 ;
@@ -202,7 +226,11 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_archive(struct bootim
 	fclose(fi);
 	return 0;
 }
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_entry(struct bootimage* bi,const char* ramdisk_entry_name)
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_entry(struct bootimage* bi,const char* ramdisk_entry_name,const char* output_file)
 {
+	if ( check_bootimage_structure(bi) == -1 ){
+		return -1;
+	}
+
 	return 0;
 }

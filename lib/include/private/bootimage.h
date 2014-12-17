@@ -161,6 +161,9 @@ struct bootimage
 
 	unsigned char* uncompressed_kernel ; /* pointer to the uncompressed kernel data */
 	uint32_t uncompressed_kernel_size;  /* size in bytes */
+	unsigned char* kernel_version_string ; /* pointer to the start of the kernel version
+						  string in the uncompressed kernel data */
+	uint32_t kernel_version_string_length;  /* length of the kernel version string */
 
 
  };
