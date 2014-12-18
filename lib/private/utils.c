@@ -149,7 +149,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname(char* s)
     }
     int len = d-s ;
     D("len=%d",len);
-    char* r = calloc(len , sizeof(char));
+    char* r = calloc(len , sizeof(char)+1);
     strncpy(r,s,len);
     D("r=%s",r);
     return r;
@@ -171,4 +171,39 @@ __LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer
   assert (left_to_write == 0);
   /* The number of bytes written is exactly COUNT.  */
   return count;
+}
+__LIBBOOTIMAGE_PRIVATE_API__ unsigned char *utils_memmem(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len)
+{
+
+    errno = 0;
+    if(!haystack)
+        errno = ENOMEM ;
+    else if(!needle)
+        errno = ENOMEM ;
+    else if(haystack_len < needle_len || !haystack_len || !needle_len)
+        errno = EINVAL ;
+
+    if(errno) return NULL ;
+
+
+
+    size_t begin=0;
+    unsigned char* uneedle = (unsigned char *)needle ;
+    //D("find_in_memory haystack=%p haystack_len=%u needle=%p needle_len=%u\n",haystack,haystack_len,needle,needle_len);
+    //fprintf(stderr,"Memory HS:%p HL:%u\n",haystack,   haystack_len);
+    //D("haystack[0]='%x' needle[0]='%x'\n",haystack[0],uneedle[0]);
+
+    for(begin=0 ; begin < haystack_len; begin++){
+        // make sure we are comparing apples with apples
+        if(haystack[begin]==uneedle[0]){
+
+            if(!memcmp(uneedle,haystack+begin,needle_len)){
+                //D("haystack[%d]='%x'\n",begin,haystack[begin]);
+                return haystack+begin;
+            }
+        }
+    }
+
+    //D("INFO: needle Not Found In Memory\n");
+    return NULL;
 }

@@ -30,7 +30,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ static int bootimage_kernel_set_compressed_data_off
 
 	for(i = 1 ; i <= KERNEL_COMPRESSION_TYPE_MAX ; i++){
 
-		bi->compressed_kernel_offset = memmem(bi->kernel,bi->header->kernel_size,kernel_type[i].magic,kernel_type[i].magic_size);
+		bi->compressed_kernel_offset = utils_memmem(bi->kernel,bi->header->kernel_size,kernel_type[i].magic,kernel_type[i].magic_size);
 		if ( bi->compressed_kernel_offset != NULL ){
 			bi->compressed_kernel_type = &kernel_type[i] ;
 			bi->compressed_kernel_size = bi->header->kernel_size - ( bi->compressed_kernel_offset -bi->kernel);
@@ -85,7 +85,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* b
 	}
 	archive_read_free(a);
 
-	bi->kernel_version_string = memmem(bi->uncompressed_kernel,bi->uncompressed_kernel_size, KERNEL_VERSION_STRING,KERNEL_VERSION_STRING_SIZE);
+	bi->kernel_version_string = utils_memmem(bi->uncompressed_kernel,bi->uncompressed_kernel_size, KERNEL_VERSION_STRING,KERNEL_VERSION_STRING_SIZE);
 	if ( bi->kernel_version_string == NULL ){
 		D("kstring is null");
 		return -1;

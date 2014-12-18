@@ -26,7 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/mman.h>
+
 #include <string.h>
 
 #include <private/api.h>
@@ -56,6 +56,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_mmap_file(struct bootimage* bi,const 
 	D("bi->stat.st_size=%lu\n",bi->stat.st_size );
 	/* Open the file as read only, read for mmapping */
 	int bifd = open(file_name,O_RDONLY);
+	D("bifd=%d\n",bifd);
 	if(bifd < 0 ){
 		/* Could not open file. errno should be set already so return -1 */
 		return -1;
@@ -63,39 +64,20 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_mmap_file(struct bootimage* bi,const 
 	/* mmap the full file into memory */
 
 	bi->start = calloc(bi->stat.st_size,sizeof(char));
+	D("bi->start=%p\n",bi->start );
 	read(bifd,bi->start,bi->stat.st_size);
-
-	//mmap(NULL,bi->stat.st_size,PROT_READ,MAP_PRIVATE,bifd,0);
-
-	/* stash the mmap error number */
-	int ierrno = errno ;
-
-	/* even if mmap failed we still need/want to close the file */
-	if( close(bifd) == -1 ){
-		/* failed to close the file. is this fatal? Not in the overall
-		   scheme of things. According to the documentaton close should
-		   not be retried */
-		D("close failed for file %d\n",bifd);
-	}
-
-	/* mmap failed. We should exit */
-	if( bi->start == MAP_FAILED ) {
-		bi->start == NULL ;
-		errno = ierrno ;
-		return -1 ;
-	}
+	close(bifd);
+	D("Returning 0\n" );
 	return 0 ;
+
+
+
 }
 __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_magic_address(struct bootimage* bi)
 {
 	/* Look for the ANDROID! boot magic in the mapped file area */
-	bi->header = memmem(bi->start,bi->stat.st_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
+	bi->header = utils_memmem(bi->start,bi->stat.st_size,BOOT_MAGIC,BOOT_MAGIC_SIZE);
 	if( bi->header == NULL ){
-		/* Boot magic not found unmap the mapped file */
-		if ( munmap(bi->start,bi->stat.st_size) == -1 ){
-			/* cannot unmap the file return -1 and leave errno intact */
-			return -1;
-		};
 		/* set the error to no magic and return */
 		errno = EBINOMAGIC ;
 		return -1 ;
@@ -109,11 +91,6 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_header_section(struct bootimage* 
 	/* Work out the padding for header section of the bootimage file */
 	bi->header_padding = calculate_padding(bi->header_size,bi->header->page_size);
 	if ( bi->header_padding == -1 ) {
-		/* Header padding could not be calculated unmap and exit */
-		if ( munmap(bi->start,bi->stat.st_size) == -1 ){
-			/* cannot unmap the file return -1 and leave errno intact */
-			return -1;
-		};
 		/* set the error and return */
 		errno = EBIBADPADHEAD ;
 		return -1 ;
@@ -139,11 +116,6 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_kernel_section(struct bootimage* 
 	/* Work out the padding for kernel section of the bootimage file */
 	bi->kernel_padding = calculate_padding(bi->header->kernel_size ,bi->header->page_size);
 	if ( bi->kernel_padding == -1 ) {
-		/* Header padding could not be calculate unmap and exit */
-		if ( munmap(bi->start,bi->stat.st_size) == -1 ){
-			/* cannot unmap the file return -1 and leave errno intact */
-			return -1;
-		};
 		/* set the error and return */
 		errno = EBIBADPADKERNEL ;
 		return -1 ;
@@ -161,11 +133,6 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_ramdisk_section(struct bootimage*
 	/* Work out the padding for ramdisk section of the bootimage file */
 	bi->ramdisk_padding = calculate_padding(bi->header->ramdisk_size ,bi->header->page_size);
 	if ( bi->ramdisk_padding == -1 ) {
-		/* Ramdisk padding could not be calculate unmap and exit */
-		if ( munmap(bi->start,bi->stat.st_size) == -1 ){
-			/* cannot unmap the file return -1 and leave errno intact */
-			return -1;
-		};
 		/* set the error and return */
 		errno = EBIBADPADRAMDISK ;
 		return -1 ;
@@ -188,11 +155,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_set_second_section(struct bootimage* 
 		/* Work out the padding for ramdisk section of the bootimage file */
 		bi->second_padding = calculate_padding(bi->header->second_size,bi->header->page_size);
 		if ( bi->second_padding == -1 ) {
-			/* Second padding could not be calculate unmap and exit */
-			if ( munmap(bi->start,bi->stat.st_size) == -1 ){
-				/* cannot unmap the file return -1 and leave errno intact */
-				return -1;
-			};
+
 			/* set the error and return */
 			errno = EBIBADPADSECOND ;
 			return -1 ;
@@ -226,8 +189,10 @@ __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_file_read_magic(struct bootimage* bi
 	if( bootimage_mmap_file(bi,file_name) == -1 ){
 		return -1;
 	}
+	D("file_name=%s",file_name);
 	if( bootimage_set_magic_address(bi) == -1 ){
 		return -1;
 	}
+	D("file_name=%s",file_name);
 	return 0;
 }

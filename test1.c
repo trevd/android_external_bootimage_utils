@@ -117,6 +117,8 @@ int main(int  argc  ,char** argv)
 	int ret = bootimage_file_read(bi,argv[1]);
 	//bootimage_extract_ramdisk_entry(bi,"init.rc","out.rc");
 	//bootimage_extract_ramdisk_entry(bi,"init.rc","out/out.rc");
+	printf("dirname=%s\n", dname);
+
 	bootimage_extract_ramdisk(bi,NULL);
 	//bootimage_extract_uncompressed_kernel(bi,NULL);
 	//bootimage_extract_kernel(bi,NULL);

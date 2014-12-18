@@ -27,4 +27,5 @@ __LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents(const char *path,unsig
 __LIBBOOTIMAGE_PRIVATE_API__ int utils_paranoid_strnlen( char* s,int maxlen);
 __LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname( char* s);
 __LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer, size_t count);
+__LIBBOOTIMAGE_PRIVATE_API__ unsigned char *utils_memmem(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len);
 #endif

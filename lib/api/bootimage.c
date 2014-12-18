@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/mman.h>
+
 #include <api/bootimage.h>
 #include <api/errors.h>
 #include <private/api.h>

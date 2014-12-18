@@ -37,9 +37,11 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_memory(struct archive **ap,c
 	if ( check_archive_read_initialization(ap) == -1 ){
 		return -1;
 	}
+	D("ap[0]=%p",ap[0]);
 	int r = archive_read_open_memory(ap[0], data,data_size);
 	if (r != ARCHIVE_OK){
-		D("r=%d",r);
+		archive_error_string(ap[0]);
+		D("r=%d %s",r,archive_error_string(ap[0]));
 		return -1;
 	}
 	D("ap[0]=%p",ap[0]);
