@@ -83,7 +83,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(const char* name)
 		errno = EBIOUTNAME ;
 		return -1;
 	}
-	int size = paranoid_strnlen(name,PATH_MAX);
+	int size = utils_paranoid_strnlen(name,PATH_MAX);
 	if ( size > PATH_MAX-1){
 		errno = EBIOUTNAMELEN ;
 		return -1;

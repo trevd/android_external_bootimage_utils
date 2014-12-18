@@ -65,7 +65,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  static int archive_extract_entry_regular_file( str
 
     if(output_dir_name != NULL ) {
         /* Create the output directory if needed */
-        if ( mkdir_and_parents_umask(output_dir_name,0755,0) == NULL ){
+        if ( utils_mkdir_and_parents_umask(output_dir_name,0755,0) == -1 ){
             D("ERROR:Failed to create output directory %s",output_dir_name);
             free(output_dir_name);
             return -1 ;
@@ -96,7 +96,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  static int archive_extract_entry_regular_file( str
         close(fd);
         return -1 ;
     }
-    write(fd,entry_data,real_entry_size);
+    utils_write_all(fd,entry_data,real_entry_size);
     close(fd);
     free(entry_data);
     return 0 ;
@@ -185,7 +185,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,char* ou
     if ( check_output_name(output_dir_name)  == -1 ) {
 		return -1 ;
 	}
-    if ( mkdir_and_parents_umask(output_dir_name,0755,0) == NULL ){
+    if ( utils_mkdir_and_parents_umask(output_dir_name,0755,0) == -1 ){
         D("ERROR:Failed to create output directory %s",output_dir_name);
         return -1 ;
     }
@@ -212,7 +212,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,char* ou
                 case AE_IFDIR:{ /* Entry File Type is a Directory */
                     mode_t mode = archive_entry_mode(entry) ;
                      char* name = archive_entry_pathname(entry) ;
-                    mkdir_and_parents(name,mode);
+                    utils_mkdir_and_parents(name,mode);
                     archive_read_data_skip(a);
                     break;
                 }

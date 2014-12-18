@@ -18,6 +18,7 @@
  */
 #define  TRACE_TAG   TRACE_PRIVATE_UTILS
 #include <unistd.h>
+#include <assert.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -33,22 +34,22 @@
 #define mkdir_os(path,mode) mkdir(path,mode)
 #endif
 
-__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdirat_umask(const char *path,unsigned mode, mode_t mask)
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdirat_umask(const char *path,unsigned mode, mode_t mask)
 {
     mode_t oldumask = umask(mask);
-    DIR* ret = mkdir_and_parents(path,mode);
+    int ret = utils_mkdir_and_parents(path,mode);
     umask(oldumask);
     return ret;
 }
 
-__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents_umask(const char *path,unsigned mode, mode_t mask)
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents_umask(const char *path,unsigned mode, mode_t mask)
 {
     mode_t oldumask = umask(mask);
-    DIR* ret = mkdir_and_parents(path,mode);
+    int ret = utils_mkdir_and_parents(path,mode);
     umask(oldumask);
     return ret;
 }
-__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned mode)
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents(const char *path,unsigned mode)
 {
         errno = 0;
         char opath[PATH_MAX];
@@ -57,19 +58,19 @@ __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned m
 
         if(strnlen(path,PATH_MAX) >= PATH_MAX){
             errno = ENAMETOOLONG ;
-            return NULL;
+            return -1;
         }
 
         /* stat the full path, see if we have an existing directory */
         struct stat statbuf ;
         if ( stat(path, &statbuf) == 0 ){
             if ( S_ISDIR(statbuf.st_mode) ){
-                return opendir(path);
+                return 0;
             }else
                 /* path exists but not a directory */
                 /* D("path %s found but not a directory\n",path); */
                 errno = ENOTDIR ;
-                return NULL;
+                return -1;
         }
 
         strncpy(opath,(char*) path, sizeof(opath));
@@ -100,10 +101,10 @@ __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned m
         }
         /* D("opath=%s errno=%u %s\n",opath,errno,strerror(errno)); */
 
-        return opendir(path);
+        return 0;
 
 }
-__LIBBOOTIMAGE_PRIVATE_API__ int paranoid_strnlen(char* s,int maxlen)
+__LIBBOOTIMAGE_PRIVATE_API__ int utils_paranoid_strnlen(char* s,int maxlen)
 {
     /* The Paranoid strnlen function runs strnlen then checks the returned
        string again for non printable values and breaks at the first one it find
@@ -153,4 +154,21 @@ __LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname(char* s)
     D("r=%s",r);
     return r;
 
+}
+__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer, size_t count)
+{
+  ssize_t left_to_write = count;
+  while (left_to_write > 0) {
+    ssize_t written = write (fd, buffer, count);
+    if (written == -1)
+      /* An error occurred; bail.  */
+      return -1;
+    else
+      /* Keep count of how much more we need to write.  */
+      left_to_write -= written;
+  }
+  /* We should have written no more than COUNT bytes!   */
+  assert (left_to_write == 0);
+  /* The number of bytes written is exactly COUNT.  */
+  return count;
 }

@@ -115,11 +115,11 @@ int main(int  argc  ,char** argv)
 	//printf("bi %p\n",bi);
 	bi = bootimage_initialize();
 	int ret = bootimage_file_read(bi,argv[1]);
-	bootimage_extract_ramdisk_entry(bi,"init.rc","out.rc");
-	bootimage_extract_ramdisk_entry(bi,"init.rc","out/out.rc");
+	//bootimage_extract_ramdisk_entry(bi,"init.rc","out.rc");
+	//bootimage_extract_ramdisk_entry(bi,"init.rc","out/out.rc");
 	bootimage_extract_ramdisk(bi,NULL);
-	bootimage_extract_uncompressed_kernel(bi,NULL);
-	bootimage_extract_kernel(bi,NULL);
+	//bootimage_extract_uncompressed_kernel(bi,NULL);
+	//bootimage_extract_kernel(bi,NULL);
 	//extract_tests(bi);
 	//print_tests(bi) ;
 

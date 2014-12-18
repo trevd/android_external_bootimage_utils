@@ -22,11 +22,9 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef _WIN32
-#define symlink(source,path) ((void)0)
-#endif
-__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents_umask(const char *path,unsigned mode, mode_t umask);
-__LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned mode);
-__LIBBOOTIMAGE_PRIVATE_API__ int paranoid_strnlen( char* s,int maxlen);
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents_umask(const char *path,unsigned mode, mode_t umask);
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents(const char *path,unsigned mode);
+__LIBBOOTIMAGE_PRIVATE_API__ int utils_paranoid_strnlen( char* s,int maxlen);
 __LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname( char* s);
+__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer, size_t count);
 #endif

@@ -90,7 +90,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* b
 		D("kstring is null");
 		return -1;
 	}
-	bi->kernel_version_string_length = paranoid_strnlen(bi->kernel_version_string,256);
+	bi->kernel_version_string_length = utils_paranoid_strnlen(bi->kernel_version_string,256);
 	if ( bi->kernel_version_string_length <= 0 ) {
 		return -1 ;
 	}

@@ -173,32 +173,25 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,
 	if ( ramdisk_dir_name == NULL ) {
 		ramdisk_dir_name = DEFAULT_NAME_RAMDISK_DIRECTORY;
 	}
-
+	D("ramdisk_dir_name=%s",ramdisk_dir_name);
 	int ramdisk_dir_name_length = check_output_name ( ramdisk_dir_name );
 	if ( ramdisk_dir_name_length == -1 ) {
+		D("ramdisk_dir_name_length=%d",ramdisk_dir_name_length);
 		return -1 ;
 	}
+	D("ramdisk_dir_name_length=%d",ramdisk_dir_name_length);
 	if ( ( ramdisk_dir_name[ramdisk_dir_name_length-1] == '/' ) || ( ramdisk_dir_name[ramdisk_dir_name_length-1] == '\\' ) ){
 		ramdisk_dir_name_length -= 1 ;
 	}
 
-	DIR* output_dir =  mkdir_and_parents_umask ( ramdisk_dir_name, 0755 , 0);
-	if ( output_dir == NULL ) {
+	if (  utils_mkdir_and_parents_umask ( ramdisk_dir_name, 0755 , 0) == -1 ) {
 		return -1 ;
 	}
 
 
 	if ( archive_extract_all_memory_directory(bi->ramdisk , bi->header->ramdisk_size,ramdisk_dir_name) == -1 ){
-		int ie = errno ;
-		if ( closedir(output_dir) == -1 ){
-			return -1 ;
-		}
-		errno = ie ;
 		return -1 ;
 
-	}
-	if ( closedir(output_dir) == -1 ){
-		return -1 ;
 	}
 	return 0;
 }
