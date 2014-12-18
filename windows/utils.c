@@ -27,6 +27,15 @@
 #include <private/api.h>
 
 
+int dirfd(DIR *dirp) {
+    if (dirp == NULL || dirp->dd_handle < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+
+    return dirp->dd_handle;
+}
+
 __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdirat_umask(const char *path,unsigned mode, mode_t mask)
 {
     mode_t oldumask = umask(mask);
@@ -80,7 +89,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned m
                 *p = '\0';
                 if((strnlen(opath,sizeof(opath)) > 0) && (access(opath, F_OK))){
                     /* D("in loop opath=%s\n",opath); */
-                    mkdir(opath, mode);
+                    mkdir(opath);
                 }
                 *p = '/';
            }
@@ -90,7 +99,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned m
         if(access(opath, F_OK)){
             /* if path is not terminated with / */
             errno = 0 ;
-            mkdir(opath, mode);
+            mkdir(opath);
         }
         /* D("opath=%s errno=%u %s\n",opath,errno,strerror(errno)); */
 
@@ -125,26 +134,5 @@ __LIBBOOTIMAGE_PRIVATE_API__ int paranoid_strnlen(char* s,int maxlen)
     }
     D("returning len=%d",len);
     return len ;
-
-}
-__LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname(char* s)
-{
-    D("s=%s",s);
-    if(s == NULL ){
-        return NULL ;
-    }
-
-    char* d = strrchr(s,'/');
-
-    D("d=%s",d);
-    if(d == NULL ){
-        return NULL;
-    }
-    int len = d-s ;
-    D("len=%d",len);
-    char* r = calloc(len , sizeof(char));
-    strncpy(r,s,len);
-    D("r=%s",r);
-    return r;
 
 }

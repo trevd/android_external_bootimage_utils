@@ -231,6 +231,16 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk_entry(struct bootimag
 	if ( check_bootimage_structure(bi) == -1 ){
 		return -1;
 	}
+	if ( check_bootimage_ramdisk(bi) == -1 ){
+		return -1;
+	}
 
-	return 0;
+	if ( check_output_name ( output_file ) == -1 ) {
+		return -1 ;
+	}
+
+
+	int ret = archive_extract_memory_file(bi->ramdisk, bi->header->ramdisk_size,ramdisk_entry_name,output_file);
+
+	return ret;
 }

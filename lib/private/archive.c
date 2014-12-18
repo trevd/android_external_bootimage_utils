@@ -19,6 +19,8 @@
 #define  TRACE_TAG   TRACE_PRIVATE_ARCHIVE
 #include <unistd.h>
 #include <errno.h>
+#include <stdio.h>
+#include <libgen.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -30,10 +32,13 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint64_t data_size, char* entry_name, FILE* target)
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint64_t data_size, char* entry_name, char* target)
 {
 
 
+    if ( target == NULL ) {
+        return -1 ;
+    }
     int entry_name_len = check_output_name(entry_name) ;
     if ( entry_name_len == -1 ) {
 		return -1 ;
@@ -51,23 +56,40 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         /* Get the entry information we need */
         char* name = archive_entry_pathname(entry) ;
+        D("archive_entry_pathname=%s",name);
         if ( !strncmp( name , entry_name,entry_name_len) ){
             switch ( archive_entry_filetype(entry) ){
                 case AE_IFREG:{ /* Entry File Type is a Regular File */
                     uint64_t size = archive_entry_size(entry);
+                    D("archive_entry_size=%u",size);
+                    D("target=%s %p",target,target);
+                    char* dname = utils_dirname(target) ;
+                    D("dname=%s",dname);
+                    mkdir_and_parents_umask(dname,0755,0);
+                    FILE* fi = fopen(target,"w+b");
+                    D("fi=%p",fi);
+                    if ( fi == NULL ){
+                        return -1 ;
+                    }
+
 
                     /* Read the entry data if we have a regular file */
                     unsigned char* data = calloc(size,sizeof(unsigned char));
                     if ( data == NULL ){
+                        D("calloc failed");
                         /* calloc failed. Probably not a good thing. So Bailout */
+                        fclose(fi);
                         return -1 ;
                     }
                     if ( archive_read_data(a,data,size) == ARCHIVE_FATAL ){
                         /* there was a fatal error; the archive should be closed immediately */
+                        D("archive_read_data=ARCHIVE_FATAL");
                         free(data);
+                        fclose(fi);
                         return -1 ;
                     }
-
+                    fwrite(data,size,1,fi);
+                    fclose(fi);
 
                 }
                 default:
@@ -77,7 +99,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint
 
     }
 
-
+  archive_read_free(a);
     return 0;
 
 
@@ -91,7 +113,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* da
         return -1 ;
     }
 
-    D("archive_compression_name=%s\n",archive_compression_name(a));
+    D("archive_compression_name=%s",archive_compression_name(a));
     if ( archive_extract_all(a,target) == -1 ){
         int en = errno ;
         archive_read_free(a);
@@ -114,7 +136,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,DIR* tar
 
             /* Get the entry information we need */
             char* name = archive_entry_pathname(entry) ;
-            D("name:%s\n", name);
+            D("name:%s", name);
             uint64_t size = archive_entry_size(entry);
             mode_t mode = archive_entry_mode(entry) ;
             switch ( archive_entry_filetype(entry) ){
