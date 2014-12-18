@@ -188,7 +188,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_ramdisk(struct bootimage* bi,
 	}
 
 
-	if ( archive_extract_all_memory_directory(bi->ramdisk , bi->header->ramdisk_size,output_dir) == -1 ){
+	if ( archive_extract_all_memory_directory(bi->ramdisk , bi->header->ramdisk_size,ramdisk_dir_name) == -1 ){
 		int ie = errno ;
 		if ( closedir(output_dir) == -1 ){
 			return -1 ;

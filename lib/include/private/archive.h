@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <archive.h>
 #include <archive_entry.h>
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint64_t data_size, char* entry_name, char* target);
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* data , uint64_t data_size, DIR* target);
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,DIR* target);
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* archive_data , uint64_t archive_size, char* output_dir_name);
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,char* output_dir_name);
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* archive_data , uint64_t archive_size, char* entry_name, char* output_file_name);
 #endif

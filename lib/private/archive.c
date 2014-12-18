@@ -20,7 +20,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdio.h>
-#include <libgen.h>
+#include <stdlib.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -32,13 +33,86 @@
 #include <archive.h>
 #include <archive_entry.h>
 
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint64_t data_size, char* entry_name, char* target)
+#define ARCHIVE_ENTRY_DEFAULT_SIZE_32MB ( (1024 * 1024 ) *32 )
+__LIBBOOTIMAGE_PRIVATE_API__  static int archive_extract_entry_regular_file( struct archive *a, struct archive_entry *entry,char* output_file_name)
+{
+    if(entry == NULL){
+         D("ERROR:entry argument is null");
+        return -1 ;
+    }
+    if(output_file_name == NULL ) {
+        D("INFO:using entry name");
+        output_file_name = archive_entry_pathname(entry);
+        if( output_file_name == NULL ){
+            D("ERROR:archive_entry_pathname failed");
+            return -1;
+        }
+    }
+
+    uint64_t entry_size = archive_entry_size(entry);
+    if(entry_size == 0 ){
+        /* we could not get the entry size from archive entry
+           so we will use the default size of 32MB instead */
+        entry_size = ARCHIVE_ENTRY_DEFAULT_SIZE_32MB;
+        D("WARNING:Using Default Entry Size");
+    }
+
+    D("archive_entry_size=%lu",entry_size);
+
+    /* Get the output directory name */
+    char* output_dir_name = utils_dirname(output_file_name) ;
+    D("output_dir_name=%s",output_dir_name);
+
+    if(output_dir_name != NULL ) {
+        /* Create the output directory if needed */
+        if ( mkdir_and_parents_umask(output_dir_name,0755,0) == NULL ){
+            D("ERROR:Failed to create output directory %s",output_dir_name);
+            free(output_dir_name);
+            return -1 ;
+        }
+        free(output_dir_name);
+    }
+    /* Allocate the memory for the uncompressed entry data */
+    unsigned char* entry_data = calloc(entry_size,sizeof(unsigned char));
+    if ( entry_data == NULL ){
+        D("ERROR:Failed to allocate memory for entry data");
+        return -1 ;
+    }
+
+    mode_t mode = archive_entry_mode(entry) ;
+    int fd =  open(output_file_name, O_CREAT | O_TRUNC | O_WRONLY, mode);
+
+    D("fd=%d",fd);
+    if ( fd == -1 ){
+        D("ERROR:Failed to open output file %s",output_file_name);
+        free(entry_data);
+        return -1 ;
+    }
+    ssize_t real_entry_size = archive_read_data(a,entry_data,entry_size);
+    if (  real_entry_size == ARCHIVE_FATAL ){
+        /* there was a fatal error; the archive should be closed immediately */
+        D("archive_read_data=ARCHIVE_FATAL");
+        free(entry_data);
+        close(fd);
+        return -1 ;
+    }
+    write(fd,entry_data,real_entry_size);
+    close(fd);
+    free(entry_data);
+    return 0 ;
+
+
+
+}
+
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* archive_data , uint64_t archive_size, char* entry_name, char* output_file_name)
 {
 
 
-    if ( target == NULL ) {
-        return -1 ;
-    }
+
+    if ( check_output_name(output_file_name)  == -1 ) {
+		return -1 ;
+	}
     int entry_name_len = check_output_name(entry_name) ;
     if ( entry_name_len == -1 ) {
 		return -1 ;
@@ -46,13 +120,14 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint
 
 
     struct archive *a = NULL ;
-    if ( check_archive_read_memory(&a,data,data_size) == -1 ){
+    if ( check_archive_read_memory(&a,archive_data,archive_size) == -1 ){
         return -1 ;
     }
     D("a=%p\n",a);
 
     struct archive_entry *entry = NULL;
-
+    int break_error = 0 ;
+    int break_found = 0 ;
     while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
         /* Get the entry information we need */
         char* name = archive_entry_pathname(entry) ;
@@ -60,61 +135,42 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* data , uint
         if ( !strncmp( name , entry_name,entry_name_len) ){
             switch ( archive_entry_filetype(entry) ){
                 case AE_IFREG:{ /* Entry File Type is a Regular File */
-                    uint64_t size = archive_entry_size(entry);
-                    D("archive_entry_size=%u",size);
-                    D("target=%s %p",target,target);
-                    char* dname = utils_dirname(target) ;
-                    D("dname=%s",dname);
-                    mkdir_and_parents_umask(dname,0755,0);
-                    FILE* fi = fopen(target,"w+b");
-                    D("fi=%p",fi);
-                    if ( fi == NULL ){
-                        return -1 ;
+                    break_found = 1 ;
+                    if ( archive_extract_entry_regular_file(a,entry,output_file_name) == -1 ) {
+                        break_error = 1;
                     }
-
-
-                    /* Read the entry data if we have a regular file */
-                    unsigned char* data = calloc(size,sizeof(unsigned char));
-                    if ( data == NULL ){
-                        D("calloc failed");
-                        /* calloc failed. Probably not a good thing. So Bailout */
-                        fclose(fi);
-                        return -1 ;
-                    }
-                    if ( archive_read_data(a,data,size) == ARCHIVE_FATAL ){
-                        /* there was a fatal error; the archive should be closed immediately */
-                        D("archive_read_data=ARCHIVE_FATAL");
-                        free(data);
-                        fclose(fi);
-                        return -1 ;
-                    }
-                    fwrite(data,size,1,fi);
-                    fclose(fi);
 
                 }
                 default:
                     break ;
             }
         }
-
+        if ( (break_found == 1)|| (break_error == 1) ){
+            break ;
+        }
     }
-
-  archive_read_free(a);
+    archive_read_free(a);
+    if ( break_error == 1 ) {
+        return -1 ;
+    }
     return 0;
 
 
 }
 
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* data , uint64_t data_size, DIR* target)
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* archive_data , uint64_t archive_size, char* output_dir_name)
 {
 
+    if ( check_output_name(output_dir_name)  == -1 ) {
+		return -1 ;
+	}
     struct archive *a = NULL ;
-    if ( check_archive_read_memory(&a,data,data_size) == -1 ){
+    if ( check_archive_read_memory(&a,archive_data,archive_size) == -1 ){
         return -1 ;
     }
 
     D("archive_compression_name=%s",archive_compression_name(a));
-    if ( archive_extract_all(a,target) == -1 ){
+    if ( archive_extract_all(a,output_dir_name) == -1 ){
         int en = errno ;
         archive_read_free(a);
         errno = en ;
@@ -123,54 +179,53 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* da
     archive_read_free(a);
     return 0;
 }
-__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,DIR* target)
+
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,char* output_dir_name)
 {
-        int dfd = dirfd(target);
-        if ( dfd == -1 ){
-            return -1 ;
-        }
-        struct archive_entry *entry = NULL;
+    if ( check_output_name(output_dir_name)  == -1 ) {
+		return -1 ;
+	}
+    if ( mkdir_and_parents_umask(output_dir_name,0755,0) == NULL ){
+        D("ERROR:Failed to create output directory %s",output_dir_name);
+        return -1 ;
+    }
+    char* cwd = calloc(PATH_MAX,sizeof(char));
+    if( cwd == NULL ) {
+        D("ERROR:Failed to allocate memory for cwd");
+        return -1 ;
+    }
+    if ( getcwd(cwd, PATH_MAX) == NULL ){
+        D("ERROR:getcwd failed");
+        free(cwd);
+        return -1;
+    }
+    if ( chdir(output_dir_name) == -1 ){
+        D("ERROR:chdir failed errno=%d",errno);
+        free(cwd);
+        return -1;
+    }
+
+    struct archive_entry *entry = NULL;
 
         while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
-
-
-            /* Get the entry information we need */
-            char* name = archive_entry_pathname(entry) ;
-            D("name:%s", name);
-            uint64_t size = archive_entry_size(entry);
-            mode_t mode = archive_entry_mode(entry) ;
             switch ( archive_entry_filetype(entry) ){
                 case AE_IFDIR:{ /* Entry File Type is a Directory */
-                    mkdirat(dfd,name,mode);
+                    mode_t mode = archive_entry_mode(entry) ;
+                     char* name = archive_entry_pathname(entry) ;
+                    mkdir(name,mode);
                     archive_read_data_skip(a);
                     break;
                 }
                 case AE_IFLNK:{ /* Entry File Type is a Symbolic Link */
-                    symlinkat(archive_entry_symlink(entry),dfd, name);
+                    char* name = archive_entry_pathname(entry) ;
+                    symlink(archive_entry_symlink(entry), name);
                     archive_read_data_skip(a);
                     break;
                 }
                 case AE_IFREG:{ /* Entry File Type is a Regular File */
-                    /* Read the entry data if we have a regular file */
-                    unsigned char* data = calloc(size,sizeof(unsigned char));
-                    if ( data == NULL ){
-                        /* calloc failed. Probably not a good thing. So Bailout */
-                        return -1 ;
-                    }
-                    if ( archive_read_data(a,data,size) == ARCHIVE_FATAL ){
-                        /* there was a fatal error; the archive should be closed immediately */
-                        free(data);
-                        return -1 ;
-                    }
-
-                    int ffd =  openat(dfd,name, O_CREAT | O_TRUNC | O_WRONLY, mode);
-                    if ( ffd == -1 ){
-                        free(data);
-                        continue ;
-                    }
-                    write(ffd,data,size);
-                    close(ffd);
+                    archive_extract_entry_regular_file(a,entry,NULL);
                     break;
+
                 }
                 default:{ /* Entry File Type is a something else and unsupported */
 
@@ -179,5 +234,11 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,DIR* tar
                 }
             }
         }
-        return 0 ;
+    if ( chdir(cwd) == -1 ){
+        D("ERROR:chdir cwd failed errno=%d",errno);
+        free(cwd);
+        return -1;
+    }
+    free(cwd);
+    return 0 ;
 }
