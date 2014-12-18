@@ -96,7 +96,12 @@ __LIBBOOTIMAGE_PRIVATE_API__  static int archive_extract_entry_regular_file( str
         close(fd);
         return -1 ;
     }
-    utils_write_all(fd,entry_data,real_entry_size);
+    if ( utils_write_all(fd,entry_data,real_entry_size) == -1 ){
+        D("ERROR:Failed to write entry data real_entry_size:%lu",real_entry_size);
+        free(entry_data);
+        close(fd);
+        return -1 ;
+    }
     close(fd);
     free(entry_data);
     return 0 ;
