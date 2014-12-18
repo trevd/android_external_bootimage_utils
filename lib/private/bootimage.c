@@ -61,7 +61,11 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_mmap_file(struct bootimage* bi,const 
 		return -1;
 	}
 	/* mmap the full file into memory */
-	bi->start = mmap(NULL,bi->stat.st_size,PROT_READ,MAP_PRIVATE,bifd,0);
+
+	bi->start = calloc(bi->stat.st_size,sizeof(char));
+	read(bifd,bi->start,bi->stat.st_size);
+
+	//mmap(NULL,bi->stat.st_size,PROT_READ,MAP_PRIVATE,bifd,0);
 
 	/* stash the mmap error number */
 	int ierrno = errno ;

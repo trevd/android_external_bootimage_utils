@@ -57,7 +57,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 
 	if ( ( bip[0]->start != NULL ) && ( bip[0]->stat.st_size > 0 ) ){
 		D("unmapping boot image structures=%p",bip[0]->start);
-		munmap(bip[0]->start,bip[0]->stat.st_size);
+		/* munmap(bip[0]->start,bip[0]->stat.st_size); */
 		bip[0]->start = NULL ;
 		bip[0]->stat.st_size = 0 ;
 
