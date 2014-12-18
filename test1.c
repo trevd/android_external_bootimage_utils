@@ -1,7 +1,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
+#include <unistd.h>
+#include <libgen.h>
 #include <api/bootimage.h>
 #include <api/bootimage_extract.h>
 #include <api/bootimage_file_print.h>
@@ -73,6 +76,24 @@ void list_archive(const char *name)
 	return ;
 
 }
+int print_tests(struct bootimage* bi )
+{
+	printf("Running bootimage_print_header\n");
+	bootimage_print_header(bi);
+	printf("Running bootimage_print_kernel\n");
+	bootimage_print_kernel(bi);
+	printf("Running bootimage_print_kernel_version\n");
+	bootimage_print_kernel_version(bi);
+	return 0 ;
+}
+int extract_tests(struct bootimage* bi )
+{
+	printf("Running bootimage_extract_uncompressed_kernel\n");
+	bootimage_extract_uncompressed_kernel(bi,NULL);
+	bootimage_extract_ramdisk(bi,NULL);
+	return 0 ;
+}
+
 
 int main(int  argc  ,char** argv)
 {
@@ -80,12 +101,29 @@ int main(int  argc  ,char** argv)
 //if ( ret == -1 ){
 //		printf("bootimage_file_read failed err=%d\n",errno);
 //}
+ char cwd[1024] = "out/out.rc";
+   //if (getcwd(cwd, sizeof(cwd)) != NULL)
+   //    fprintf(stdout, "Current working dir: %s\n", cwd);
+   //else
+    //   perror("getcwd() error");
+
+	char* dname = dirname(cwd);
+	printf("dirname=%s\n", dname);
+
+
 	struct bootimage* bi = NULL;
 	//printf("bi %p\n",bi);
 	bi = bootimage_initialize();
-	//int ret = bootimage_file_read(bi,argv[1]);
-	//bootimage_print_header(bi);
-	//bootimage_print_kernel(bi);
+	int ret = bootimage_file_read(bi,argv[1]);
+	bootimage_extract_ramdisk_entry(bi,"init.rc","out.rc");
+	bootimage_extract_ramdisk_entry(bi,"init.rc","out/out.rc");
+	bootimage_extract_ramdisk(bi,NULL);
+	bootimage_extract_uncompressed_kernel(bi,NULL);
+	bootimage_extract_kernel(bi,NULL);
+	//extract_tests(bi);
+	//print_tests(bi) ;
+
+
 	//printf("bi %p\n",bi);
 	//bootimage_extract_ramdisk(bi,NULL);
 	bootimage_free(&bi);

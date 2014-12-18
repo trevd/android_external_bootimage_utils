@@ -7,35 +7,29 @@ libbootimage_src_files := \
 					lib/api/bootimage_file_print.c \
 					lib/private/bootimage.c \
 					lib/private/checks.c \
-					lib/private/utils.c \
 					lib/private/archive.c \
 					lib/private/trace.c \
 					lib/private/print.c \
 					lib/private/kernel.c \
+					lib/private/utils.c
 
 libbootimage_c_includes := $(LOCAL_PATH)/lib/include
 
 
 ifeq ($(HOST_OS),windows)
-	include $(CLEAR_VARS)
-	LOCAL_MODULE := libbootimage-windows
-	LOCAL_MODULE_TAGS := optional
-	LOCAL_SRC_FILES := windows/mman.c
-	LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)/windows
-	LOCAL_C_INCLUDES := $(LOCAL_PATH)/windows
-	include $(BUILD_HOST_STATIC_LIBRARY)
+	libbootimage_src_files += windows/mman.c windows/memmem.c
+	libbootimage_c_includes += $(LOCAL_PATH)/windows
 endif
+
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libbootimage
 LOCAL_MODULE_TAGS := optional
 LOCAL_CFLAGS := -D_GNU_SOURCE -fvisibility=hidden
-ifeq ($(HOST_OS),windows)
-	LOCAL_STATIC_LIBRARIES := libbootimage-windows
-endif
-LOCAL_SHARED_LIBRARIES := libarchive
 LOCAL_SRC_FILES := $(libbootimage_src_files)
 LOCAL_C_INCLUDES := $(libbootimage_c_includes)
+LOCAL_SHARED_LIBRARIES := libarchive
+LOCAL_MULTILIB := both
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(libbootimage_c_includes)
 $(info LOCAL_C_INCLUDES $(LOCAL_C_INCLUDES))
 include $(BUILD_HOST_SHARED_LIBRARY)
@@ -48,8 +42,9 @@ LOCAL_SHARED_LIBRARIES := libbootimage
 LOCAL_C_INCLUDES := $(libbootimage_c_includes)
 include $(BUILD_HOST_EXECUTABLE)
 
-
-ifneq ($(SDK_ONLY),true)
+# Do not build target binaries if we are not targeting linux
+# on the host
+ifeq ($(HOST_OS),linux)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libbootimage
@@ -58,6 +53,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_SHARED_LIBRARIES := libarchive
 LOCAL_SRC_FILES := $(libbootimage_src_files)
 LOCAL_C_INCLUDES := $(libbootimage_c_includes)
+LOCAL_MULTILIB := both
 LOCAL_EXPORT_C_INCLUDE_DIRS := $(libbootimage_c_includes)
 include $(BUILD_SHARED_LIBRARY)
 

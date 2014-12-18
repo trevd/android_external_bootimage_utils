@@ -84,9 +84,13 @@ bootimage-utils extract [ options ] <file>
 options:
 -i <name> --bootimage=<name> [ default boot.img ]
 -d --out-dir - output directory [ default : cwd ]
--k --kernel <name> [ default : kdfndl ]
--r --ramdisk = <directory> [ default : ramdisk ]
--x --ramdisk-archive
+-k --kernel=<name> [ default : kernel ]
+-r --ramdisk=<directory> [ default : ramdisk ]
+-x --ramdisk-archive=<name>
+-f --ramdisk-file=<name>
+-o --output-file=<name>
+-F --ramdisk-files=<name>;<name>
+-O --output-file=<name>;<name>
 -h --header
 -
 

@@ -212,13 +212,15 @@ __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,char* ou
                 case AE_IFDIR:{ /* Entry File Type is a Directory */
                     mode_t mode = archive_entry_mode(entry) ;
                      char* name = archive_entry_pathname(entry) ;
-                    mkdir(name,mode);
+                    mkdir_and_parents(name,mode);
                     archive_read_data_skip(a);
                     break;
                 }
                 case AE_IFLNK:{ /* Entry File Type is a Symbolic Link */
                     char* name = archive_entry_pathname(entry) ;
+#ifndef _WIN32
                     symlink(archive_entry_symlink(entry), name);
+#endif
                     archive_read_data_skip(a);
                     break;
                 }

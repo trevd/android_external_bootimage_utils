@@ -26,6 +26,12 @@
 #include <string.h>
 #include <private/api.h>
 
+#ifdef _WIN32
+#define mkdir_os(path,mode) mkdir(path)
+#define symlink(source,path) ((void)0)
+#else
+#define mkdir_os(path,mode) mkdir(path,mode)
+#endif
 
 __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdirat_umask(const char *path,unsigned mode, mode_t mask)
 {
@@ -80,7 +86,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned m
                 *p = '\0';
                 if((strnlen(opath,sizeof(opath)) > 0) && (access(opath, F_OK))){
                     /* D("in loop opath=%s\n",opath); */
-                    mkdir(opath, mode);
+                    mkdir_os(opath, mode);
                 }
                 *p = '/';
            }
@@ -90,7 +96,7 @@ __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned m
         if(access(opath, F_OK)){
             /* if path is not terminated with / */
             errno = 0 ;
-            mkdir(opath, mode);
+            mkdir_os(opath, mode);
         }
         /* D("opath=%s errno=%u %s\n",opath,errno,strerror(errno)); */
 

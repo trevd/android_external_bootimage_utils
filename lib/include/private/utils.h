@@ -22,6 +22,9 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#define symlink(source,path) ((void)0)
+#endif
 __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents_umask(const char *path,unsigned mode, mode_t umask);
 __LIBBOOTIMAGE_PRIVATE_API__  DIR* mkdir_and_parents(const char *path,unsigned mode);
 __LIBBOOTIMAGE_PRIVATE_API__ int paranoid_strnlen( char* s,int maxlen);
