@@ -13,18 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * file : lib/include/api/bootimage.h
+ * file : src/strings.h
  *
  */
 
-#ifndef _40589ef6_7d28_11e4_9dc9_5404a601fa9d
-#define _40589ef6_7d28_11e4_9dc9_5404a601fa9d
+#ifndef _39c4b55e_909a_11e4_bb61_5404a601fa9d
+#define _39c4b55e_909a_11e4_bb61_5404a601fa9d
 
-/* 	Opaque bootimage structure declaration. The full definition can be
-	found in lib/include/private/bootimage.h */
-struct bootimage ;
+#define STR_PROG_TITLE "Android Boot Image Utilities"
+#define STR_PROG_VERSION "x.xx Alpha Release"
+#define STR_PROG_COMPILE "Compiled on "__DATE__" at "__TIME__
 
-__LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize();
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip);
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name);
+#define STR_FORMAT_FILE_TYPE "File:%s Type is %s"
+#define STR_FILE_TYPE_NEXUS_FACTORY_IMAGE "Nexus Factory Image"
+#define STR_FILE_TYPE_NEXUS_FACTORY_IMAGE "Nexus Factory Image"
+
+
 #endif

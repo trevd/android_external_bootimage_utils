@@ -30,6 +30,7 @@
 
 typedef enum {
 	TRACE_ALL = 0,
+	TRACE_API_BOOTIMAGE_UTILS,
 	TRACE_API_BOOTIMAGE,
 	TRACE_API_BOOTIMAGE_EXTRACT,
 	TRACE_API_BOOTIMAGE_FILE,
@@ -59,6 +60,31 @@ __LIBBOOTIMAGE_PRIVATE_API__ void  trace_init(void);
                 errno = save_errno;                    \
                 fprintf(stderr, __VA_ARGS__ );         \
                 fprintf(stderr,"\n");         \
+                fflush(stderr);                        \
+                errno = save_errno;                    \
+           }
+
+
+#  define  E(...)                                      \
+            if (TRACING) {                         	   \
+                int save_errno = errno;                \
+                fprintf(stderr, "ERROR:%s:%d ",			   \
+                        __FUNCTION__,__LINE__);		   \
+                errno = save_errno;                    \
+                fprintf(stderr, __VA_ARGS__ );         \
+                fprintf(stderr,"\n");         \
+                fflush(stderr);                        \
+                errno = save_errno;                    \
+           }
+
+#  define  ENULLARG(...)                                      \
+            if (TRACING) {                         	   \
+                int save_errno = errno;                \
+                fprintf(stderr, "ERROR:%s:%d ",			   \
+                        __FUNCTION__,__LINE__);		   \
+                errno = save_errno;                    \
+                fprintf(stderr, __VA_ARGS__ );         \
+                fprintf(stderr," is null\n");         \
                 fflush(stderr);                        \
                 errno = save_errno;                    \
            }

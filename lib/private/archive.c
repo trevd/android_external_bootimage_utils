@@ -34,6 +34,93 @@
 #include <archive_entry.h>
 
 #define ARCHIVE_ENTRY_DEFAULT_SIZE_32MB ( (1024 * 1024 ) *32 )
+__LIBBOOTIMAGE_PRIVATE_API__ unsigned int archive_gzip_get_uncompressed_size(char* data,off_t data_size)
+{
+
+    if (data == NULL ){
+        ENULLARG("data");
+        return -1;
+    }
+    if (data_size == 0 ){
+        ENULLARG("data");
+        return -1;
+    }
+    int* last_four_bytes = data+(data_size-4);
+    int last_four_bytes_int = *last_four_bytes;
+    D("last_four_bytes_int=%d",last_four_bytes_int);
+
+    return last_four_bytes_int;
+
+}
+__LIBBOOTIMAGE_PRIVATE_API__ unsigned int archive_list_memory_gzip_tar(char* archive_data,off_t archive_size)
+{
+
+    if (archive_data == NULL ){
+        ENULLARG("data");
+        return -1;
+    }
+    if (archive_size == 0 ){
+        ENULLARG("data");
+        return -1;
+    }
+
+    struct archive *a = NULL ;
+    if ( check_archive_read_memory(&a,archive_data,archive_size) == -1 ){
+        return -1 ;
+    }
+
+
+    return 0;
+
+}
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_factory_image_zip_file_to_memory(struct bootimage_utils* biu,struct factory_images* fi){
+
+    if(biu == NULL){
+        ENULLARG("data");
+        return -1;
+    }
+    struct archive *a = NULL ;
+    if ( check_archive_read_memory(&a,biu->compressed_data,biu->stat.st_size) == -1 ){
+        return -1 ;
+    }
+
+   struct archive_entry *entry = NULL;
+    int break_error = 0 ;
+    int break_found = 0 ;
+    while (archive_read_next_header(a, &entry) == ARCHIVE_OK) {
+        /* Get the entry information we need */
+        char* name = archive_entry_pathname(entry) ;
+
+        D("archive_entry_pathname=%s fi.zip_name=%s",name,fi->zip_name);
+        if ( !strncmp( name , fi->zip_name ,fi->zip_name_length) ){
+            switch ( archive_entry_filetype(entry) ){
+                case AE_IFREG:{ // Entry File Type is a Regular File
+                    uint64_t entry_size = archive_entry_size(entry);
+                    D("archive_entry_size=%d",entry_size);
+                    break_found = 1 ;
+                    char* entry_data = calloc(entry_size,sizeof(char));
+                    ssize_t real_entry_size = archive_read_data(a,entry_data,entry_size);
+                    //if ( archive_extract_entry_regular_file(a,entry,output_file_name) == -1 ) {
+                    //    break_error = 1;
+                    //}
+
+                }
+                default:
+                    break ;
+            }
+        }
+        if ( (break_found == 1)|| (break_error == 1) ){
+            break ;
+        }
+    }
+    archive_read_free(a);
+    if ( break_error == 1 ) {
+        return -1 ;
+    }
+    return 0;
+
+
+}
 __LIBBOOTIMAGE_PRIVATE_API__  static int archive_extract_entry_regular_file( struct archive *a, struct archive_entry *entry,char* output_file_name)
 {
     if(entry == NULL){

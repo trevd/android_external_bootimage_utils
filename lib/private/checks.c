@@ -27,10 +27,11 @@
 #include <stdio.h>
 #include <string.h>
 
+/* libarchive archive.h */
 #include <archive.h>
-#include <api/bootimage.h>
-#include <api/errors.h>
+
 #include <private/api.h>
+
 
 __LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_memory(struct archive **ap,char* data , uint64_t data_size)
 {
@@ -78,7 +79,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_initialization(struct archiv
 
 }
 /* check_output_name - checks the validity of the name argument */
-__LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(const char* name)
+__LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(char* name)
 {
 	D("name=%s",name);
 	if ( name == NULL ){
@@ -111,12 +112,11 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_structure(struct bootimage* bi)
 	errno = EBIOK;
 	return 0;
 }
-__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage* bi ,const char* file_name)
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage* bi ,char* file_name)
 {
 	/* Stat the boot image file an store it in the structure */
-	D("check_bootimage_file_stat_size bi->stat.st_size [ %u ]",  bi->stat.st_size);
     if (stat(file_name, &bi->stat) == -1){
-		D("check_bootimage_file_stat_size bi->stat.st_size [ %u ]",  bi->stat.st_size);
+		D("bi->stat.st_size [ %jd ]",  bi->stat.st_size);
 		errno = EBISTAT;
 		return -1 ;
 	}
@@ -131,23 +131,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage
 	errno = EBIOK;
 	return 0;
 }
-__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_name(const char* file_name)
-{
-	/* Check the file_name is valid */
-	if ( file_name == NULL ) {
-		errno = EBIFNAME;
-		return -1 ;
-	}
-
-	/* Does the file exist? , can we read it? */
-	if ( access(file_name , R_OK ) == -1 ) {
-		errno = EBIFACCESS ;
-		return -1 ;
-	}
-	errno = EBIOK;
-	return 0;
-}
-__LIBBOOTIMAGE_PRIVATE_API__ int check_out_file(const char* file_name)
+__LIBBOOTIMAGE_PRIVATE_API__ int check_file_name_and_access(char* file_name)
 {
 	/* Check the file_name is valid */
 	if ( file_name == NULL ) {
@@ -165,7 +149,8 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_out_file(const char* file_name)
 }
 
 
-__LIBBOOTIMAGE_PRIVATE_API__ int check_ramdisk_entryname(const char* entry_name)
+
+__LIBBOOTIMAGE_PRIVATE_API__ int check_ramdisk_entryname(char* entry_name)
 {
 	if ( entry_name == NULL ){
 		errno = EBIRDENTRY ;
@@ -227,14 +212,15 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_kernel(struct bootimage* bi)
 	return 0;
 }
 
-__LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_file_read_magic(struct bootimage* bi,const char* file_name)
+/* check_bootimage_file_read_magic - acts as a check wrapper for ultimately calling bootimage_file_read_magic */
+__LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_file_read_magic(struct bootimage* bi,char* file_name)
 {
 	if ( check_bootimage_structure(bi) == -1){
 		D("bootimage_file_read check_bootimage_structure failed [ %p ]", bi);
 		return -1;
 	}
 
-	if( check_bootimage_file_name(file_name) == -1 ){
+	if( check_file_name_and_access(file_name) == -1 ){
 		D("bootimage_file_read check_bootimage_file_name failed [ %p ]", bi);
 		return -1;
 	}
@@ -243,6 +229,105 @@ __LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_file_read_magic(struct bootima
 		return -1;
 	}
 	bootimage_file_read_magic(bi,file_name);
+	errno = EBIOK;
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_utils_structure(struct bootimage_utils* biu)
+{
+	/* Validate inputs */
+	D("bi=%p",biu);
+	if ( biu == NULL ) {
+		errno = EBIUNULL;
+		D("biu=%p errno=%d [ EBINULL ]",biu,errno);
+		return -1;
+	}
+	if ( ( biu->filetype < 0 ) || ( biu->filetype > BOOTIMAGE_UTILS_FILETYPE_MAX ) ) {
+		errno = EBIUFILETYPE ;
+		D("biu=%p errno=%d [ EBIUFILETYPE ]",biu,errno);
+		return -1;
+
+	}
+
+	errno = EBIOK;
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int validate_file_stat_size(struct stat* st,char* file_name)
+{
+	/* Stat the boot image file an store it in the structure */
+
+    if (stat(file_name, st) == -1){
+		D("biu->stat.st_size [ %jd ]",  st->st_size);
+		errno = EBIUSTAT;
+		return -1 ;
+	}
+	/* File size is zero or could not be determined  or
+	   File size is less than a minimum know page size
+	   This is probably not good.  */
+
+	if (  ( st->st_size <= 0 )  ) {
+		errno = EBIFSIZE;
+		return -1 ;
+	}
+	D("biu->stat.st_size [ %jd ]",  st->st_size);
+	errno = EBIOK;
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_utils_file_type(struct bootimage_utils* biu)
+{
+	/* File Type Identification strategy
+
+	   Factory Image Identification
+	   Check for a known factory image file name.
+	   Check if the file is a valid gzip magic.
+	*/
+
+	struct factory_images* fi =  &factory_image_info[0] ;
+	while ( fi->name != NULL ){
+		/* D("fi=%p fi->name=%s fi->name_length=%d",fi,fi->name,fi->name_length); */
+		if ( strncmp(fi->name,biu->file_name,fi->name_length) == FACTORY_IMAGE_STRNCMP_MATCH_FOUND ){
+			D("Potential Factory Image File Found file_name=%s",biu->file_name);
+			break ;
+		}
+
+		fi++;
+	}
+
+	if ( fi != NULL ) {
+		/* For this to be a potentially bona-fida factory image the Gzip identifaction must be at the
+		   start of the data */
+
+		char* magic = utils_memmem(biu->compressed_data,biu->stat.st_size,FACTORY_IMAGE_MAGIC_GZIP,FACTORY_IMAGE_MAGIC_GZIP_SIZE);
+		D("Factory Image Gzip Magic %p : biu-data[0] %p",magic ,biu->compressed_data ) ;
+		if ( magic == biu->compressed_data ){
+			unsigned int uncompressed_size = archive_gzip_get_uncompressed_size(biu->compressed_data,biu->stat.st_size);
+			archive_extract_memory_factory_image_zip_file_to_memory(biu,fi);
+			//D("Factory Image Gzip Magic %p : biu-data[0] %p",magic ,biu->compressed_data ) ;
+		}
+
+	}
+	return 0;
+}
+__LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_utils_file_read(struct bootimage_utils* biu,char* file_name)
+{
+	if ( check_bootimage_utils_structure(biu) == -1){
+		D("check_bootimage_utils_structure failed [ %p ]", biu);
+		return -1;
+	}
+
+	if( check_file_name_and_access(file_name) == -1 ){
+		D("check_file_name_and_access failed [ %p ]", biu);
+		return -1;
+	}
+	biu->file_name = file_name;
+	if( validate_file_stat_size(&biu->stat,file_name) == -1 ){
+		D("check_file_name_and_access failed [ %p ]", biu);
+		return -1;
+	}
+	D("biu->compressed_data=%p",biu->compressed_data);
+
+	biu->compressed_data = calloc(biu->stat.st_size,sizeof(char));
+	utils_read_all(file_name,biu->stat.st_size,biu->compressed_data );
+	D("biu->compressed_data=%p",biu->compressed_data);
 	errno = EBIOK;
 	return 0;
 }

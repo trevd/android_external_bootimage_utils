@@ -19,7 +19,7 @@
 
 #ifndef _236ac100_7d5c_11e4_b559_5404a601fa9d
 #define _236ac100_7d5c_11e4_b559_5404a601fa9d
-
+#include <errno.h>
 #define EBIOK				 		0
 #define EBINULL			 		10000
 #define EBIFSIZE			 	10001
@@ -44,5 +44,8 @@
 #define EBIARCHIVEREADFORMATRAW	10020
 #define EBIKERNELMEM		 	10021
 #define EBIKERNELMEMSIZE		10022
+#define EBIUNULL		 		10023
+#define EBIUFILETYPE	 		10024
+#define EBIUSTAT		 		10025
 
 #endif

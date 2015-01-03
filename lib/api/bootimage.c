@@ -17,14 +17,12 @@
  *
  */
 #define TRACE_TAG TRACE_API_BOOTIMAGE
-#include <stdlib.h>
+
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 
-#include <api/bootimage.h>
-#include <api/errors.h>
 #include <private/api.h>
+
 
 __LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize(){
 
@@ -72,6 +70,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name){
 
+	/* Call  */
 	if( check_bootimage_file_read_magic(bi,file_name) == -1 ){
 		return -1;
 	}

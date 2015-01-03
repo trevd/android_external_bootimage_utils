@@ -25,11 +25,11 @@
 #include <sys/types.h>
 #include <dirent.h>
 
-#include <api/bootimage.h>
-#include <api/bootimage_extract.h>
-
-
 #include <private/api.h>
+
+
+
+
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header(struct bootimage* bi,const char* header_name)
 {
@@ -96,7 +96,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel(struct bootimage* bi,c
 	if ( check_output_name ( kernel_name ) == -1 ) {
 		return -1 ;
 	}
-	D("bi %ld\n",bi->header->kernel_size);
+	D("bi %u\n",bi->header->kernel_size);
 
 	FILE* fi = fopen(kernel_name,"w+b");
 	if ( fi == NULL ){

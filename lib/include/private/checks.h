@@ -24,14 +24,17 @@
 #include <archive.h>
 __LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_initialization(struct archive **ap);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_memory(struct archive **ap,char* data , uint64_t data_size);
-__LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(const char* name);
+__LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(char* name);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_structure(struct bootimage* bi);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_header(struct bootimage* bi);
-__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage* bi ,const char* file_name);
-__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_name(const char* file_name);
-__LIBBOOTIMAGE_PRIVATE_API__ int check_ramdisk_entryname(const char* entry_name);
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_stat_size(struct bootimage* bi ,char* file_name);
+__LIBBOOTIMAGE_PRIVATE_API__ int check_file_name(char* file_name);
+__LIBBOOTIMAGE_PRIVATE_API__ int check_ramdisk_entryname( char* entry_name);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_ramdisk(struct bootimage* bi);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_kernel(struct bootimage* bi);
-__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_read_magic(struct bootimage* bi,const char* file_name);
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_file_read_magic(struct bootimage* bi,char* file_name);
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_utils_structure(struct bootimage_utils* biu);
+__LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_utils_file_read(struct bootimage_utils* biu,char* file_name);
+__LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_utils_file_type(struct bootimage_utils* biu);
 #define CPIO_FILE_NAME_MAX 1024
 #endif

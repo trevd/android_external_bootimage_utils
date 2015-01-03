@@ -22,8 +22,9 @@
  #define  TRACE_TAG   TRACE_API_BOOTIMAGE_FILE_PRINT
 #include <stdio.h>
 #include <errno.h>
-#include <api/bootimage.h>
 #include <private/api.h>
+
+
 
 
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_print_header(const char* file_name)

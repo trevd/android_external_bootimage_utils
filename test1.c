@@ -5,11 +5,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <libgen.h>
-#include <api/bootimage.h>
-#include <api/bootimage_extract.h>
-#include <api/bootimage_file_print.h>
-#include <api/bootimage_print.h>
-
+#include <biutils.h>
 void extract_ramdisk(struct bootimage* bi)
 {
 	int ret = bootimage_extract_ramdisk_archive(bi,NULL);

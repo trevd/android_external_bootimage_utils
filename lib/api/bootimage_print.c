@@ -21,8 +21,9 @@
  */
 #define  TRACE_TAG   TRACE_API_BOOTIMAGE_PRINT
 #include <string.h>
-#include <api/bootimage.h>
 #include <private/api.h>
+
+
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_print_header(struct bootimage* bi)
 {
 	D("bi=%p",bi);

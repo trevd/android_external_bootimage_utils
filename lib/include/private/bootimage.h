@@ -133,20 +133,20 @@ struct bootimage
 	struct bootimage_header* header ; /* pointer to the start of the boot image header
 							   identified with the ANDROID! magic */
 
-	unsigned char* kernel ;
+	char* kernel ;
 	/* pointer to the start of the kernel data.
 	   This is normally locate one page after the header and
 	   is usually compressed. If the kernel is uncompressed then
 	   the uncompressed_kernel and kernel members will be the same */
 
-	unsigned char* ramdisk ; /* pointer to the start of the ramdisk data. This is
+	char* ramdisk ; /* pointer to the start of the ramdisk data. This is
 							    on the next page boundary after the kernel data  */
-	unsigned char* second ; /* pointer to the start of the second bootloader data. */
+	char* second ; /* pointer to the start of the second bootloader data. */
 
 	struct stat stat ; /* The file size of the bootimage. other sizes are found in the
 						 bootimage header*/
 
-	off_t header_size; /* Header size stores the sizeof(bootimage_header) structure
+	uint32_t header_size; /* Header size stores the sizeof(bootimage_header) structure
 						  for convient easy access */
 
 	uint32_t header_padding; /* the number of bytes required to align the
@@ -155,13 +155,13 @@ struct bootimage
 	uint32_t ramdisk_padding;
 	uint32_t second_padding;
 
-	unsigned char* compressed_kernel_offset ; /* pointer to the start of the compressed kernel data */
+	char* compressed_kernel_offset ; /* pointer to the start of the compressed kernel data */
 	struct kernel_type_t* compressed_kernel_type;  /*  */
 	uint32_t compressed_kernel_size;  /* size in bytes */
 
-	unsigned char* uncompressed_kernel ; /* pointer to the uncompressed kernel data */
+	char* uncompressed_kernel ; /* pointer to the uncompressed kernel data */
 	uint32_t uncompressed_kernel_size;  /* size in bytes */
-	unsigned char* kernel_version_string ; /* pointer to the start of the kernel version
+	char* kernel_version_string ; /* pointer to the start of the kernel version
 						  string in the uncompressed kernel data */
 	uint32_t kernel_version_string_length;  /* length of the kernel version string */
 

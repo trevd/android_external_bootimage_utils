@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Trevor Drake
+ * Copyright (C) 2015 Trevor Drake
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * file : lib/include/api/bootimage.h
+ * file : lib/private/bootimage_utils.c
  *
  */
-
-#ifndef _40589ef6_7d28_11e4_9dc9_5404a601fa9d
-#define _40589ef6_7d28_11e4_9dc9_5404a601fa9d
-
-/* 	Opaque bootimage structure declaration. The full definition can be
-	found in lib/include/private/bootimage.h */
-struct bootimage ;
-
-__LIBBOOTIMAGE_PUBLIC_API__ struct bootimage* bootimage_initialize();
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip);
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name);
-#endif

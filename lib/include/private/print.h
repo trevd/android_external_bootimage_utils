@@ -80,4 +80,5 @@ extra_cmd_line=%s\n\
 /* #define BOOTIMAGE_PRINT_KERNEL_HEADER " */
 
 __LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_header(struct bootimage* bi);
+__LIBBOOTIMAGE_PRIVATE_API__  int bootimage_structure_print_kernel(struct bootimage* bi);
 #endif

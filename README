@@ -1,17 +1,51 @@
 libbootimage api
 
 
+The Bootimage Utils Functions
+=============================
+
+enum bootimage_utils_filetype
+{
+	BOOTIMAGE_UTILS_FILETYPE_UNKNOWN = 0,
+	BOOTIMAGE_UTILS_FILETYPE_NEXUS_FACTORY_IMAGE,
+	BOOTIMAGE_UTILS_FILETYPE_UPDATE_ZIP,
+	BOOTIMAGE_UTILS_FILETYPE_OTA_UPDATE_ZIP,
+	BOOTIMAGE_UTILS_FILETYPE_STANDARD_BOOT_IMAGE,
+	BOOTIMAGE_UTILS_FILETYPE_OEM_BOOT_IMAGE,
+	BOOTIMAGE_UTILS_FILETYPE_STANDARD_RECOVERY_IMAGE,
+	BOOTIMAGE_UTILS_FILETYPE_OEM_RECOVERY_IMAGE,
+	BOOTIMAGE_UTILS_FILETYPE_STANDARD_RAMDISK,
+	BOOTIMAGE_UTILS_FILETYPE_RECOVERY_RAMDISK,
+	BOOTIMAGE_UTILS_FILETYPE_COMPRESSED_KERNEL,
+	BOOTIMAGE_UTILS_FILETYPE_MAX = BOOTIMAGE_UTILS_FILETYPE_COMPRESSED_KERNEL
+}
+
+struct bootimage_utils
+{
+	int file_type ;
+	char* data ;
+}
+
+struct bootimage_utils* bootimage_utils_initialize();
+bootimage_utils_read(struct bootimage_utils* biu,const char* file_name);
+
+
+
+
 
 The Main Bootimage Functions
 ============================
 
 struct bootimage* bootimage_initialize();
+struct bootimage* bootimage_initialize_from_factory_image(char* data);
+struct bootimage* bootimage_initialize_from_ota_zip(char* data);
 bootimage_free(struct bootimage** bip);
 bootimage_file_read(struct bootimage* bi,const char* file_name)
 
 
 The Main Bootimage File Extraction Functions
 ============================================
+
 
 
 bootimage_file_extract_header(const char* file_name,const char* header_name);
@@ -53,9 +87,6 @@ bootimage_extract_ramdisk_archive(struct bootimage* bi,const char* ramdisk_dir_n
 bootimage_extract_ramdisk_entry(struct bootimage* bi,const char* ramdisk_entry_name);
 
 
-
-
-
 bootimage-utils features
 
 Print Bootimage Image Header
@@ -93,6 +124,155 @@ options:
 -O --output-file=<name>;<name>
 -h --header
 -
+
+
+bootimage-utils features technical implementation
+=================================================
+
+Known FileTypes
+
+	Nexus Factory Image
+	file contains a zip file and the zip file contains
+	at least a boot.img
+
+	Update Zip
+	file contains a META-INF and has an updater-script
+
+	OTA Update Zip ( incremental )
+	file contains a META-INF and has an updater-script
+
+	Standard Boot Image
+	Has Android Magic at offset 0.
+	Has Valid Kernel Data
+	Has Valid Ramdisk Data
+	Does not have sbin/recovery
+	default.prop does not contain build.prop info
+
+	OEM Boot Image
+	Has Android Magic not at offset 0
+	Has Valid Kernel Data
+	Has Valid Ramdisk Data
+	Does not have sbin/recovery
+	default.prop does not contain build.prop info
+
+	Standard Recovery Image
+	Has Android Magic at offset 0.
+	Has sbin/recovery
+	default.prop contains build.prop info
+
+	OEM Recovery Image
+	Has Android Magic at offset 0.
+	Has sbin/recovery
+	default.prop contains build.prop info
+
+	Standard Ramdisk
+	Is a cpio or cpio.gz file
+	Does not have sbin/recovery
+	default.prop does not contain build.prop info
+
+	Recovery Ramdisk
+	Is a cpio or cpio.gz file
+	has sbin/recovery
+	default.prop contains build.prop info
+
+	Compressed Kernel
+	Is a valid Kernel Compression Type
+
+	UnCompressed Kernel
+	Has a valid kernel Version Line
+	Has ( other ) kernel identifiers
+
+
+Bootimage Utils Options
+=======================
+
+The options control how the program behaves with regard to
+memory usage and allocation strategy, Temporary File Usage
+default action behaviour. Search Path Behaviour, Logging Options
+Clobber Behaviour. These can be set in an "options" file or passed
+as command line arguments
+
+Top Level Actions
+=================
+info - Print Various Bootimage or archive info
+print - same as info
+extract - Extract various parts of a bootimage
+update - update various parts of a bootimage
+create - create a bootimage
+options - print default options
+
+
+Print Action
+============
+
+bootimage-utils [print|p] [ options ] [ program options ] < file >
+
+	-B |--boot-image=<bootimage> ( default : boot.img )
+		If the <file> is a nexus factory image or an update zip
+		and contains a file named <bootimage> then the data is printed
+		from <bootimage>
+
+	-R |--recovery-image=<recoveryimage> ( default : recovery.img )
+		If the <file> is a nexus factory image or an update zip
+		and contains a file named <recoveryimage> then the data is printed
+		from this, recovery images will be attempted to be fingerprinted
+
+	-H|--header
+		Prints the image header information
+
+	-k|--kernel
+		Prints the image kernel information
+
+	-K|--kernel-version
+		Prints the kernel version line only
+
+	-r|--ramdisk
+		Prints ramdisk information
+
+	-f|--file=<file1,file2,...>
+		Print ramdisk file. if the file is a text file
+
+	-P|--property=<property1,property2,...>
+		Print property value found in default.prop
+
+	-L|--list-ramdisk
+
+Examples
+	bootimage-utils print <factory image>
+		Prints File Type " Android Nexus Factory Image "
+		Prints Internal Zip File Name / Zip File Size
+		Prints Internal Zip Boot Image Name and size
+		Prints boot.img header structure
+
+
+Second Level Actions
+====================
+These are quick shortcuts to actions arguments
+
+print-header
+print-bootimage-header
+print-recovery-header
+print
+
+
+print-kernel = print --kernel <file>
+Prints all kernel details.
+Kernel Compressed Size, Version
+
+
+
+print-kernel-version = print --kernel-version <file>
+print-header = print --header <file>
+print-ramdisk = print --ramdisk <file>
+print-ramdisk-ls = print --ramdisk-ls <file>
+
+
+
+
+
+
+
+
 
 
 

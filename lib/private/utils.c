@@ -17,14 +17,7 @@
  *
  */
 #define  TRACE_TAG   TRACE_PRIVATE_UTILS
-#include <unistd.h>
-#include <assert.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <limits.h>
-#include <string.h>
+
 #include <private/api.h>
 
 #ifdef _WIN32
@@ -109,8 +102,9 @@ __LIBBOOTIMAGE_PRIVATE_API__ int utils_paranoid_strnlen(char* s,int maxlen)
     /* The Paranoid strnlen function runs strnlen then checks the returned
        string again for non printable values and breaks at the first one it find
        length */
+    const char* cs = s;
     D("s=%s maxlen=%d",s,maxlen);
-    int len = strnlen(s,maxlen);
+    int len = strnlen(cs,maxlen);
     if ( len == maxlen ) {
         D("s=%s maxlen=%d len=%d",s,maxlen,len);
         s[len-1] = '\0';
@@ -160,17 +154,59 @@ __LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer
   ssize_t left_to_write = count;
   while (left_to_write > 0) {
     ssize_t written = write (fd, buffer, count);
-    if (written == -1)
+    if (written == -1){
       /* An error occurred; bail.  */
       return -1;
-    else
-      /* Keep count of how much more we need to write.  */
-      left_to_write -= written;
+    }
+    /* Keep count of how much more we need to write.  */
+    left_to_write -= written;
   }
   /* We should have written no more than COUNT bytes!   */
   assert (left_to_write == 0);
   /* The number of bytes written is exactly COUNT.  */
   return count;
+}
+__LIBBOOTIMAGE_PRIVATE_API__ int utils_read_all(char* file_name,off_t file_size, char* dest)
+{
+
+	if ( dest == NULL ) {
+        D("dest buffer is unallocated %p",dest);
+        return -1;
+    }
+    if ( file_size <= 0 ) {
+        D("wrong file_size %l",file_size);
+        return -1;
+    }
+	/* Open the file as read only, read for mmapping */
+	int fd = open(file_name,O_RDONLY);
+	D("fd=%d",fd);
+	if(fd < 0 ){
+        D("could not open file_name %s",file_name);
+		/* Could not open file. errno should be set already so return -1 */
+		return -1;
+	}
+
+
+	D("dest=%p",dest );
+    ssize_t bytes_read = 0; ;
+    ssize_t left_to_read = file_size;
+    while (left_to_read > 0 ) {
+        bytes_read = read(fd, dest, left_to_read);
+        if ( bytes_read <= 0 ){
+            D("bytes_read=%u errno=%d %s",bytes_read , errno, strerror(errno) );
+            close(fd);
+            return -1;
+        }
+        left_to_read -= bytes_read;
+        dest += bytes_read;
+
+
+  }
+  close(fd);
+  D("left_to_read=%u",left_to_read );
+  D("bytes_read=%u",bytes_read );
+
+	return 0 ;
 }
 __LIBBOOTIMAGE_PRIVATE_API__ unsigned char *utils_memmem(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len)
 {
