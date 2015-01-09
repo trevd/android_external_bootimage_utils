@@ -84,6 +84,8 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_header_block(struct bootimage
 	fclose(fi);
 	return 0;
 }
+
+
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel(struct bootimage* bi,const char* kernel_name)
 {
 	if ( check_bootimage_structure(bi) == -1 ){
@@ -98,13 +100,7 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel(struct bootimage* bi,c
 	}
 	D("bi %u\n",bi->header->kernel_size);
 
-	FILE* fi = fopen(kernel_name,"w+b");
-	if ( fi == NULL ){
-		return -1 ;
-	}
-
-	fwrite(bi->kernel,bi->header->kernel_size,1,fi);
-	fclose(fi);
+	utils_write_all(kernel_name,0660,bi->kernel,bi->header->kernel_size);
 	return 0;
 }
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_extract_kernel_config(struct bootimage* bi,const char* kernel_config_name)

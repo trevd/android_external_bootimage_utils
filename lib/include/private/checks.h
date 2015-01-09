@@ -22,8 +22,6 @@
 #include <private/api.h>
 #include <private/bootimage.h>
 #include <archive.h>
-__LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_initialization(struct archive **ap);
-__LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_memory(struct archive **ap,char* data , uint64_t data_size);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(char* name);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_structure(struct bootimage* bi);
 __LIBBOOTIMAGE_PRIVATE_API__ int check_bootimage_header(struct bootimage* bi);

@@ -55,8 +55,8 @@ struct bootimage_utils {
 	int filetype ;
 	struct stat stat ;
 	char* file_name ;
-	char* compressed_data ;
-
+	char* data ;
+	struct bootimage bootimage ;
 
 };
 

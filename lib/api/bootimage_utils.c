@@ -45,10 +45,10 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_utils_free(struct bootimage_utils** b
 		return -1;
 	}
 
-	if ( ( biup[0]->compressed_data != NULL ) ){
-		D("freeing bootimage_utils data=%p",biup[0]->compressed_data);
-		free(biup[0]->compressed_data) ;
-		biup[0]->compressed_data = NULL ;
+	if ( ( biup[0]->data != NULL ) ){
+		D("freeing bootimage_utils data=%p",biup[0]->data);
+		free(biup[0]->data) ;
+		biup[0]->data = NULL ;
 	}
 
 	if( biup[0] != NULL ){
@@ -63,10 +63,17 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_utils_free(struct bootimage_utils** b
 __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_utils_file_read(struct bootimage_utils* biu,const char* file_name){
 
 	/* Call  */
-	if( check_bootimage_utils_file_read(biu,file_name) == -1 ){
+	if ( biu == NULL ) {
+		errno = EBIUNULL;
+		D("biu=%p errno=%d [ EBINULL ]",biu,errno);
 		return -1;
 	}
-	D("biu->compressed_data 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",biu->compressed_data[0],biu->compressed_data[1],biu->compressed_data[2],biu->compressed_data[3],biu->compressed_data[4],biu->compressed_data[5]);
+	if ( utils_read_all(file_name,&biu->data,&biu->stat) == -1 ){
+		return -1;
+	}
+	biu->file_name = file_name;
+
+	D("biu->data 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",biu->data[0],biu->data[1],biu->data[2],biu->data[3],biu->data[4],biu->data[5]);
 	if( check_bootimage_utils_file_type(biu) == -1 ){
 		D("file_type check failed");
 		return -1;

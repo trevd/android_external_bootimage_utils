@@ -26,6 +26,8 @@
 #include <archive_entry.h>
 __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all_memory_directory( char* archive_data , uint64_t archive_size, char* output_dir_name);
 __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_all(struct archive *a,char* output_dir_name);
+__LIBBOOTIMAGE_PRIVATE_API__  char* archive_extract_entry(char* data,off_t data_size,char* name,size_t name_length,size_t* entry_size);
+__LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_file(char* archive_data,off_t archive_data_size,char* name,size_t name_length);
 __LIBBOOTIMAGE_PRIVATE_API__  int archive_extract_memory_file( char* archive_data , uint64_t archive_size, char* entry_name, char* output_file_name);
 __LIBBOOTIMAGE_PRIVATE_API__  unsigned int archive_gzip_get_uncompressed_size(char* data,off_t data_size);
 #endif

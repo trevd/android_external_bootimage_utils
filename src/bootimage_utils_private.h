@@ -13,20 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * file : lib/include/biutils.h
+ * file : src/bootimage_utils_private.h
  *
  */
 
-#ifndef _826f4afc_92a3_11e4_937c_5404a601fa9d
-#define _826f4afc_92a3_11e4_937c_5404a601fa9d
+#ifndef _467a2a5e_9400_11e4_80f4_5404a601fa9d
+#define _467a2a5e_9400_11e4_80f4_5404a601fa9d
 
-#ifndef __LIBBOOTIMAGE_PUBLIC_API__
-#define __LIBBOOTIMAGE_PUBLIC_API__  __attribute__((visibility("default")))
-#endif
-#include <api/errors.h>
-#include <api/bootimage_utils.h>
-#include <api/bootimage_file_extract.h>
-#include <api/bootimage.h>
-#include <api/utils.h>
+
+enum bootimage_options {
+
+	char* name ;
+	int has_arg ;
+	int short_name ;
+	char* val ;
+
+};
+struct bootimage_options {
+
+};
+struct bootimage_utils_program {
+
+
+};
 
 #endif

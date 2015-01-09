@@ -33,51 +33,8 @@
 #include <private/api.h>
 
 
-__LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_memory(struct archive **ap,char* data , uint64_t data_size)
-{
-	if ( check_archive_read_initialization(ap) == -1 ){
-		return -1;
-	}
-	D("ap[0]=%p",ap[0]);
-	int r = archive_read_open_memory(ap[0], data,data_size);
-	if (r != ARCHIVE_OK){
-		archive_error_string(ap[0]);
-		D("r=%d %s",r,archive_error_string(ap[0]));
-		return -1;
-	}
-	D("ap[0]=%p",ap[0]);
-	return 0;
-}
 
 
-__LIBBOOTIMAGE_PRIVATE_API__ int check_archive_read_initialization(struct archive **ap)
-{
-	struct archive* a = archive_read_new();
-    if( a == NULL ){
-        /* Failed to initialize libarchive reading */
-        errno = EBIARCHIVEREAD;
-        return -1 ;
-    }
-	/*  */
-	if ( archive_read_support_filter_all(a) == ARCHIVE_WARN ){
-		errno = EBIARCHIVEREADFILTER  ;
-        return -1 ;
-    }
-
-    if ( archive_read_support_format_all(a) == ARCHIVE_FATAL ){
-		errno = EBIARCHIVEREADFORMAT ;
-        return -1 ;
-    }
-    if ( archive_read_support_format_raw(a) == ARCHIVE_FATAL ){
-		errno = EBIARCHIVEREADFORMATRAW  ;
-        return -1 ;
-    }
-    errno = EBIOK;
-    ap[0]=a;
-    return 0;
-
-
-}
 /* check_output_name - checks the validity of the name argument */
 __LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(char* name)
 {
@@ -86,7 +43,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int check_output_name(char* name)
 		errno = EBIOUTNAME ;
 		return -1;
 	}
-	int size = utils_paranoid_strnlen(name,PATH_MAX);
+	int size = utils_sanitize_string(name,PATH_MAX);
 	if ( size > PATH_MAX-1){
 		errno = EBIOUTNAMELEN ;
 		return -1;
@@ -282,9 +239,11 @@ __LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_utils_file_type(struct bootima
 	*/
 
 	struct factory_images* fi =  &factory_image_info[0] ;
+	char* bname = utils_basename(biu->file_name);
+	D("bname=%s",bname);
 	while ( fi->name != NULL ){
 		/* D("fi=%p fi->name=%s fi->name_length=%d",fi,fi->name,fi->name_length); */
-		if ( strncmp(fi->name,biu->file_name,fi->name_length) == FACTORY_IMAGE_STRNCMP_MATCH_FOUND ){
+		if ( strncmp(fi->name,bname,fi->name_length) == FACTORY_IMAGE_STRNCMP_MATCH_FOUND ){
 			D("Potential Factory Image File Found file_name=%s",biu->file_name);
 			break ;
 		}
@@ -296,13 +255,18 @@ __LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_utils_file_type(struct bootima
 		/* For this to be a potentially bona-fida factory image the Gzip identifaction must be at the
 		   start of the data */
 
-		char* magic = utils_memmem(biu->compressed_data,biu->stat.st_size,FACTORY_IMAGE_MAGIC_GZIP,FACTORY_IMAGE_MAGIC_GZIP_SIZE);
-		D("Factory Image Gzip Magic %p : biu-data[0] %p",magic ,biu->compressed_data ) ;
-		if ( magic == biu->compressed_data ){
-			unsigned int uncompressed_size = archive_gzip_get_uncompressed_size(biu->compressed_data,biu->stat.st_size);
-			archive_extract_memory_factory_image_zip_file_to_memory(biu,fi);
+		//char* magic = utils_memmem(biu->compressed_data,biu->stat.st_size,FACTORY_IMAGE_MAGIC_GZIP,FACTORY_IMAGE_MAGIC_GZIP_SIZE);
+		//D("Factory Image Gzip Magic %p : biu-data[0] %p",magic ,biu->compressed_data ) ;
+		//if ( magic == biu->compressed_data ){
+		//	unsigned int uncompressed_size = archive_gzip_get_uncompressed_size(biu->compressed_data,biu->stat.st_size);
+			size_t zip_size ,boot_image_size;
+			char* zip_data = archive_extract_entry(biu->data,biu->stat.st_size, fi->zip_name,fi->zip_name_length,&zip_size);
+			D("Factory Image zip data %p : zip_size %zu",zip_data,zip_size) ;
+
+			 archive_extract_file(zip_data, zip_size,"boot.img",0);
+			//D("Factory Image boot_image_data  %p : boot_image_size %zu",boot_image_data,boot_image_size) ;
 			//D("Factory Image Gzip Magic %p : biu-data[0] %p",magic ,biu->compressed_data ) ;
-		}
+		//}
 
 	}
 	return 0;
@@ -314,20 +278,14 @@ __LIBBOOTIMAGE_PRIVATE_API__  int check_bootimage_utils_file_read(struct bootima
 		return -1;
 	}
 
-	if( check_file_name_and_access(file_name) == -1 ){
-		D("check_file_name_and_access failed [ %p ]", biu);
-		return -1;
-	}
 	biu->file_name = file_name;
-	if( validate_file_stat_size(&biu->stat,file_name) == -1 ){
-		D("check_file_name_and_access failed [ %p ]", biu);
-		return -1;
-	}
-	D("biu->compressed_data=%p",biu->compressed_data);
+	D("biu->compressed_data=%p",biu->data);
 
-	biu->compressed_data = calloc(biu->stat.st_size,sizeof(char));
-	utils_read_all(file_name,biu->stat.st_size,biu->compressed_data );
-	D("biu->compressed_data=%p",biu->compressed_data);
+
+	  utils_read_all(file_name,&biu->data,&biu->stat);
+	D("biu->data=%p",biu->data);
+	D("biu->stat.st_size=%u",biu->stat.st_size);
+	D("biu->data 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",biu->data[0],biu->data[1],biu->data[2],biu->data[3],biu->data[4],biu->data[5]);
 	errno = EBIOK;
 	return 0;
 }

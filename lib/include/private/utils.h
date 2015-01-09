@@ -22,11 +22,14 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents_umask(const char *path,unsigned mode, mode_t umask);
-__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents(const char *path,unsigned mode);
-__LIBBOOTIMAGE_PRIVATE_API__ int utils_paranoid_strnlen( char* s,int maxlen);
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents_umask(char *path,unsigned mode, mode_t umask);
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents(char *path,unsigned mode);
 __LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname( char* s);
-__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer, size_t count);
-__LIBBOOTIMAGE_PRIVATE_API__ int utils_read_all(char* file_name,off_t file_size, char* dest);
-__LIBBOOTIMAGE_PRIVATE_API__ unsigned char *utils_memmem(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len);
+__LIBBOOTIMAGE_PRIVATE_API__ char* utils_basename( char* s);
+
+__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all_fd (int fd, const void* buffer, ssize_t count);
+__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (char* file_name,mode_t mode, const void* buffer, ssize_t count);
+__LIBBOOTIMAGE_PRIVATE_API__ int utils_read_all(char* file_name,char** buffer ,struct stat* st);
+
+
 #endif

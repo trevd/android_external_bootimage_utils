@@ -56,9 +56,9 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* b
 
 
 	struct archive *a = NULL ;
-	if ( check_archive_read_memory(&a,bi->compressed_kernel_offset,bi->compressed_kernel_size ) == -1 ){
-		return -1;
-	}
+	//if ( check_archive_read_memory(bi->compressed_kernel_offset,bi->compressed_kernel_size ) == -1 ){
+//		return -1;
+	//}
 
 	D("archive_compression_name=%s",archive_compression_name(a)) ;
 
@@ -90,7 +90,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ int bootimage_kernel_decompress(struct bootimage* b
 		D("kstring is null");
 		return -1;
 	}
-	bi->kernel_version_string_length = utils_paranoid_strnlen(bi->kernel_version_string,256);
+	bi->kernel_version_string_length = utils_sanitize_string(bi->kernel_version_string,256);
 	if ( bi->kernel_version_string_length <= 0 ) {
 		return -1 ;
 	}

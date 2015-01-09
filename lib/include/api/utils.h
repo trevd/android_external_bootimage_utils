@@ -13,20 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * file : lib/include/biutils.h
+ * file : lib/include/api/utils.h
  *
  */
 
-#ifndef _826f4afc_92a3_11e4_937c_5404a601fa9d
-#define _826f4afc_92a3_11e4_937c_5404a601fa9d
-
-#ifndef __LIBBOOTIMAGE_PUBLIC_API__
-#define __LIBBOOTIMAGE_PUBLIC_API__  __attribute__((visibility("default")))
-#endif
-#include <api/errors.h>
-#include <api/bootimage_utils.h>
-#include <api/bootimage_file_extract.h>
-#include <api/bootimage.h>
-#include <api/utils.h>
-
+#ifndef _d6fb49bc_9786_11e4_8458_5404a601fa9d
+#define _d6fb49bc_9786_11e4_8458_5404a601fa9d
+__LIBBOOTIMAGE_PUBLIC_API__ ssize_t utils_sanitize_string(char* s,ssize_t maxlen) ;
+__LIBBOOTIMAGE_PUBLIC_API__ unsigned char *utils_memmem(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len);
 #endif

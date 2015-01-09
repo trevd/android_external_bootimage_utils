@@ -27,7 +27,8 @@
 #define mkdir_os(path,mode) mkdir(path,mode)
 #endif
 
-__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdirat_umask(const char *path,unsigned mode, mode_t mask)
+
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdirat_umask( char *path,unsigned mode, mode_t mask)
 {
     mode_t oldumask = umask(mask);
     int ret = utils_mkdir_and_parents(path,mode);
@@ -35,22 +36,21 @@ __LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdirat_umask(const char *path,unsigned 
     return ret;
 }
 
-__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents_umask(const char *path,unsigned mode, mode_t mask)
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents_umask( char *path,unsigned mode, mode_t mask)
 {
     mode_t oldumask = umask(mask);
     int ret = utils_mkdir_and_parents(path,mode);
     umask(oldumask);
     return ret;
 }
-__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents(const char *path,unsigned mode)
+__LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents( char *path,unsigned mode)
 {
         errno = 0;
         char opath[PATH_MAX];
         char *p;
         size_t len;
 
-        if(strnlen(path,PATH_MAX) >= PATH_MAX){
-            errno = ENAMETOOLONG ;
+        if( utils_sanitize_string(path,PATH_MAX) == SSIZE_MAX ){
             return -1;
         }
 
@@ -97,20 +97,28 @@ __LIBBOOTIMAGE_PRIVATE_API__  int utils_mkdir_and_parents(const char *path,unsig
         return 0;
 
 }
-__LIBBOOTIMAGE_PRIVATE_API__ int utils_paranoid_strnlen(char* s,int maxlen)
+/* utils_sanitize_string - sanitizes the s argunement
+ * returns the string length and also zero terminates the input string  */
+__LIBBOOTIMAGE_PUBLIC_API__ ssize_t utils_sanitize_string(char* s,ssize_t maxlen)
 {
+	D("s=%s",s);
+	if ( s == NULL ){
+		errno = EBIOUTNAME ;
+		return -1;
+	}
     /* The Paranoid strnlen function runs strnlen then checks the returned
        string again for non printable values and breaks at the first one it find
        length */
+
     const char* cs = s;
-    D("s=%s maxlen=%d",s,maxlen);
-    int len = strnlen(cs,maxlen);
+    D("s=%s maxlen=%zu",s,maxlen);
+    ssize_t len = strnlen(cs,maxlen);
     if ( len == maxlen ) {
-        D("s=%s maxlen=%d len=%d",s,maxlen,len);
+        D("s=%s maxlen=%zu len=%zu",s,maxlen,len);
         s[len-1] = '\0';
-        return 0;
+        return len;
     }
-    D("len=%d",len);
+    D("len=%zu",len);
     char *p = s;
     int i = 0;
     for(i = 0 ; i <= len ; i++){
@@ -124,14 +132,15 @@ __LIBBOOTIMAGE_PRIVATE_API__ int utils_paranoid_strnlen(char* s,int maxlen)
         }
 
     }
-    D("returning len=%d",len);
+    D("returning len=%zu",len);
     return len ;
 
 }
 __LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname(char* s)
 {
     D("s=%s",s);
-    if(s == NULL ){
+    size_t len = utils_sanitize_string(s,PATH_MAX);
+    if(len == SIZE_MAX ){
         return NULL ;
     }
 
@@ -141,16 +150,44 @@ __LIBBOOTIMAGE_PRIVATE_API__ char* utils_dirname(char* s)
     if(d == NULL ){
         return NULL;
     }
-    int len = d-s ;
-    D("len=%d",len);
-    char* r = calloc(len , sizeof(char)+1);
-    strncpy(r,s,len);
+    int dir_len = d-s ;
+    D("dir_len=%d",dir_len);
+    char* r = calloc(dir_len , sizeof(char)+1);
+    strncpy(r,s,dir_len);
     D("r=%s",r);
     return r;
 
 }
-__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer, size_t count)
+__LIBBOOTIMAGE_PRIVATE_API__ char* utils_basename(char* s)
 {
+    D("s=%s",s);
+    size_t len = utils_sanitize_string(s,PATH_MAX);
+    if(len == SIZE_MAX ){
+        return NULL ;
+    }
+    char* r = strrchr(s,'/');
+    if( r == NULL ){
+        return s;
+    }
+    return r+1;
+
+}
+__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all_fd (int fd, const void* buffer, ssize_t count)
+{
+
+    if ( fd <= 0 ){
+        E("fd %d",fd);
+        return -1 ;
+    }
+    if ( buffer == NULL ){
+        ENULLARG("buffer");
+        return -1;
+    }
+    if ( count <= 0 ){
+        E("count %zu",count);
+        return -1 ;
+    }
+
   ssize_t left_to_write = count;
   while (left_to_write > 0) {
     ssize_t written = write (fd, buffer, count);
@@ -166,16 +203,51 @@ __LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (int fd, const void* buffer
   /* The number of bytes written is exactly COUNT.  */
   return count;
 }
-__LIBBOOTIMAGE_PRIVATE_API__ int utils_read_all(char* file_name,off_t file_size, char* dest)
+__LIBBOOTIMAGE_PRIVATE_API__ ssize_t utils_write_all (char* file_name,mode_t mode, const void* buffer, ssize_t count)
+{
+  	/* Open the file as read only, read for mmapping */
+    ssize_t len = utils_sanitize_string(file_name,PATH_MAX);
+    if( len == -1 ){
+        return -1 ;
+    }
+    char* dirname = utils_dirname(file_name) ;
+    if ( dirname != NULL ) {
+        utils_mkdir_and_parents_umask(dirname,0755,0);
+    }
+
+	int fd =  open(file_name, O_CREAT | O_TRUNC | O_WRONLY, mode);
+	D("fd=%d",fd);
+	if(fd < 0 ){
+        D("could not open file_name %s",file_name);
+		/* Could not open file. errno should be set already so return -1 */
+		return -1;
+	}
+    ssize_t written = utils_write_all_fd(fd,buffer,count);
+    close(fd);
+    return written;
+}
+/* utils_read_all - Populate buffer with data and st with stat info for filename  */
+__LIBBOOTIMAGE_PRIVATE_API__ int utils_read_all(char* file_name,char** buffer, struct stat* st)
 {
 
-	if ( dest == NULL ) {
-        D("dest buffer is unallocated %p",dest);
-        return -1;
+    if ( utils_sanitize_string(file_name,PATH_MAX) == -1 ){
+        errno = EBIFNAME ;
+        return -1 ;
     }
-    if ( file_size <= 0 ) {
-        D("wrong file_size %l",file_size);
-        return -1;
+    /* Does the file exist? , can we read it? */
+	if ( access(file_name , R_OK ) == -1 ) {
+		errno = EBIFACCESS ;
+		return -1 ;
+	}
+    if (stat(file_name, st) == -1){
+		E("stat");
+		errno = EBISTAT;
+		return -1 ;
+	}
+
+    if ( st->st_size <= 0 ) {
+        D("wrong file_size %jd",st->st_size);
+            return -1;
     }
 	/* Open the file as read only, read for mmapping */
 	int fd = open(file_name,O_RDONLY);
@@ -187,28 +259,28 @@ __LIBBOOTIMAGE_PRIVATE_API__ int utils_read_all(char* file_name,off_t file_size,
 	}
 
 
-	D("dest=%p",dest );
-    ssize_t bytes_read = 0; ;
-    ssize_t left_to_read = file_size;
+
+    buffer[0] = calloc(st->st_size,sizeof(char));
+    D("dest=%p",buffer[0] );
+    ssize_t left_to_read = st->st_size;
     while (left_to_read > 0 ) {
-        bytes_read = read(fd, dest, left_to_read);
-        if ( bytes_read <= 0 ){
-            D("bytes_read=%u errno=%d %s",bytes_read , errno, strerror(errno) );
+        ssize_t tmp_bytes_read = read(fd, buffer[0], left_to_read);
+        if ( tmp_bytes_read <= 0 ){
+            D("bytes_read=%zu errno=%d %s",tmp_bytes_read , errno, strerror(errno) );
             close(fd);
             return -1;
         }
-        left_to_read -= bytes_read;
-        dest += bytes_read;
+        left_to_read -= tmp_bytes_read;
+        buffer += tmp_bytes_read;
 
 
-  }
-  close(fd);
-  D("left_to_read=%u",left_to_read );
-  D("bytes_read=%u",bytes_read );
-
-	return 0 ;
+    }
+    close(fd);
+    //D("buffer 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",buffer[0][0],buffer[0][1],buffer[0][2],buffer[0][3],buffer[0][4],buffer[0][5]);
+    D("left_to_read=%zu",left_to_read );
+    return 0;
 }
-__LIBBOOTIMAGE_PRIVATE_API__ unsigned char *utils_memmem(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len)
+__LIBBOOTIMAGE_PUBLIC_API__ unsigned char *utils_memmem(unsigned char *haystack, unsigned haystack_len, char* needle, unsigned needle_len)
 {
 
     errno = 0;

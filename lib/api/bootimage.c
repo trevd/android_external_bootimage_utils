@@ -68,10 +68,20 @@ __LIBBOOTIMAGE_PUBLIC_API__  int bootimage_free(struct bootimage** bip){
 	return 0;
 }
 
-__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name){
+__LIBBOOTIMAGE_PUBLIC_API__  int bootimage_file_read(struct bootimage* bi,const char* file_name)
+{
 
 	/* Call  */
-	if( check_bootimage_file_read_magic(bi,file_name) == -1 ){
+	if ( bi == NULL ){
+		errno = EINVAL ;
+		return -1;
+	}
+	D("bip=%p",bi);
+	if ( utils_read_all(file_name,&bi->start,&bi->stat) ){
+		return -1 ;
+
+	}
+	if ( bootimage_set_magic_address(bi) == -1){
 		return -1;
 	}
 	if( bootimage_set_sections(bi) == -1 ){

@@ -26,7 +26,8 @@
 #define FACTORY_IMAGE_MAGIC_GZIP_SIZE 3
 
 
-__LIBBOOTIMAGE_PRIVATE_API__ static struct factory_images  {
+
+static struct factory_images  {
 		char* name ;
 		int name_length ;
 		char* zip_name ;
@@ -55,7 +56,7 @@ __LIBBOOTIMAGE_PRIVATE_API__ static struct factory_images  {
 {"mysid-jdq39-factory-e365033f.tgz",32,"mysid-jdq39/image-mysid-jdq39.zip",33},
 {"mysid-jro03o-factory-f17426e6.tgz",33,"mysid-jro03o/image-mysid-jro03o.zip",35},
 {"mysidspr-fh05-factory-8cb5208b.tgz",34,"mysidspr-fh05/image-mysidspr-fh05.zip",37},
-{"mysidspr-ga02-factory.tgz",25,"mysidspr-ga02/image-mysidspr-ga02.zip",37},
+{"mysidspr-ga02-factory.tgz",25,"mysidspr-ga02/signed-toroplus-img-ga02.zip",42},
 {"nakasig-jdq39-factory-0798439d.tgz",34,"nakasig-jdq39/image-nakasig-jdq39.zip",37},
 {"nakasig-jop40c-factory-a0431f67.tgz",35,"nakasig-jop40c/image-nakasig-jop40c.zip",39},
 {"nakasig-jwr66y-factory-bdbb7bd7.tgz",35,"nakasig-jwr66y/image-nakasig-jwr66y.zip",39},

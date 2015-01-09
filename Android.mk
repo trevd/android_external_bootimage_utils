@@ -3,6 +3,7 @@ LOCAL_PATH := $(call my-dir)
 libbootimage_src_files := \
 					lib/api/bootimage.c \
 					lib/api/bootimage_extract.c \
+					lib/api/bootimage_file_extract.c \
 					lib/api/bootimage_print.c \
 					lib/api/bootimage_file_print.c \
 					lib/api/bootimage_utils.c \
